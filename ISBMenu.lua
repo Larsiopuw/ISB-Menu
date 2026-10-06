@@ -1,10 +1,10 @@
--- ISB Menu 2.1 | Own-game universal client toolkit
+-- ISB Menu 2.2 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.1.0",
-    ToggleKey = Enum.KeyCode.RightShift,
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.2.0",
+    ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
-    StaffUserIds = {},
+    StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
 }
 
 -- Bundled Heroicons solid assets, MIT, Copyright Tailwind Labs, Inc.
@@ -88,12 +88,12 @@ if env.ISBMenu and type(env.ISBMenu.Destroy) == "function" then
 end
 
 local C = {
-    bg = Color3.fromRGB(12, 12, 13), panel = Color3.fromRGB(26, 26, 29),
-    card = Color3.fromRGB(34, 34, 38), line = Color3.fromRGB(61, 61, 66),
-    text = Color3.fromRGB(250, 250, 252), muted = Color3.fromRGB(170, 170, 178),
-    accent = Color3.fromRGB(238, 238, 240), good = Color3.fromRGB(69, 203, 135),
+    bg = Color3.fromRGB(230,233,238), panel = Color3.fromRGB(245,247,250),
+    card = Color3.fromRGB(255,255,255), line = Color3.fromRGB(216,222,230),
+    text = Color3.fromRGB(32,40,52), muted = Color3.fromRGB(102,115,130),
+    accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {favorites = {}, theme = "Neutral", reducedMotion = false, key = "RightShift", dockKey="K", searchKey="T", sounds=true, blur=false}
+local settings = {favorites = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", sounds=true, blur=false, designVersion="2.2", friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -103,7 +103,11 @@ if type(readfile) == "function" then
             end
         end
         if data.theme == "Neutral" or data.theme == "Mint" or data.theme == "Amber" or data.theme == "Blue" then settings.theme = data.theme end
-        settings.blur=data.blur==true
+        settings.blur=false
+        if data.designVersion~="2.2" then settings.theme="Amber" end
+        settings.friendHighlights=data.friendHighlights~=false; settings.staffHighlights=data.staffHighlights~=false
+        settings.lowEffects=false
+        settings.fpsCap=tonumber(data.fpsCap) or 60
         settings.sounds=data.sounds~=false
         for _,field in ipairs({"dockKey","searchKey"}) do
             if type(data[field])=="string" then
@@ -111,14 +115,16 @@ if type(readfile) == "function" then
                 if valid and key and key~=Enum.KeyCode.Unknown then settings[field]=data[field] end
             end
         end
-        settings.reducedMotion = data.reducedMotion == true
+        settings.reducedMotion = false
         if type(data.key) == "string" then
             local valid, key = pcall(function() return Enum.KeyCode[data.key] end)
             if valid and key and key ~= Enum.KeyCode.Unknown then settings.key = data.key end
         end
     end
 end
-local themes = {Neutral=Color3.fromRGB(238,238,240), Blue = Color3.fromRGB(77,151,255), Mint = Color3.fromRGB(85,216,165), Amber = Color3.fromRGB(255,188,83)}
+if settings.key=="RightShift" then settings.key="M" end
+local themes = {Neutral=Color3.fromRGB(92,108,127), Blue = Color3.fromRGB(77,151,255), Mint = Color3.fromRGB(85,216,165), Amber = Color3.fromRGB(225,112,39)}
+if settings.theme=="Neutral" then settings.theme="Amber" end
 C.accent = themes[settings.theme]
 CONFIG.ToggleKey = Enum.KeyCode[settings.key]
 if settings.dockKey==settings.key then settings.dockKey=settings.key=="K" and "J" or "K" end
@@ -133,6 +139,8 @@ local state = {fly = false, noclip = false, infiniteJump = false, esp = false, n
     fullbright = false, shadows = false, fov = false, fovValue = 80}
 local originals, collisions, highlights, tags = {}, {}, {}, {}
 local flyObjects, flyHumanoid, flyAutoRotate = {}, nil, nil
+local runtime={flightVelocity=Vector3.zero,gameStaff={},memberTags={},
+    presence={connected=false,users={},overhead=true,role="Member",remote=nil,elapsed=0},performanceOwned={},voiceMaintenance=0,tweens={}}
 local lightingOriginal, cameraOriginal, spectating = nil, {}, nil
 local spectateOriginal={}
 local page, query, captureKey, activeSlider = "Start", "", false, nil
@@ -159,7 +167,7 @@ end
 local Teleport=optionalService("TeleportService")
 local Voice=optionalService("VoiceChatService")
 local VoiceInternal=optionalService("VoiceChatInternal")
-local antiVC={active=false,loading=false,module=nil,originalConnections={}}
+local antiVC={active=false,loading=false,originalConnections={}}
 local function restoreVoiceConnections()
     for connection,enabled in pairs(antiVC.originalConnections) do
         pcall(function() if enabled then connection:Enable() else connection:Disable() end end)
@@ -168,10 +176,9 @@ local function restoreVoiceConnections()
 end
 local function stopAntiVC()
     antiVC.active=false
-    -- An in-flight original start is cleaned up immediately after it returns.
+    -- A pending reconnect restores captured signal states after it completes.
     if not antiVC.loading then
-        if antiVC.module and type(antiVC.module.cleanup)=="function" then pcall(antiVC.module.cleanup) end
-        antiVC.module=nil; restoreVoiceConnections()
+        restoreVoiceConnections()
     end
 end
 local function captureVoiceConnections(enumerator)
@@ -221,29 +228,39 @@ local function requestJSON(url,headers)
     assert(type(decoded)=="table","Ungültige JSON-Antwort")
     return decoded
 end
-local function toggleAntiVC()
-    if antiVC.active then stopAntiVC(); notify("Originalmodul wird beendet.","Anti-VC Ban"); return end
-    if antiVC.loading then notify("Der vorherige Start wird noch beendet.","Voice"); return end
+local function maintainVoiceConnections()
     local enumerator=type(getconnections)=="function" and getconnections or (type(get_signal_cons)=="function" and get_signal_cons)
-    if not enumerator or type(loadstring)~="function" or not Voice then notify("VoiceChatService, loadstring und getconnections werden benötigt.","Anti-VC Ban"); return end
-    antiVC.active=true; antiVC.loading=true
-    task.spawn(function()
-        local ok,message=pcall(function()
-            local source=requestBody("https://raw.githubusercontent.com/TLMenu/TLMenuParts/2f3763d829de7407bb96fe43d1350a8013ed4c0a/TL-ANTIVCBAN.lua")
-            if not alive or not antiVC.active then return end
-            local chunk,reason=loadstring(source,"TLMenu/AntiVCBan"); assert(chunk,reason)
-            local module=chunk(); assert(type(module)=="table" and type(module.start)=="function" and type(module.cleanup)=="function","Ungültiges TLMenu-Modul")
-            antiVC.module=module; captureVoiceConnections(enumerator)
-            module.start(function(title,message) if alive and antiVC.active then notify(message,title) end end)
+    if not enumerator then return end
+    captureVoiceConnections(enumerator)
+    for _,entry in ipairs({{VoiceInternal,"StateChanged"},{VoiceInternal,"Participants"},{Voice,"StateChanged"},{Voice,"PlayerMicStateChanged"}}) do
+        pcall(function()
+            local service=entry[1]; if not service then return end
+            local signal=entry[2]=="Participants" and service:GetPropertyChangedSignal("Participants") or service[entry[2]]
+            local items=enumerator(signal)
+            for i,connection in ipairs(items) do
+                if i==8 then connection:Enable() else connection:Disable() end
+            end
         end)
+    end
+end
+local function toggleAntiVC()
+    if antiVC.active then stopAntiVC(); notify("Voice-Modus beendet.","Voice"); return end
+    if antiVC.loading then return end
+    if not Voice or (type(getconnections)~="function" and type(get_signal_cons)~="function") then
+        notify("Die benötigten Voice-Funktionen sind hier nicht verfügbar.","Voice"); return
+    end
+    antiVC.active=true; antiVC.loading=true
+    local ok,message=pcall(function() maintainVoiceConnections(); Voice:leaveVoice() end)
+    if not ok then antiVC.loading=false; stopAntiVC(); notify(tostring(message):sub(1,140),"Voice"); return end
+    task.delay(2.3,function()
         antiVC.loading=false
-        if not ok or not alive or not antiVC.active then stopAntiVC() end
-        if alive then
-            if not ok then notify(tostring(message):sub(1,180),"Voice-Modul konnte nicht gestartet werden") end
-            if page=="Voice" then render() end
-        end
+        if not alive or not antiVC.active then restoreVoiceConnections(); return end
+        local joined=pcall(function() Voice:joinVoice() end)
+        if not joined then stopAntiVC() end
+        if alive then notify(joined and "Voice-Verbindung angefordert." or "Voice-Verbindung nicht verfügbar.","Voice"); if page=="Voice" then render() end end
     end)
 end
+
 local function htmlText(text)
     local values={quot='"',apos="'",amp="&",lt="<",gt=">",nbsp=" "}
     return (tostring(text or ""):gsub("<[^>]+>",""):gsub("&([%w#]+);",function(entity)
@@ -436,6 +453,7 @@ local function save()
 end
 local function make(class, props, parent)
     local obj = Instance.new(class)
+    if obj:IsA("GuiObject") then obj.BorderSizePixel=0 end
     for k, v in pairs(props or {}) do obj[k] = v end
     obj.Parent = parent
     return obj
@@ -491,16 +509,28 @@ playUISound=function(name)
     pcall(function() clip:Stop(); clip:Play() end)
 end
 local function round(obj, radius)
-    make("UICorner", {CornerRadius = UDim.new(0, radius or 12)}, obj)
+    local corner=obj:FindFirstChildOfClass("UICorner") or make("UICorner",{},obj)
+    corner.CornerRadius=UDim.new(0,radius or 12)
 end
 local function stroke(obj)
-    make("UIStroke", {Color = C.line, Thickness = 1, Transparency = 0.25}, obj)
+    local target=obj
+    if obj:IsA("CanvasGroup") then
+        target=make("Frame",{Name="GlassEdge",BackgroundTransparency=1,Size=UDim2.new(1,-2,1,-2),Position=UDim2.fromOffset(1,1),ZIndex=0},obj)
+        local corner=obj:FindFirstChildOfClass("UICorner")
+        make("UICorner",{CornerRadius=corner and corner.CornerRadius or UDim.new(0,18)},target)
+    end
+    make("UIStroke", {Color = C.line, Thickness = 1, Transparency = 0.35}, target)
 end
+runtime.tweens=setmetatable({},{__mode="k"})
 local function animate(obj, props)
-    if settings.reducedMotion then
-        for k,v in pairs(props) do obj[k] = v end
-    else
-        Tween:Create(obj, TweenInfo.new(0.24, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), props):Play()
+    local tracks=runtime.tweens[obj] or {}; runtime.tweens[obj]=tracks
+    for key,value in pairs(props) do
+        if tracks[key] then pcall(function() tracks[key]:Cancel() end) end
+        if settings.reducedMotion then obj[key]=value
+        else
+            local tween=Tween:Create(obj,TweenInfo.new(.28,Enum.EasingStyle.Quint,Enum.EasingDirection.Out),{[key]=value})
+            tracks[key]=tween; tween:Play()
+        end
     end
 end
 local function label(parent, text, size, color, pos, dims)
@@ -551,20 +581,22 @@ end
 local function stopFly()
     for _,obj in ipairs(flyObjects) do obj:Destroy() end
     table.clear(flyObjects)
-    if flyHumanoid and flyHumanoid.Parent then flyHumanoid.AutoRotate = flyAutoRotate end
-    flyHumanoid, flyAutoRotate = nil, nil
+    if flyHumanoid and flyHumanoid.Parent then flyHumanoid.AutoRotate = flyAutoRotate; flyHumanoid.PlatformStand=runtime.flyPlatformStand end
+    if runtime.flyRoot and runtime.flyRoot.Parent then runtime.flyRoot.AssemblyLinearVelocity=Vector3.zero end
+    flyHumanoid, flyAutoRotate, runtime.flyRoot = nil, nil,nil; runtime.flightVelocity=Vector3.zero
 end
 local function startFly()
     stopFly()
     local r, h = root(), humanoid()
     if not r or not h or h.Health <= 0 then return end
     flyHumanoid, flyAutoRotate = h, h.AutoRotate
-    h.AutoRotate = false
+    runtime.flyPlatformStand,runtime.flyRoot=h.PlatformStand,r
+    h.AutoRotate = false; h.PlatformStand=true; runtime.flightVelocity=Vector3.zero
     local attachment = make("Attachment", {Name = "ISBFlyAttachment"}, r)
     local velocity = make("LinearVelocity", {Name = "ISBFlyVelocity", Attachment0 = attachment,
         RelativeTo = Enum.ActuatorRelativeTo.World, MaxForce = math.huge, VectorVelocity = Vector3.zero}, r)
     local orientation = make("AlignOrientation", {Name = "ISBFlyOrientation", Attachment0 = attachment,
-        Mode = Enum.OrientationAlignmentMode.OneAttachment, MaxTorque = math.huge, Responsiveness = 20}, r)
+        Mode = Enum.OrientationAlignmentMode.OneAttachment, MaxTorque = math.huge, Responsiveness = 16}, r)
     flyObjects = {velocity, orientation, attachment}
 end
 local function restoreCollisions()
@@ -619,7 +651,7 @@ local window = make("CanvasGroup", {Name = "Window", BackgroundTransparency=1, G
 round(window, 22); stroke(window)
 local windowSurface=make("Frame",{Name="WindowSurface",BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Size=UDim2.fromScale(1,1),ZIndex=0},window)
 round(windowSurface,22)
-make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(28,28,31),C.bg)},windowSurface)
+make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(255,255,255),C.bg)},windowSurface)
 local motionScale=make("UIScale",{Scale=1},window)
 local header = make("Frame", {BackgroundTransparency=1, Size = UDim2.new(1,0,0,52), Active = true}, window)
 local logo = label(header, "ISB", 19, C.accent, UDim2.fromOffset(20,13), UDim2.fromOffset(48,38))
@@ -629,10 +661,16 @@ local title = label(header, CONFIG.Name, 18, C.text, UDim2.fromOffset(80,12), UD
 title.Font = Enum.Font.BuilderSansBold
 title.Visible=false
 local headerIcon=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(22,16),Size=UDim2.fromOffset(20,20)},header)
-local metrics = label(header, "-- FPS  /  -- ms", 11, C.muted, UDim2.new(1,-236,0,18), UDim2.fromOffset(146,20))
+local statusBar=make("CanvasGroup",{Name="StatusBar",BackgroundColor3=C.panel,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-18,0,18),Size=UDim2.fromOffset(354,44)},gui)
+round(statusBar,22); stroke(statusBar)
+local statusScale=make("UIScale",{Scale=1},statusBar)
+imageIcon(statusBar,"shield-check",18,UDim2.fromOffset(15,13),C.accent)
+local metrics=label(statusBar,"ISB  /  -- Spieler  ·  -- ms  ·  -- FPS",11,C.text,UDim2.fromOffset(43,11),UDim2.new(1,-54,0,22))
+metrics.Font=Enum.Font.BuilderSansMedium
 button(header, "–", UDim2.new(1,-83,0,12), UDim2.fromOffset(28,28), function() setOpen(false) end)
 button(header, "×", UDim2.new(1,-47,0,12), UDim2.fromOffset(28,28), function() setOpen(false) end)
 local launcher = button(gui, "ISB", UDim2.new(0,12,0.5,-22), UDim2.fromOffset(44,44), function() setOpen(not opened) end)
+launcher.Visible=false
 launcher.TextColor3 = C.accent; launcher.TextSize = 14; stroke(launcher)
 local dock=make("CanvasGroup",{BackgroundColor3=C.bg,AnchorPoint=Vector2.new(0.5,1),
     Position=UDim2.new(0.5,0,1,0),Size=UDim2.fromOffset(600,56)},host)
@@ -648,7 +686,7 @@ local hintDescriptions={Start="Deine aktuelle Sitzung",Bewegung="Charakter und B
 local function hideDockHint()
     hintRevision=hintRevision+1; local revision=hintRevision
     animate(dockHint,{GroupTransparency=1})
-    task.delay(settings.reducedMotion and 0 or .24,function() if alive and revision==hintRevision then dockHint.Visible=false end end)
+    task.delay(settings.reducedMotion and 0 or .29,function() if alive and revision==hintRevision then dockHint.Visible=false end end)
 end
 local indicator=make("Frame",{BackgroundColor3=C.accent,BorderSizePixel=0,
     Position=UDim2.fromOffset(99,47),Size=UDim2.fromOffset(20,3)},dock)
@@ -702,7 +740,7 @@ local function drawIcon(parent,kind)
 end
 for i,name in ipairs(navNames) do
     local b = button(dock,"",UDim2.fromOffset(80+(i-1)*46,10),UDim2.fromOffset(36,36),function() selectPage(name) end)
-    round(b,18)
+    round(b,18); b.BackgroundTransparency=1
     b.Name="Nav"..name
     navIcons[name]=drawIcon(b,i)
     connect(b.MouseEnter,function()
@@ -721,13 +759,14 @@ for i,name in ipairs(navNames) do
     connect(b.MouseLeave,function() animate(b,{BackgroundColor3=page==name and C.card or C.panel}) end)
     navButtons[name] = b
 end
-local profile=make("ImageLabel",{BackgroundColor3=C.card,Image="",Position=UDim2.new(1,-58,0,8),Size=UDim2.fromOffset(40,40)},dock)
+local profile=make("ImageButton",{Name="Profile",AutoButtonColor=false,BackgroundColor3=C.card,Image="",Position=UDim2.new(1,-58,0,8),Size=UDim2.fromOffset(40,40)},dock)
 round(profile,20)
+connect(profile.Activated,function() selectPage("Profil") end)
 task.spawn(function()
     local ok,url=pcall(function() return Players:GetUserThumbnailAsync(player.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100) end)
     if alive and ok then profile.Image=url end
 end)
-local pageTitle = label(header, "Übersicht", 17, C.text, UDim2.fromOffset(51,16), UDim2.new(1,-295,0,22))
+local pageTitle = label(header, "Übersicht", 17, C.text, UDim2.fromOffset(51,16), UDim2.new(1,-154,0,22))
 pageTitle.Font = Enum.Font.BuilderSansBold
 local subtitle = label(window, "Dein Spiel. Dein Werkzeug.", 12, C.muted, UDim2.fromOffset(23,116), UDim2.new(1,-46,0,20))
 subtitle.Visible=false
@@ -757,7 +796,7 @@ notify = function(message,heading,iconName)
     round(notice,20)
     local surface=make("Frame",{Name="NoticeSurface",BorderSizePixel=0,BackgroundColor3=Color3.fromRGB(255,255,255),Size=UDim2.fromScale(1,1)},notice)
     round(surface,20)
-    make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(28,28,31),Color3.fromRGB(10,10,11))},surface)
+    make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(255,255,255),C.panel)},surface)
     local icon=imageIcon(notice,iconName or "check-circle",20,UDim2.fromOffset(20,math.floor((height-20)/2)),C.text)
     local left=icon and 58 or 20
     local head=label(notice,heading,14,C.text,UDim2.fromOffset(left,13),UDim2.new(1,-left-18,0,19))
@@ -770,7 +809,7 @@ notify = function(message,heading,iconName)
     task.delay(5,function()
         if not alive or not notice.Parent then return end
         animate(notice,{GroupTransparency=1})
-        task.delay(settings.reducedMotion and 0 or .25,function()
+        task.delay(settings.reducedMotion and 0 or .29,function()
             if not alive then return end
             local index=table.find(notices,notice); if index then table.remove(notices,index) end
             notice:Destroy()
@@ -782,6 +821,7 @@ local function fit()
     local camera = workspace.CurrentCamera
     if not camera then return end
     local size = camera.ViewportSize
+    statusScale.Scale=math.min(1,math.max(.1,(size.X-24)/354))
     scale.Scale = math.min(1, math.max(0.1, (size.X-24)/600), math.max(0.1, (size.Y-100)/552))
     quickBaseScale=math.min(1,math.max(.1,(size.X-24)/520),math.max(.1,(size.Y-24)/108))
     if quickScale then quickScale.Scale=quickBaseScale end
@@ -798,7 +838,7 @@ setOpen=function(value)
         animate(motionScale,{Scale=quickSearchOpen and .985 or 1}); animate(window,{GroupTransparency=quickSearchOpen and .65 or 0,Position=UDim2.new(0.5,0,1,-72)})
     else
         animate(motionScale,{Scale=0.94}); animate(window,{GroupTransparency=1,Position=UDim2.new(0.5,0,1,-54)})
-        task.delay(settings.reducedMotion and 0 or 0.25,function() if alive and revision==openRevision then window.Visible=false end end)
+        task.delay(settings.reducedMotion and 0 or 0.29,function() if alive and revision==openRevision then window.Visible=false end end)
     end
     animate(backdropBlur,{Size=value and settings.blur and 12 or 0})
 end
@@ -820,7 +860,7 @@ setDockVisible=function(value)
     hideDockHint(); playUISound(value and "open" or "close")
     if value then dock.Visible=true end
     animate(dock,{Position=UDim2.new(.5,0,1,value and 0 or 94),GroupTransparency=value and 0 or 1})
-    task.delay(settings.reducedMotion and 0 or .25,function()
+    task.delay(settings.reducedMotion and 0 or .29,function()
         if alive and revision==dockRevision and not value then dock.Visible=false end
     end)
 end
@@ -856,7 +896,7 @@ setQuickSearch=function(value)
     else
         quickInput:ReleaseFocus(false)
         animate(quickSearch,{GroupTransparency=1,Position=UDim2.new(.5,0,.5,12)}); animate(quickScale,{Scale=quickBaseScale*.96})
-        task.delay(settings.reducedMotion and 0 or .25,function() if alive and revision==quickRevision and not value then quickSearch.Visible=false end end)
+        task.delay(settings.reducedMotion and 0 or .29,function() if alive and revision==quickRevision and not value then quickSearch.Visible=false end end)
     end
 end
 connect(quickInput.FocusLost,function(enterPressed)
@@ -876,6 +916,7 @@ local function rowButton(parent, text, pos, dims, fn)
         Position = pos, Size = dims}, parent)
     round(b,8)
     rowConnect(b.Activated, function()
+        playUISound("tap")
         local ok, err = pcall(fn)
         if not ok then warn("ISB Menu: " .. tostring(err)); notify("Aktion fehlgeschlagen.") end
     end)
@@ -997,11 +1038,12 @@ local function drawAction(action)
             else child.Position=UDim2.fromOffset(14,30); child.TextSize=10; child.Size=UDim2.new(1,-150,0,18) end
         end
     end
-    local favorite = rowButton(f,settings.favorites[action.id] and "★" or "☆",UDim2.new(1,-34,0,15),UDim2.fromOffset(22,22),function()
+    local favorite = rowButton(f,"",UDim2.new(1,-40,0,12),UDim2.fromOffset(28,28),function()
         settings.favorites[action.id] = not settings.favorites[action.id] or nil
         save(); render()
     end)
-    favorite.TextColor3=C.accent
+    favorite.BackgroundTransparency=1
+    imageIcon(favorite,"star",18,UDim2.fromOffset(5,5),settings.favorites[action.id] and C.accent or C.line)
     if action.kind == "toggle" then
         local enabled = action.get()
         local b, knob, status
@@ -1014,7 +1056,7 @@ local function drawAction(action)
         end)
         round(b,16)
         b.BackgroundColor3 = enabled and C.accent or C.line
-        knob=make("Frame",{BackgroundColor3=C.text,Position=UDim2.fromOffset(enabled and 36 or 4,4),Size=UDim2.fromOffset(24,24)},b)
+        knob=make("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),Position=UDim2.fromOffset(enabled and 36 or 4,4),Size=UDim2.fromOffset(24,24)},b)
         round(knob,12)
         status=label(f,enabled and "AKTIV" or "BEREIT",8,C.muted,UDim2.new(1,-120,0,58),UDim2.fromOffset(64,12))
         status.Visible=false
@@ -1035,7 +1077,7 @@ local function drawAction(action)
         local fill = make("Frame",{BorderSizePixel=0,BackgroundColor3=C.accent,
             Size=UDim2.new((action.get()-action.min)/(action.max-action.min),0,1,0)},track)
         round(fill,3)
-        local knob = make("Frame",{BackgroundColor3=C.text,AnchorPoint=Vector2.new(0.5,0.5),
+        local knob = make("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),AnchorPoint=Vector2.new(0.5,0.5),
             Position=UDim2.fromScale(1,0.5),Size=UDim2.fromOffset(14,14)},fill)
         round(knob,7)
         local hit = make("TextButton",{Text="",BackgroundTransparency=1,
@@ -1069,6 +1111,7 @@ local function findAction(id)
 end
 local function clearRows()
     activeSlider=nil
+    activeSlider=nil
     for _,con in ipairs(rowConnections) do con:Disconnect() end
     table.clear(rowConnections)
     for _,child in ipairs(content:GetChildren()) do if child:IsA("GuiObject") then child:Destroy() end end
@@ -1080,11 +1123,123 @@ local function plainCard(name,description,height)
     for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-32,0,child.Text==name and 24 or 36) end end
     return f
 end
+local features={}
+function features.applyPerformance()
+    local function pause(obj)
+        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("PostEffect") then
+            if runtime.performanceOwned[obj]==nil then runtime.performanceOwned[obj]=obj.Enabled end
+            obj.Enabled=false
+        end
+    end
+    if settings.lowEffects then
+        for _,obj in ipairs(workspace:GetDescendants()) do pause(obj) end
+        for _,obj in ipairs(Lighting:GetDescendants()) do if obj~=backdropBlur then pause(obj) end end
+    else
+        for obj,value in pairs(runtime.performanceOwned) do
+            if type(obj)~="string" then if obj.Parent then obj.Enabled=value end; runtime.performanceOwned[obj]=nil end
+        end
+    end
+end
+connect(workspace.DescendantAdded,function(obj)
+    if settings.lowEffects and (obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam")) then
+        runtime.performanceOwned[obj]=obj.Enabled; obj.Enabled=false
+    end
+end)
+function features.canManageOverhead() return runtime.presence.role=="Owner" or runtime.presence.role=="Admin" end
+function features.teleportToMember(other)
+    if not runtime.presence.connected or not runtime.presence.users[other.UserId] or not runtime.presence.remote then return end
+    task.spawn(function()
+        local ok,result=pcall(function() return runtime.presence.remote:InvokeServer("teleport",other.UserId) end)
+        if alive and (not ok or type(result)~="table" or not result.ok) then notify("Teleport ist aktuell nicht verfügbar.","ISB") end
+    end)
+end
+function features.updateMemberTags()
+    for _,other in ipairs(Players:GetPlayers()) do
+        local entry=runtime.presence.users[other.UserId]
+        local target=other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+        local visible=runtime.presence.connected and runtime.presence.overhead and entry and target and other~=player
+        if runtime.memberTags[other] and (not visible or runtime.memberTags[other].Adornee~=target) then runtime.memberTags[other]:Destroy(); runtime.memberTags[other]=nil end
+        if visible and not runtime.memberTags[other] then
+            local tag=make("BillboardGui",{Name="ISBMember",Adornee=target,AlwaysOnTop=true,Active=true,
+                Size=UDim2.fromOffset(216,52),StudsOffset=Vector3.new(0,4,0)},gui)
+            local b=make("TextButton",{Text="",Font=Enum.Font.BuilderSansMedium,
+                TextSize=11,TextColor3=C.text,BackgroundColor3=C.panel,Size=UDim2.fromScale(1,1),AutoButtonColor=false},tag)
+            round(b,16); stroke(b)
+            imageIcon(b,"shield-check",24,UDim2.fromOffset(14,14),C.accent)
+            local name=label(b,other.DisplayName,12,C.text,UDim2.fromOffset(48,8),UDim2.new(1,-58,0,20)); name.Font=Enum.Font.BuilderSansMedium
+            local role=label(b,"ISB  /  "..tostring(entry.role),9,C.accent,UDim2.fromOffset(48,29),UDim2.new(1,-58,0,14)); role.Name="Role"
+            -- This connection belongs to the tag and is released when the tag is destroyed.
+            b.Activated:Connect(function() features.teleportToMember(other) end)
+            runtime.memberTags[other]=tag
+        end
+        if visible and runtime.memberTags[other] then
+            local b=runtime.memberTags[other]:FindFirstChildOfClass("TextButton")
+            local role=b and b:FindFirstChild("Role"); if role then role.Text="ISB  /  "..entry.role end
+        end
+    end
+end
+function features.applyPresence(snapshot)
+    if type(snapshot)~="table" or snapshot.protocol~=1 or type(snapshot.users)~="table" then return false end
+    local users={}
+    for _,entry in ipairs(snapshot.users) do
+        if type(entry)=="table" and type(entry.userId)=="number" and (entry.role=="Owner" or entry.role=="Admin" or entry.role=="Member") then users[entry.userId]=entry end
+    end
+    runtime.presence.users=users; runtime.presence.overhead=snapshot.overhead~=false; runtime.presence.connected=true
+    runtime.presence.role=users[player.UserId] and users[player.UserId].role or "Member"
+    features.updateMemberTags()
+    if render and (page=="Start" or page=="Profil") then render() end
+    return true
+end
+function features.detectGameStaff(other)
+    task.spawn(function()
+        local detected=table.find(CONFIG.StaffUserIds,other.UserId)~=nil
+        pcall(function()
+            if game.CreatorType==Enum.CreatorType.User then detected=detected or other.UserId==game.CreatorId; return end
+            if game.CreatorType~=Enum.CreatorType.Group then return end
+            local groupService=game:GetService("GroupService")
+            local ok,result=pcall(function() return groupService:GetRolesInGroupAsync(other.UserId,game.CreatorId) end)
+            local roles=ok and type(result)=="table" and result.Roles or nil
+            if not roles then
+                local fallback,role=pcall(function() return other:GetRoleInGroupAsync(game.CreatorId) end)
+                roles=fallback and {{Name=role}} or {}
+            end
+            for _,role in ipairs(roles) do
+                local name=string.lower(tostring(role.Name or "")):gsub("[^%w]"," ")
+                local padded=" "..name.." "
+                if not padded:find(" not ",1,true) and not padded:find(" fan ",1,true) then
+                    for _,term in ipairs({"admin","administrator","owner","developer","dev","moderator","staff","besitzer","entwickler"}) do
+                        if padded:find(" "..term.." ",1,true) then detected=true; break end
+                    end
+                end
+                if role.Rank==255 then detected=true end
+            end
+        end)
+        if not alive or not other.Parent then return end
+        runtime.gameStaff[other]=detected
+        if detected and other~=player then notify(other.DisplayName.." gehört zur Spiel-Leitung.","Spiel-Admin","shield-check") end
+    end)
+end
+function features.drawProfile()
+    local f=plainCard(player.DisplayName,"@"..player.Name.."  ·  "..runtime.presence.role,100)
+    imageIcon(f,"shield-check",25,UDim2.new(1,-53,0,24),C.accent)
+    plainCard("ISB Netzwerk",runtime.presence.connected and "Verbunden · "..tostring(#Players:GetPlayers()).." Spieler in dieser Sitzung" or "Keine Server-Anbindung. Gemeinsame Nutzererkennung ist in diesem Spiel nicht verfügbar.",90)
+    if runtime.presence.connected then
+        if features.canManageOverhead() then
+            drawAction({id="overhead",name="ISB Overhead-Anzeigen",desc="Nur Owner und Admin können diese Einstellung ändern",kind="toggle",get=function() return runtime.presence.overhead end,fn=function()
+                task.spawn(function()
+                    local ok,result=pcall(function() return runtime.presence.remote:InvokeServer("overhead",not runtime.presence.overhead) end)
+                    if alive and ok then features.applyPresence(result) end
+                end)
+            end})
+        else plainCard("Overhead-Anzeigen","Die Einstellung verwalten Owner und Admin. Tippe auf eine ISB-Anzeige, um zum Spieler zu gelangen.",88) end
+    end
+end
+
 local function drawDashboard()
     local f=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,298)},content)
     local greeting=label(f,"Willkommen, "..player.DisplayName,18,C.text,UDim2.fromOffset(0,0),UDim2.new(1,0,0,24))
     greeting.Font=Enum.Font.BuilderSansBold
-    label(f,session.placeName,12,C.muted,UDim2.fromOffset(0,27),UDim2.new(1,0,0,22))
+    label(f,"ISB / "..runtime.presence.role.."  ·  "..session.placeName,12,C.muted,UDim2.fromOffset(0,27),UDim2.new(1,0,0,22))
     local data={{"Server","server-stack","server"},{"Freunde","users","friends"},{"Executor","code-bracket-square","executor"},{"Sitzung","globe-alt","session"}}
     for i,entry in ipairs(data) do
         local x=(i-1)%2; local y=math.floor((i-1)/2)
@@ -1117,6 +1272,11 @@ local function updateDashboard()
         fields.session.sub.Text=(game.PrivateServerId and game.PrivateServerId~="") and "Private Sitzung  ·  Region nicht verfügbar" or "Öffentliche Sitzung  ·  Region nicht verfügbar"
     end
 end
+connect(Lighting.DescendantAdded,function(obj)
+    if settings.lowEffects and obj:IsA("PostEffect") and obj~=backdropBlur then
+        runtime.performanceOwned[obj]=obj.Enabled; obj.Enabled=false
+    end
+end)
 local function drawCharacter()
     local grid=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,76)},content)
     local quick={{"fly","Fliegen","bolt",Color3.fromRGB(55,153,229)},{"noclip","Noclip","arrows-up-down",Color3.fromRGB(159,115,217)},
@@ -1139,7 +1299,11 @@ local function drawCharacter()
     end
     rowButton(tabs,"Reset",UDim2.new(1,-70,0,0),UDim2.fromOffset(70,28),function()
         for _,id in ipairs({"speed","jump","fov"}) do local action=findAction(id); if action.get() then action.fn() end end
-        render(); notify("Speed, Jump und Sichtfeld zurückgesetzt.","Charakter")
+        local h=humanoid()
+        state.speedValue=h and h.WalkSpeed or 16
+        state.jumpValue=h and (h.UseJumpPower and h.JumpPower or math.sqrt(2*workspace.Gravity*h.JumpHeight)) or 50
+        state.flyValue=45; state.fovValue=workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70
+        activeSlider=nil; render(); notify("Regler und Charakterwerte zurückgesetzt.","Charakter")
     end)
     local source=findAction(tuning); local action=table.clone(source)
     action.fn=function(value)
@@ -1209,8 +1373,8 @@ local function drawVoice()
         notify(input.Muted and "Mikrofon stummgeschaltet." or "Mikrofon freigegeben.","Mikrofon","microphone")
     end)
     rowButton(f,"Reconnect",UDim2.fromOffset(272,73),UDim2.fromOffset(108,28),reconnectVoice)
-    drawAction({id="antivc",name="Anti-VC Ban · TLMenu",desc=antiVC.loading and "Originalmodul wird gestartet / beendet …" or "TLMenu-Originalmodul · explizit aktivieren",kind="toggle",get=function() return antiVC.active end,fn=toggleAntiVC})
-    plainCard("Originalmodul", "Lädt das separate TLMenu-Voice-Modul beim Einschalten unverändert. Es bringt seine Mikrofon-Oberfläche mit. Ein serverseitiger Sperrschutz ist hier nicht live verifiziert.",98)
+    drawAction({id="antivc",name="Anti-VC Ban",desc=antiVC.loading and "Voice-Verbindung wird erneuert …" or "Lokaler Voice-Modus mit Reconnect",kind="toggle",get=function() return antiVC.active end,fn=toggleAntiVC})
+    plainCard("Voice-Verbindung", "Dieser Modus steuert ausschließlich den lokalen Voice-Client. Ein Schutz vor serverseitigen Voice-Sperren ist nicht nachgewiesen.",98)
 end
 local function drawScripts()
     local mode=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
@@ -1337,7 +1501,7 @@ render = function()
     pageTitle.Text=page == "Start" and "ISB Menu" or page
     subtitle.Text=descriptions[page] or "Eigene Erweiterungen"
     local remote=page=="Skripte" and not scriptSearch.localMode
-    local searchable=page~="Start" and page~="Musik" and page~="Einstellungen" and page~="Voice"
+    local searchable=page~="Start" and page~="Musik" and page~="Einstellungen" and page~="Voice" and page~="Profil"
     search.Visible=searchable
     search.PlaceholderText=remote and "Skripte suchen …" or "Funktionen und Spieler suchen …"
     content.Position=UDim2.fromOffset(18,searchable and 104 or 60)
@@ -1350,12 +1514,14 @@ render = function()
     animate(window,{Size=UDim2.fromOffset(600,heights[page] or 400)})
     for _,child in ipairs(headerIcon:GetChildren()) do child:Destroy() end
     local pageIndex=table.find(navNames,page) or 9
-    imageIcon(headerIcon,page=="Voice" and "microphone" or navAssetNames[pageIndex],20,UDim2.new(),C.text)
+    imageIcon(headerIcon,page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex]),20,UDim2.new(),C.accent)
     for name,b in pairs(navButtons) do
         b.TextColor3=name == page and C.accent or C.muted
+        b.BackgroundTransparency=name==page and .15 or 1
         b.BackgroundColor3=name == page and C.card or C.panel
         for _,part in ipairs(navIcons[name]) do part.obj[part.property]=name==page and C.accent or C.muted end
     end
+    indicator.Visible=page~="Profil" and page~="Voice"
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
     if page == "Start" then
@@ -1407,6 +1573,8 @@ render = function()
             stopwatch.elapsed=0; stopwatch.running=true; showWidget("stopwatch")
         end)
         label(clockCard,"Pause und Beenden direkt im Widget.",10,C.muted,UDim2.fromOffset(16,116),UDim2.new(1,-32,0,22))
+    elseif page == "Profil" then
+        features.drawProfile()
     elseif page == "Einstellungen" and query == "" then
         if settingsSection==nil then
             local categories={{"Allgemein","cog-6-tooth"},{"Tasten","command-line"},{"Performance","bolt"},{"Erkennung","shield-check"},{"Protokoll","document-text"}}
@@ -1423,13 +1591,22 @@ render = function()
             if #session.logs==0 then plainCard("Keine Einträge","Hinweise und Aktionen erscheinen hier.",78) end
             for _,entry in ipairs(session.logs) do plainCard(entry.time.."  ·  "..entry.title,entry.message,78) end
         elseif settingsSection=="Erkennung" then
-            plainCard("Freunde und Staff","Freunde werden anhand deiner Freundesliste erkannt. Staff-Hinweise verwenden ausschließlich die konfigurierten User-IDs; sie sind kein Schutz vor Moderation.",106)
+            drawAction({id="friendmarkers",name="Freunde markieren",desc="Freunde aus deiner Roblox-Freundesliste leuchten blau",kind="toggle",get=function() return settings.friendHighlights end,fn=function() settings.friendHighlights=not settings.friendHighlights; save() end})
+            drawAction({id="staffmarkers",name="Spiel-Admins markieren",desc="Owner, Admin, Developer und Moderator der Spiel-Gruppe leuchten rot",kind="toggle",get=function() return settings.staffHighlights end,fn=function() settings.staffHighlights=not settings.staffHighlights; save() end})
+            plainCard("Rollen-Erkennung","Verwendet öffentlich sichtbare Gruppenrollen und den Spielbesitzer. Rollenbezeichnungen sind Hinweise, keine verifizierten Berechtigungen.",92)
             plainCard("Executor",session.executor.." "..session.executorVersion,78)
             plainCard("Fähigkeiten",string.format("Dateien: %s  ·  Clipboard: %s  ·  Asset-Icons: %s",tostring(capabilities.files),tostring(capabilities.clipboard),tostring(capabilities.icons)),82)
         elseif settingsSection=="Performance" then
-            drawAction({id="motion",name="Weniger Animationen",desc="Direkte Übergänge",kind="toggle",get=function() return settings.reducedMotion end,fn=function() settings.reducedMotion=not settings.reducedMotion; save() end})
-            drawAction({id="blur",name="Hintergrund weichzeichnen",desc="Nur während das Menü geöffnet ist",kind="toggle",get=function() return settings.blur end,fn=function() settings.blur=not settings.blur; save(); setOpen(opened) end})
-            plainCard("Live-Messung",tostring(session.fps).." FPS  ·  "..tostring(session.ping or "—").." ms\nDie Werte stehen auch in der Kopfzeile.",88)
+            drawAction({id="effects",name="Effekte reduzieren",desc="Partikel, Trails, Beam und Post-Effekte lokal pausieren",kind="toggle",get=function() return settings.lowEffects end,fn=function() settings.lowEffects=not settings.lowEffects; features.applyPerformance(); save() end})
+            drawAction(findAction("shadows"))
+            if type(setfpscap)=="function" and type(getfpscap)=="function" then
+                local cap=plainCard("FPS-Limit","Das vorherige Limit wird beim Beenden wiederhergestellt.",94)
+                for i,value in ipairs({60,120,144,240}) do rowButton(cap,tostring(value),UDim2.fromOffset(16+(i-1)*72,58),UDim2.fromOffset(62,26),function()
+                    if runtime.performanceOwned.fps==nil then local ok,old=pcall(getfpscap); if ok then runtime.performanceOwned.fps=old end end
+                    local ok=pcall(setfpscap,value); if ok then settings.fpsCap=value; notify("FPS-Limit: "..value,"Performance") end
+                end) end
+            end
+            plainCard("Live-Messung",tostring(session.fps).." FPS  ·  "..tostring(session.ping or "—").." ms\nDie Statusleiste bleibt oben rechts sichtbar.",88)
         elseif settingsSection=="Tasten" then
             for _,entry in ipairs({{"key","Menü öffnen / schließen"},{"dockKey","Dock einfahren / ausfahren"},{"searchKey","Skript-Schnellsuche"}}) do
                 local field=entry[1]
@@ -1438,7 +1615,7 @@ render = function()
                 b=rowButton(f,settings[field],UDim2.new(1,-120,0,23),UDim2.fromOffset(104,32),function() captureKey=field; b.Text="Taste …" end)
             end
         else
-        local f=card("Akzentfarbe","Graphit mit deinem bevorzugten Farbakzent",104)
+        local f=card("Akzentfarbe","ISB · Porzellan, Metall und ein klarer Farbakzent",104)
         for i,name in ipairs({"Neutral","Blue","Mint","Amber"}) do
             local b=rowButton(f,name,UDim2.fromOffset(16+(i-1)*104,68),UDim2.fromOffset(94,26),function()
                 settings.theme=name; C.accent=themes[name]; save()
@@ -1448,15 +1625,6 @@ render = function()
             end)
             b.TextColor3=themes[name]
         end
-        local k=card("Menü-Taste", "Anklicken, dann eine Taste drücken. Escape bricht ab.")
-        local kb
-        kb=rowButton(k,CONFIG.ToggleKey.Name,UDim2.new(1,-146,0,24),UDim2.fromOffset(130,32),function()
-            captureKey=true; kb.Text="Taste drücken …"
-        end)
-        drawAction({id="motion",name="Weniger Animationen",desc="Direkte Übergänge",kind="toggle",
-            get=function() return settings.reducedMotion end,fn=function() settings.reducedMotion=not settings.reducedMotion; save() end})
-        drawAction({id="blur",name="Hintergrund weichzeichnen",desc="Nur während das Menü geöffnet ist",kind="toggle",
-            get=function() return settings.blur end,fn=function() settings.blur=not settings.blur; save(); setOpen(opened) end})
         drawAction({id="uisounds",name="Interface-Sounds",desc="Dezente Klänge bei Öffnen, Schließen und Klicks",kind="toggle",get=function() return settings.sounds end,fn=function() settings.sounds=not settings.sounds; save() end})
         local voice=card("Voice Chat","Status, Mikrofon und Verbindung prüfen",78)
         rowButton(voice,"Öffnen",UDim2.new(1,-120,0,24),UDim2.fromOffset(104,32),function() query=""; selectPage("Voice") end)
@@ -1508,27 +1676,11 @@ connect(UIS.InputBegan,function(input,processed)
     elseif input.KeyCode==Enum.KeyCode[settings.dockKey] then setDockVisible(not dockVisible)
     elseif input.KeyCode==Enum.KeyCode[settings.searchKey] then setQuickSearch(not quickSearchOpen) end
 end)
-local drag
-connect(header.InputBegan,function(input)
-    if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
-        drag={input=input,origin=Vector2.new(input.Position.X,input.Position.Y),position=host.Position}
-    end
-end)
 connect(UIS.InputChanged,function(input)
-    local movingMouse=input.UserInputType==Enum.UserInputType.MouseMovement
-    if activeSlider and (movingMouse or input==activeSlider.input) then activeSlider.update(input.Position.X) end
-    if drag and (movingMouse or input==drag.input) then
-        local delta=Vector2.new(input.Position.X,input.Position.Y)-drag.origin
-        local vp=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(800,600)
-        local half=host.AbsoluteSize/2
-        local x=math.clamp(drag.position.X.Scale*vp.X+drag.position.X.Offset+delta.X,half.X,vp.X-half.X)
-        local y=math.clamp(drag.position.Y.Scale*vp.Y+drag.position.Y.Offset+delta.Y,host.AbsoluteSize.Y,vp.Y)
-        host.Position=UDim2.fromOffset(x,y)
-    end
+    if activeSlider and (input.UserInputType==Enum.UserInputType.MouseMovement or input==activeSlider.input) then activeSlider.update(input.Position.X) end
 end)
 connect(UIS.InputEnded,function(input)
     if input.UserInputType==Enum.UserInputType.MouseButton1 or (activeSlider and input==activeSlider.input) then activeSlider=nil end
-    if input.UserInputType==Enum.UserInputType.MouseButton1 or (drag and input==drag.input) then drag=nil end
 end)
 connect(Run.Stepped,function()
     if state.noclip and player.Character then
@@ -1586,37 +1738,66 @@ connect(Run.RenderStepped,function(dt)
         local direction=h and h.MoveDirection or Vector3.zero
         local up=touchVertical
         if not UIS:GetFocusedTextBox() then
+            if not UIS.TouchEnabled then
+                local forward=(UIS:IsKeyDown(Enum.KeyCode.W) and 1 or 0)-(UIS:IsKeyDown(Enum.KeyCode.S) and 1 or 0)
+                local sideways=(UIS:IsKeyDown(Enum.KeyCode.D) and 1 or 0)-(UIS:IsKeyDown(Enum.KeyCode.A) and 1 or 0)
+                direction=camera.CFrame.LookVector*forward+camera.CFrame.RightVector*sideways
+            end
             if UIS:IsKeyDown(Enum.KeyCode.Space) then up=up+1 end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then up=up-1 end
-        else direction=Vector3.zero end
-        local velocity=Vector3.new(direction.X,up,direction.Z)
-        if velocity.Magnitude>1 then velocity=velocity.Unit end
-        flyObjects[1].VectorVelocity=velocity*state.flyValue
-        local look=Vector3.new(camera.CFrame.LookVector.X,0,camera.CFrame.LookVector.Z)
-        if look.Magnitude>0.01 then flyObjects[2].CFrame=CFrame.lookAt(Vector3.zero,look) end
+        else direction=Vector3.zero; up=0 end
+        local target=direction+Vector3.new(0,up,0)
+        if target.Magnitude>1 then target=target.Unit end
+        target=target*state.flyValue
+        runtime.flightVelocity=runtime.flightVelocity+(target-runtime.flightVelocity)*(1-math.exp(-9*math.min(dt,.1)))
+        if target.Magnitude<.01 and runtime.flightVelocity.Magnitude<.05 then runtime.flightVelocity=Vector3.zero end
+        flyObjects[1].VectorVelocity=runtime.flightVelocity
+        flyObjects[2].CFrame=CFrame.lookAt(Vector3.zero,camera.CFrame.LookVector,camera.CFrame.UpVector)
+        if h then h.PlatformStand=true end
     end
     frames=frames+1; fpsTime=fpsTime+dt; visualTimer=visualTimer+dt
     if fpsTime>=1 then
         dockClock.Text=os.date("%H:%M")
         local ok,ping=pcall(function() return player:GetNetworkPing()*1000 end)
         session.fps=math.floor(frames/fpsTime+0.5); session.ping=ok and math.floor(ping+0.5) or nil
-        metrics.Text=string.format("%d FPS  /  %s ms",session.fps,session.ping and tostring(session.ping) or "--")
+        metrics.Text=string.format("%d / %s  Spieler    ·    %s ms    ·    %d FPS",#Players:GetPlayers(),tostring(Players.MaxPlayers or "—"),session.ping and tostring(session.ping) or "--",session.fps)
         if page=="Start" then updateDashboard() end
         frames=0; fpsTime=0
     end
+    if antiVC.active then
+        runtime.voiceMaintenance=runtime.voiceMaintenance+dt
+        if runtime.voiceMaintenance>=3 then runtime.voiceMaintenance=0; maintainVoiceConnections() end
+    end
+    if runtime.presence.remote then
+        runtime.presence.elapsed=runtime.presence.elapsed+dt
+        if runtime.presence.elapsed>=20 then
+            runtime.presence.elapsed=0
+            task.spawn(function()
+                local ok,result=pcall(function() return runtime.presence.remote:InvokeServer("register") end)
+                if not alive then return end
+                if not ok or not features.applyPresence(result) then runtime.presence.connected=false; runtime.presence.users={}; features.updateMemberTags() end
+            end)
+        end
+    end
     if visualTimer<0.25 then return end
     visualTimer=0
+    features.updateMemberTags()
     local ownRoot=root()
     for _,other in ipairs(Players:GetPlayers()) do
         if other~=player then
             local char=other.Character
             local targetRoot=char and char:FindFirstChild("HumanoidRootPart")
-            if highlights[other] and (not state.esp or highlights[other].Adornee~=char) then highlights[other]:Destroy(); highlights[other]=nil end
-            if state.esp and char and not highlights[other] then
-                highlights[other]=make("Highlight",{Name="ISBHighlight",Adornee=char,FillColor=C.accent,
-                    FillTransparency=0.78,OutlineColor=C.text,OutlineTransparency=0.15,
+            local friend=settings.friendHighlights and session.friends[other.UserId]
+            local staff=settings.staffHighlights and runtime.gameStaff[other]
+            local marked=state.esp or friend or staff
+            local color=staff and Color3.fromRGB(234,71,71) or (friend and Color3.fromRGB(52,144,255) or C.accent)
+            if highlights[other] and (not marked or highlights[other].Adornee~=char) then highlights[other]:Destroy(); highlights[other]=nil end
+            if marked and char and not highlights[other] then
+                highlights[other]=make("Highlight",{Name="ISBHighlight",Adornee=char,FillColor=color,
+                    FillTransparency=0.78,OutlineColor=color,OutlineTransparency=0.15,
                     DepthMode=Enum.HighlightDepthMode.AlwaysOnTop},char)
             end
+            if highlights[other] then highlights[other].FillColor=color; highlights[other].OutlineColor=color end
             if tags[other] and (not state.names or tags[other].Adornee~=targetRoot) then tags[other]:Destroy(); tags[other]=nil end
             if state.names and targetRoot then
                 if not tags[other] then
@@ -1645,8 +1826,10 @@ connect(player.CharacterAdded,function(char)
     end)
 end)
 refreshPlayers=function() if page=="Spieler" or page=="Start" then render() end end
-connect(Players.PlayerAdded,refreshPlayers)
+connect(Players.PlayerAdded,function(other) features.detectGameStaff(other); refreshPlayers() end)
 connect(Players.PlayerRemoving,function(other)
+    runtime.gameStaff[other]=nil; runtime.presence.users[other.UserId]=nil
+    if runtime.memberTags[other] then runtime.memberTags[other]:Destroy(); runtime.memberTags[other]=nil end
     if highlights[other] then highlights[other]:Destroy(); highlights[other]=nil end
     if tags[other] then tags[other]:Destroy(); tags[other]=nil end
     if spectating==other then restoreCamera() end
@@ -1655,7 +1838,12 @@ end)
 local api = {}
 api.Destroy = function()
     if not alive then return end
-    alive=false; state.fly=false; state.noclip=false; state.fullbright=false; state.shadows=false
+    alive=false
+    if runtime.presence.remote then pcall(function() runtime.presence.remote:InvokeServer("leave") end) end
+    for _,tag in pairs(runtime.memberTags) do tag:Destroy() end; table.clear(runtime.memberTags)
+    settings.lowEffects=false; features.applyPerformance()
+    if runtime.performanceOwned.fps~=nil and type(setfpscap)=="function" then pcall(setfpscap,runtime.performanceOwned.fps) end
+    state.fly=false; state.noclip=false; state.fullbright=false; state.shadows=false
     for _,con in ipairs(connections) do con:Disconnect() end
     for _,con in ipairs(rowConnections) do con:Disconnect() end
     stopFly(); restoreCollisions(); clearVisuals(); applyLighting(); restoreCamera(); stopAntiVC()
@@ -1704,6 +1892,26 @@ end)
 connect(Players.PlayerAdded,function(other)
     if session.friends[other.UserId] then notify(other.DisplayName.." ist dem Server beigetreten.","Freund beigetreten","user-plus") end
     if table.find(CONFIG.StaffUserIds,other.UserId) then notify(other.DisplayName.." steht in deiner konfigurierten Staff-Liste.","Staff im Server","shield-check") end
+end)
+for _,other in ipairs(Players:GetPlayers()) do features.detectGameStaff(other) end
+task.spawn(function()
+    for _,name in ipairs(CONFIG.OwnerNames) do
+        local ok,id=pcall(function() return Players:GetUserIdFromNameAsync(name) end)
+        if alive and ok and player.UserId==id and not runtime.presence.connected then runtime.presence.role="Owner" end
+    end
+    if alive and table.find(CONFIG.AdminUserIds,player.UserId) and runtime.presence.role~="Owner" then runtime.presence.role="Admin" end
+    if alive and page=="Start" then render() end
+end)
+task.spawn(function()
+    local storage=optionalService("ReplicatedStorage")
+    local bridge=storage and storage:FindFirstChild("ISBPresence")
+    local remote=bridge and bridge:FindFirstChild("Request")
+    local changed=bridge and bridge:FindFirstChild("Changed")
+    if not remote or not remote:IsA("RemoteFunction") or not changed or not changed:IsA("RemoteEvent") then return end
+    runtime.presence.remote=remote
+    connect(changed.OnClientEvent,function(snapshot) if alive then features.applyPresence(snapshot) end end)
+    local ok,snapshot=pcall(function() return remote:InvokeServer("register") end)
+    if alive and ok then features.applyPresence(snapshot) end
 end)
 render()
 window.GroupTransparency=1; motionScale.Scale=0.94; window.Visible=false

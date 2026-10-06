@@ -1,8 +1,8 @@
-# ISB Menu 2.1 · by Larsiopuw
+# ISB Menu 2.2 · by Larsiopuw
 
-Universelles Roblox-Clientmenü mit kompaktem Dock, schwebenden Panels, einheitlichen Heroicons und animierten Übergängen. Die Gestaltung orientiert sich an den bereitgestellten Videos: dunkles Graphit, klare Typografie und zurückhaltende Farbakzente. Der Name ist vom Imperialen Sicherheitsbüro inspiriert.
+Helle Porzellanflächen, kühles Metallgrau, warmer Orange-Akzent. Feste Navigation unten mittig, eigene Statusleiste oben rechts und animierte Panels. Inspiriert vom Imperialen Sicherheitsbüro.
 
-![Interaktive Designvorschau mit Beispieldaten](ISB-Vorschau.png)
+![Designvorschau mit ausdrücklich gekennzeichneten Beispieldaten](ISB-Vorschau.png)
 
 ## Starten
 
@@ -11,68 +11,71 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Larsiopuw/ISB-Menu/ma
 -- by Larsiopuw
 ```
 
-Das Repository ist öffentlich; der Quellcode bleibt lesbar. Der Aufruf lädt den aktuellen Stand von main. Alternativ ISBMenu.lua vollständig direkt ausführen. ISBMenu-Loader.lua lädt eine lokale Datei aus dem Workspace-Ordner des Executors; ISBMenu-GitHub-Loader.lua lädt die GitHub-Version mit Fehlerprüfung.
+Öffentliches Repository, lesbarer Quellcode. Der Aufruf lädt den aktuellen Stand von main. Alternativ ISBMenu.lua vollständig ausführen. ISBMenu-Loader.lua lädt die lokale Datei; ISBMenu-GitHub-Loader.lua enthält zusätzliche Fehlerprüfung.
 
-**RightShift** oder der ISB-Button öffnet und schließt das Menü. **K** fährt das Dock nach unten ein bzw. wieder aus. **T** öffnet die mittige Skript-Schnellsuche: Anbieter wählen, Suchbegriff eingeben und Enter drücken. Escape schließt die Schnellsuche. Alle drei Tasten sind unter Einstellungen → Tasten änderbar; doppelte Belegungen werden abgewiesen. Der aktive Dock-Button klappt das Panel ein. Unter **Einstellungen → Tasten** eine Taste durch Anklicken und anschließendes Drücken vergeben; Escape bricht ab. **Einstellungen → Allgemein → Beenden** entfernt das Menü und setzt seine verwalteten Änderungen zurück. Erneutes Ausführen ersetzt die alte Instanz.
+| Taste | Funktion |
+| --- | --- |
+| M | Hauptpanel öffnen / schließen |
+| K | Festes Dock einfahren / ausfahren |
+| T | Mittige Skript-Schnellsuche |
+| Escape | Schnellsuche oder Tastenaufnahme abbrechen |
 
-## Änderungen in 2.1
+Einstellungen → Tasten: Anklicken und gewünschte Taste drücken. Doppelte Belegungen werden abgewiesen. Beim Schreiben in Textfelder greifen die Tastenkürzel nicht. Alte RightShift-Einstellungen werden auf M umgestellt. Der aktive Dock-Tab klappt sein Panel ein. Das Avatarbild rechts öffnet dein Profil. Fenster und Dock lassen sich nicht verschieben. Einstellungen → Allgemein → Beenden räumt auf; erneutes Ausführen ersetzt die vorherige Instanz.
 
-Der dunkle Farbverlauf sitzt jetzt ausschließlich auf einer eigenen Hintergrundfläche und färbt nicht die gesamte Menügruppe. Schrift und Icons haben mehr Kontrast. Dock-Hinweise erscheinen als schwebende Karten mit Symbol, Titel und Beschreibung. Dock und Schnellsuche haben eigene Übergänge; hinter der Schnellsuche tritt das Hauptpanel zurück.
+## Änderungen in 2.2
+
+- Helle ISB-Oberfläche, Orange-Akzent, einheitliche Favoriten-Icons, runde Dock-Buttons ohne konkurrierende Ecken.
+- Separate Statusleiste oben rechts: Spielerzahl, gemessene FPS, Ping. Keine Metriken im Panel-Kopf.
+- Animierte Rahmen innerhalb der Gruppen; Schließen und Hover-Ende verstecken alles. Neue Übergänge können ältere Animationen abbrechen.
+- Reset stellt die Spielwerte für Speed, Jump und FOV wieder her und aktualisiert gespeicherte Werte sowie sichtbare Regler. Fluggeschwindigkeit zurück auf 45.
+- Kamerabezogener Flug mit weicher Beschleunigung/Bremsung. WASD, Space hoch, linke Strg runter; Touch mit Bewegungssteuerung und Höhentasten. AutoRotate/PlatformStand werden wiederhergestellt und Restbewegung beendet.
+- Freunde blau, öffentlich erkennbare Spiel-Admins rot. Gruppenrollen über GetRolesInGroupAsync mit Kompatibilitäts-Fallback.
+- Performance: Partikel-/Trail-/Beam-/Post-Effekt-Pause, Schatten und FPS-Limits, sofern der Executor das Limit lesen und setzen kann. Vorherige Zustände werden wiederhergestellt.
+- Eigener lokaler Voice-Controller ohne externe Menü-Abhängigkeit oder fremde Menübezeichnungen.
+- Profil mit Owner/Admin/Member und optionale Server-Anbindung für gemeinsame Overhead-Anzeigen.
 
 ## Funktionen
 
 | Bereich | Enthalten |
 | --- | --- |
-| Start | Spielname, Spielerzahl, Freunde im Server, Freundestatistik, erkannter Executor und Version, Dauer der Hub-Sitzung, öffentliche/private Sitzung |
-| Bewegung | Fliegen, Noclip, Mehrfachsprung, Speed, Jump, Fluggeschwindigkeit, FOV, Reset, Respawn, Rejoin, Serverhop |
-| Spieler | Suche, Profilbilder, Beobachten und Kamerarückkehr, lokale Positionsänderung zum Spieler |
-| Server | Öffentliche Server des aktuellen Place, Spielerzahl, Ping/FPS soweit geliefert, Sortierung, Cursor-Paginierung, Beitreten und Join-Script kopieren |
-| Darstellung | Highlights, Namen und Entfernung, helle Umgebung, Schatten und Sichtfeld |
-| Skripte | ScriptBlox und RoScripts; Suche, Anbieterwechsel, Ergebnisse, Detailquelltext, Kopieren und explizite Ausführung; lokale Lua-Dateien hinzufügen |
-| Musik/Zeit | Roblox-Audio-IDs, Warteschlange, Vor/Zurück, Pause/Weiter, Stop, Lautstärke, Timer und Stoppuhr mit Aktivitäts-Widget |
-| Einstellungen | Neutral/Blue/Mint/Amber, drei Tastenkürzel, Interface-Sounds, weniger Animationen, Hintergrundunschärfe, Executor-Fähigkeiten und Protokoll |
-| Voice | Berechtigungsstatus, AudioDeviceInput stummschalten, Reconnect und expliziter Schalter für das originale TLMenu-Anti-VC-Modul |
-| Hinweise/Favoriten | Gestapelte Meldungen, Freund-beigetreten-Hinweis, Hinweise für konfigurierte Staff-User-IDs, lokal gespeicherte Favoriten |
+| Start | Spielname, Spieler/Freunde, Executor und Version, Sitzungsdauer, ISB-Rolle |
+| Bewegung | Fliegen, Noclip, Mehrfachsprung, Speed, Jump, Flight, FOV, Reset, Respawn, Rejoin, Serverhop |
+| Spieler | Suche, Avatare, Beobachten, Kamerarückkehr und lokale Positionsänderung |
+| Server | Öffentliche Server, Sortierung, Cursor-Seiten, Ping/FPS soweit geliefert, Beitreten, Join-Script kopieren |
+| Darstellung | Highlights, Namen/Entfernung, Tageslicht, Schatten, FOV |
+| Skripte | ScriptBlox/RoScripts, Anbieterwechsel, Quelltextvorschau, Kopieren, ausdrückliches Ausführen und lokale Lua-Dateien |
+| Musik | Roblox-Audio-IDs, Warteschlange, Lautstärke, Pause, Timer und Stoppuhr |
+| Favoriten | Gespeicherte Aktionen über den Stern bei einer Funktion |
+| Einstellungen | Akzent, Klänge, Tasten, Performance, Erkennung und Protokoll |
+| Profil | Rolle, Netzwerkstatus, Overhead-Verwaltung für Owner/Admin |
 
-Fliegen nutzt LinearVelocity und AlignOrientation: WASD bzw. Roblox-Bewegungssteuerung horizontal, Space nach oben und linkes Strg nach unten. Touch-Geräte erhalten Hoch-/Runter-Buttons. Funktionen werden nach Respawn wieder angewendet. Individuelle Charaktercontroller und Server-Skripte können lokale Änderungen überschreiben; die Universalbasis verwendet Standard-Roblox-Objekte.
+## Overhead-Anzeigen in deinen eigenen Spielen
 
-## Skriptanbieter
+1. Öffne dein Spiel in Roblox Studio.
+2. Lege **ISBPresence.server.lua als Script in ServerScriptService** ab, genau eine Instanz pro Spiel.
+3. Kontrolliere OWNER_NAMES (Standard Larsiopuw). Zusätzliche Menü-Admins: numerische Roblox-UserIds in ADMIN_IDS.
+4. Veröffentliche die Änderung und starte einen neuen Server. ISB-Clients verbinden sich automatisch.
 
-- **ScriptBlox:** dokumentierte Such- und Detail-API, keine Zugangsdaten nötig.
-- **RoScripts:** liest öffentliche Suchergebnisse und deren Raw-Script-Adresse aus dem beobachteten HTML-Format. Lokale Paginierung mit zwölf Einträgen. Website-Änderungen können eine Anpassung erfordern.
+Der Server löst den Owner-Namen in eine Roblox-UserId auf und vergibt Rollen anhand der tatsächlichen Spieleridentität. Öffentlich erkannte Gruppen-Admins erhalten dadurch keine Menü-Adminrechte.
 
-Die Suche führt nichts automatisch aus. Nach Auswahl zeigt das Menü den verfügbaren Quelltext; **Ausführen** startet ihn nach deinem Klick. Dieser Quelltext kann selbst ein weiterer Loader sein. Anbieterausfälle und fehlende APIs erscheinen als Fehler. ISB-Designvorschau.html demonstriert die Bedienung mit gekennzeichneten Beispieldaten und führt keine Roblox-Aktionen oder fremden Skripte aus.
+Registrierte Clients melden sich alle 20 Sekunden; nach 65 Sekunden ohne Meldung entfernt der Server die Registrierung. Die Anzeige enthält Namen und Rolle. Anklicken fordert einen Teleport zum registrierten, lebenden Ziel an; der Server prüft Registrierung, Ziel und Charaktere. Nur Owner und konfigurierte Menü-Admins dürfen die gemeinsame Anzeige im Profil ein-/ausschalten. Member haben keinen entsprechenden Schalter. Anfragen werden begrenzt; Rollenangaben vom Client werden nicht angenommen.
 
-## Voice, Staff und Daten
+In Spielen ohne diese Server-Anbindung gibt es keine gemeinsame ISB-Nutzererkennung. Ein Executor sieht die lokalen Oberflächen anderer Spieler nicht. Das Menü zeigt die Funktion dort als nicht verfügbar. Registrierung ist eine Anwesenheitsmeldung, kein kryptographischer Nachweis eines unveränderten Clients. Öffentlicher Client-Code kann verändert werden; verbindliche Berechtigungen liegen deshalb auf dem Server.
 
-Der Schalter **Anti-VC Ban · TLMenu** lädt beim Einschalten das separate Originalmodul [TL-ANTIVCBAN.lua](https://raw.githubusercontent.com/TLMenu/TLMenuParts/2f3763d829de7407bb96fe43d1350a8013ed4c0a/TL-ANTIVCBAN.lua) unverändert von einem festgelegten Commit. Es benötigt loadstring und getconnections/get_signal_cons und bringt seine originale Mikrofon-Oberfläche mit. ISB ruft beim Abschalten bzw. Beenden dessen cleanup auf und stellt die zuvor erfassten Zustände zugänglicher Voice-Verbindungen wieder her. Beim Abschalten während des Starts erfolgt das Cleanup nach Rückkehr des Modulstarts. Das Originalmodul und sein tatsächlicher Sperrschutz wurden hier nicht live im Executor verifiziert. Die Adapter-Prüfung verwendet ein Ersatzmodul; sie belegt keinen Schutz vor serverseitigen Sperren.
+## Prüfung und Grenzen
 
-CONFIG.StaffUserIds am Anfang von ISBMenu.lua nimmt bekannte User-IDs entgegen. Eine leere Liste behauptet keine automatische Administratorerkennung. Serverregionen werden nicht erfunden. Die Sitzungsdauer zählt ab Hub-Start.
+205 Client-Assertions und 14 Server-Assertions bestehen in einer simulierten Roblox-API. Alle Lua-Dateien kompilieren mit Luau 0.741. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten und führt keine Roblox-/Executor-Funktionen aus.
 
-Favoriten, Akzent, Animationseinstellung, Unschärfe, Interface-Sounds und die drei Tastenkürzel werden in ISBMenu-settings.json gespeichert, sofern readfile/writefile verfügbar sind. Aktive Bewegungsfunktionen starten ausgeschaltet. Die 29 Heroicons sind als PNG-Daten eingebettet und brauchen keine Icon-Downloads. writefile und getcustomasset/getsynasset ermöglichen diese Icons; ohne diese Fähigkeiten verwendet das Dock gezeichnete Ersatzsymbole. Die MIT-Lizenz der Icons liegt bei und ist im Lua-Skript enthalten.
+**Kein Live-Test in Roblox/Executor durchgeführt.** Die Server-Anbindung wurde nicht in deinen Spielen installiert. Bewegung, Voice, Assets und lokale Teleports hängen vom Spiel und Executor ab.
 
-Die kurzen Interface-Klänge sind eigene, eingebettete WAV-Dateien für Öffnen, Schließen und Klicks. Sie benötigen writefile und getcustomasset/getsynasset. Unter Einstellungen → Allgemein → Interface-Sounds lassen sie sich abschalten. Musik nutzt Roblox-Audioassets; die Freigaben des Spiels bestimmen deren Abspielbarkeit. Externe Skripte und eigene Erweiterungen verwalten ihre Änderungen selbst; Beenden setzt die von ISB Menu verwalteten Eigenschaften zurück.
+„Anti-VC Ban“ bezeichnet einen experimentellen lokalen Voice-Modus: Er verwaltet zugängliche Voice-Signalverbindungen, erneuert die Verbindung und stellt gespeicherte Verbindungszustände beim Ausschalten wieder her. **Kein nachgewiesener Schutz vor serverseitigen Voice-Sperren.** Fehlende APIs werden angezeigt.
 
-## Eigene Aktionen
+Gruppenrollen werden anhand öffentlicher Namen wie Admin, Owner, Developer, Moderator oder Staff eingeordnet. Das ist eine Erkennungshilfe, kein vollständiger Nachweis von Berechtigungen. Versteckte oder anders benannte Rollen können fehlen; StaffUserIds ergänzen die Erkennung.
 
-```lua
-local hub = ((getgenv and getgenv()) or _G).ISBMenu
-assert(hub, "ISB Menu zuerst starten")
-hub.AddAction("mein-spiel-info", "Spieler", "Spiel-Info", "Eigene Erweiterung", function()
-    hub.Notify("Meine eigene Aktion wurde ausgeführt.")
-end)
--- by Larsiopuw
-```
+ScriptBlox nutzt die öffentliche Such-/Detail-API; RoScripts nutzt öffentliches HTML und dort angegebene Raw-URLs. Kein API-Key. Anbieteränderungen oder Ausfälle können Anpassungen erfordern. Fremder Code läuft erst nach ausdrücklichem Klick. Audio braucht passende Asset-Freigaben. Icons/Klänge benötigen Dateizugriff plus getcustomasset/getsynasset. Heroicons unter beiliegender MIT-Lizenz; Interface-Klänge selbst synthetisiert.
 
-Eindeutige IDs und Bewegung, Spieler oder Darstellung als Kategorie verwenden. Fehler der Aktions-Callbacks werden abgefangen.
+Erweiterungen über ISBMenu.AddAction und ISBMenu.Notify; ISBMenu.Destroy räumt auf.
 
-## Prüfung
+Quellen: [ISB-Referenz](https://www.starwars.com/databank/imperial-security-bureau), [Roblox GroupService](https://create.roblox.com/docs/reference/engine/classes/GroupService), [Heroicons](https://github.com/tailwindlabs/heroicons).
 
-- Luau 0.741: Menü und beide Loader erfolgreich kompiliert.
-- 72 Assertions mit simulierter Roblox-API bestehen: Bedienung, Suche, Bewegung, Ausgangswerte, JumpHeight, Flug-/Kollisions-Cleanup, Respawn, Beleuchtung, Kamera, Spielerwechsel, Timer, Tastenerfassung, Erweiterungen, erneuter Start; zusätzlich Server-Paginierung, Anbieter-Parsing, Quelltextansicht, Kopieren, Ausführung erst nach Klick, K/T/Escape, schnelle Dock-Wechsel, doppelte Keybinds, eigene WAV-Daten, fehlende CanvasGroup-Farbfilter und Cleanup des Originalmodul-Adapters.
-- ScriptBlox und RoScripts anhand abgerufener Antworten untersucht. Tests verwenden diese als Fixtures und führen deren fremden Code nicht aus. RScripts und die API-Key-Felder wurden vollständig entfernt.
-- Designvorschau im Browser visuell und interaktiv geprüft. Sie belegt keine Ausführung im Roblox-Executor.
-- Ein Live-Test in deinem konkreten Spiel und Executor steht aus. Mobilgeräte wurden nicht in Roblox getestet.
-
-Referenzen: [ScriptBlox Suche](https://docs.scriptblox.com/docs/scripts/search), [RoScripts](https://roscripts.io), [Roblox VoiceChatService](https://create.roblox.com/docs/reference/engine/classes/VoiceChatService), [Roblox TeleportService](https://create.roblox.com/docs/reference/engine/classes/TeleportService). TLMenu wurde als Vergleich gelesen; ISB Menu ist eine eigenständige Implementierung und keine vollständige Kopie aller TLMenu-Erweiterungen.
-
+<!-- -- by Larsiopuw -->
