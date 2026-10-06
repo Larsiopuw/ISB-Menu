@@ -1,4 +1,4 @@
-# ISB Menu 2.3 · by Larsiopuw
+# ISB Menu 2.3.1 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -21,6 +21,14 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Larsiopuw/ISB-Menu/ma
 | Escape | Schnellsuche oder Tastenaufnahme abbrechen |
 
 Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden abgewiesen; beim Schreiben greifen die Kürzel nicht. Fenster und Dock bleiben fest positioniert. Erneutes Ausführen ersetzt die vorherige Instanz.
+
+## Mauszeiger-Fix in 2.3.1
+
+Im Menübereich wird genau ein direkter, nicht animierter Zeiger außerhalb aller CanvasGroups gezeichnet. Die native Mausdarstellung wird dort vorübergehend ausgeblendet, um automatische Hover-Symbolwechsel zu umgehen. Das verwendete Pfeilbild gehört zum installierten Roblox-Client; kein zusätzlicher Download oder Executor-Dateizugriff nötig.
+
+Außerhalb des Menüs, bei Fokusverlust, im Roblox-Pausenmenü, bei Kamerasperre und beim Beenden wird die vorherige native Mausdarstellung wiederhergestellt. Bereits versteckte Spielzeiger bleiben versteckt. Bei Touch/Gamepad und solange das Pfeilbild nicht geladen ist, greift der Ersatz nicht ein. Die Mausposition wird einmal pro Bild nach den regulären Render-Callbacks übernommen; es gibt keine Zeiger-Tweens und keine erzeugten Zeigerkopien.
+
+Das ist ein gezielter Workaround für das gemeldete Flackern. Die konkrete Ursache und das Ergebnis auf deinem Client sind ohne Live-Test nicht bestätigt. Grundlage: [Roblox UserInputService](https://create.roblox.com/docs/reference/engine/classes/UserInputService).
 
 ## Änderungen in 2.3
 
@@ -57,7 +65,7 @@ OwnerNames enthält Larsiopuw; zusätzliche Menü-Admins stehen als numerische U
 
 ## Prüfung und Grenzen
 
-224 Assertions bestehen mit einer simulierten Roblox-API. Menü und beide Loader kompilieren mit Luau. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten. **Kein Live-Test in Roblox/Executor durchgeführt.** Bewegung, Voice, Assets und Teleports hängen vom Spiel und Executor ab.
+248 Assertions bestehen mit einer simulierten Roblox-API. Menü und beide Loader kompilieren mit Luau. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten. **Kein Live-Test in Roblox/Executor durchgeführt.** Bewegung, Voice, Assets und Teleports hängen vom Spiel und Executor ab.
 
 ScriptBlox nutzt die öffentliche API: Beliebt nach Aufrufen, Neu nach Aktualisierung. RoScripts nutzt öffentliche Trending-/Neu-Seiten und Such-HTML. Kein API-Key. ScriptBlox lieferte bei der Prüfung HTTP 200; der direkte RoScripts-Abruf wurde hier mit HTTP 403 blockiert. Anbieterfehler werden angezeigt; Website-Änderungen können Anpassungen erfordern. Fremder Code läuft erst nach ausdrücklichem Klick.
 

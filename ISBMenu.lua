@@ -1,7 +1,7 @@
--- ISB Menu 2.3 | Own-game universal client toolkit
+-- ISB Menu 2.3.1 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.3.0",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.3.1",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -1076,6 +1076,70 @@ for i,caption in ipairs({"↑","↓"}) do
         if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then touchVertical=0 end
     end)
 end
+-- One unsmoothed cursor outside CanvasGroups prevents native hover-icon swaps.
+-- The built-in Roblox texture works without executor filesystem/asset APIs.
+runtime.cursor=make("ImageLabel",{Name="ISBCursor",BackgroundTransparency=1,
+    Image="rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png",
+    Size=UDim2.fromOffset(64,64),AnchorPoint=Vector2.new(.5,.5),
+    ZIndex=1000,Visible=false,Active=false,Selectable=false},gui)
+runtime.cursorTargets={window,dock,quickSearch,statusBar,widget,flyTouch}
+runtime.cursorFocused=true
+runtime.cursorBinding="ISBMenuCursor"
+pcall(function() runtime.cursorGuiService=game:GetService("GuiService") end)
+task.spawn(function()
+    pcall(function() game:GetService("ContentProvider"):PreloadAsync({runtime.cursor}) end)
+end)
+function runtime.releaseCursor()
+    runtime.cursor.Visible=false
+    if runtime.cursorOwned then
+        UIS.MouseIconEnabled=runtime.cursorOriginal
+        runtime.cursorOwned=false; runtime.cursorOriginal=nil
+    end
+end
+function runtime.cursorHit(obj,point)
+    if not obj.Parent or not obj.Visible then return false end
+    if obj:IsA("CanvasGroup") and obj.GroupTransparency>=.99 then return false end
+    local position,size=obj.AbsolutePosition,obj.AbsoluteSize
+    return point.X>=position.X and point.Y>=position.Y
+        and point.X<position.X+size.X and point.Y<position.Y+size.Y
+end
+function runtime.updateCursor()
+    if not alive or not runtime.cursorFocused or not UIS.MouseEnabled
+        or UIS.PreferredInput~=Enum.PreferredInput.KeyboardAndMouse
+        or UIS.MouseBehavior~=Enum.MouseBehavior.Default
+        or (runtime.cursorGuiService and runtime.cursorGuiService.MenuIsOpen)
+        or not runtime.cursor.IsLoaded then runtime.releaseCursor(); return end
+    local point=UIS:GetMouseLocation()
+    local camera=workspace.CurrentCamera
+    if not camera or point.X<0 or point.Y<0 or point.X>=camera.ViewportSize.X
+        or point.Y>=camera.ViewportSize.Y then runtime.releaseCursor(); return end
+    local inside=activeSlider~=nil
+    for _,target in ipairs(runtime.cursorTargets) do
+        if runtime.cursorHit(target,point) then inside=true; break end
+    end
+    if not inside then
+        for _,notice in ipairs(notices) do
+            if runtime.cursorHit(notice,point) then inside=true; break end
+        end
+    end
+    if not inside then runtime.releaseCursor(); return end
+    if not runtime.cursorOwned then
+        -- Respect a game that deliberately hides its cursor.
+        if not UIS.MouseIconEnabled then return end
+        runtime.cursorOriginal=UIS.MouseIconEnabled; runtime.cursorOwned=true
+    end
+    runtime.cursor.Position=UDim2.fromOffset(point.X,point.Y)
+    if UIS.MouseIconEnabled then UIS.MouseIconEnabled=false end
+    runtime.cursor.Visible=true
+end
+connect(UIS.WindowFocusReleased,function()
+    runtime.cursorFocused=false; activeSlider=nil; runtime.releaseCursor()
+end)
+connect(UIS.WindowFocused,function() runtime.cursorFocused=true end)
+runtime.cursorBound=pcall(function()
+    Run:BindToRenderStep(runtime.cursorBinding,Enum.RenderPriority.Last.Value+1,runtime.updateCursor)
+end)
+if not runtime.cursorBound then connect(Run.RenderStepped,runtime.updateCursor) end
 local function drawAction(action)
     local f = card(action.name,action.desc,action.kind == "slider" and 96 or 58)
     local children=f:GetChildren()
@@ -1900,6 +1964,8 @@ local api = {}
 api.Destroy = function()
     if not alive then return end
     alive=false
+    if runtime.cursorBound then pcall(function() Run:UnbindFromRenderStep(runtime.cursorBinding) end) end
+    runtime.releaseCursor()
     save(true)
     settings.lowEffects=false; features.applyPerformance()
     if runtime.performanceOwned.fps~=nil and type(setfpscap)=="function" then pcall(setfpscap,runtime.performanceOwned.fps) end
