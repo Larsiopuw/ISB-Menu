@@ -1,7 +1,7 @@
--- ISB Menu 2.2 | Own-game universal client toolkit
+-- ISB Menu 2.3 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.2.0",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.3.0",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -88,12 +88,12 @@ if env.ISBMenu and type(env.ISBMenu.Destroy) == "function" then
 end
 
 local C = {
-    bg = Color3.fromRGB(230,233,238), panel = Color3.fromRGB(245,247,250),
-    card = Color3.fromRGB(255,255,255), line = Color3.fromRGB(216,222,230),
-    text = Color3.fromRGB(32,40,52), muted = Color3.fromRGB(102,115,130),
+    bg = Color3.fromRGB(15,19,25), panel = Color3.fromRGB(27,33,42),
+    card = Color3.fromRGB(38,45,56), line = Color3.fromRGB(71,81,97),
+    text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(170,181,198),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {favorites = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", sounds=true, blur=false, designVersion="2.2", friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
+local settings = {favorites = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -104,9 +104,19 @@ if type(readfile) == "function" then
         end
         if data.theme == "Neutral" or data.theme == "Mint" or data.theme == "Amber" or data.theme == "Blue" then settings.theme = data.theme end
         settings.blur=false
-        if data.designVersion~="2.2" then settings.theme="Amber" end
+        if data.designVersion~="2.2" and data.designVersion~="2.3" then settings.theme="Amber" end
         settings.friendHighlights=data.friendHighlights~=false; settings.staffHighlights=data.staffHighlights~=false
-        settings.lowEffects=false
+        settings.lowEffects=data.lowEffects==true
+        if data.provider=="RoScripts" then settings.provider=data.provider end
+        if data.discovery=="Neu" or data.discovery=="Favoriten" then settings.discovery=data.discovery end
+        settings.volume=math.clamp(tonumber(data.volume) or 35,0,100)
+        if type(data.values)=="table" then settings.values=data.values end
+        if type(data.scriptFavorites)=="table" then
+            local count=0
+            for key,entry in pairs(data.scriptFavorites) do
+                if count<60 and type(key)=="string" and type(entry)=="table" and type(entry.slug)=="string" and type(entry.title)=="string" and (entry.provider=="ScriptBlox" or entry.provider=="RoScripts") then settings.scriptFavorites[key]=entry; count=count+1 end
+            end
+        end
         settings.fpsCap=tonumber(data.fpsCap) or 60
         settings.sounds=data.sounds~=false
         for _,field in ipairs({"dockKey","searchKey"}) do
@@ -124,7 +134,6 @@ if type(readfile) == "function" then
 end
 if settings.key=="RightShift" then settings.key="M" end
 local themes = {Neutral=Color3.fromRGB(92,108,127), Blue = Color3.fromRGB(77,151,255), Mint = Color3.fromRGB(85,216,165), Amber = Color3.fromRGB(225,112,39)}
-if settings.theme=="Neutral" then settings.theme="Amber" end
 C.accent = themes[settings.theme]
 CONFIG.ToggleKey = Enum.KeyCode[settings.key]
 if settings.dockKey==settings.key then settings.dockKey=settings.key=="K" and "J" or "K" end
@@ -139,14 +148,15 @@ local state = {fly = false, noclip = false, infiniteJump = false, esp = false, n
     fullbright = false, shadows = false, fov = false, fovValue = 80}
 local originals, collisions, highlights, tags = {}, {}, {}, {}
 local flyObjects, flyHumanoid, flyAutoRotate = {}, nil, nil
-local runtime={flightVelocity=Vector3.zero,gameStaff={},memberTags={},
-    presence={connected=false,users={},overhead=true,role="Member",remote=nil,elapsed=0},performanceOwned={},voiceMaintenance=0,tweens={}}
+local runtime={flightVelocity=Vector3.zero,gameStaff={},
+    role="Member", saveRevision=0,lastSaved=nil,saveError=nil, imageCache={},performanceOwned={},voiceMaintenance=0,tweens={}}
 local lightingOriginal, cameraOriginal, spectating = nil, {}, nil
 local spectateOriginal={}
 local page, query, captureKey, activeSlider = "Start", "", false, nil
 local updatingSearch = false
 local opened=true
 local notify, render, refreshPlayers, setOpen, selectPage, setDockVisible, setQuickSearch
+local save
 local playUISound=function() end
 local dockVisible,quickSearchOpen=true,false
 local quickScale,quickBaseScale=nil,1
@@ -158,7 +168,7 @@ local scriptCatalog={}
 local musicQueue={}
 local queueIndex=0
 local sessionTick=0
-local scriptSearch={provider="ScriptBlox",query="",page=1,rows={},allRows={},totalPages=1,loading=false,error=nil,
+local scriptSearch={provider=settings.provider,discovery=settings.discovery,loaded=false,query="",page=1,rows={},allRows={},totalPages=1,loading=false,error=nil,
     generation=0,selected=nil,source=nil,localMode=false}
 local function optionalService(name)
     local ok,service=pcall(function() return game:GetService(name) end)
@@ -281,12 +291,23 @@ local function normalizeResult(provider,row)
     return {provider=provider,slug=row.slug,title=row.title:sub(1,180),game=type(gameName)=="string" and gameName:sub(1,100) or "Universal / nicht angegeben",
         owner=type(owner)=="string" and owner:sub(1,80) or "Nicht angegeben",verified=row.verified==true or row.ownerVerified==true or (type(row.creator)=="table" and row.creator.isVerified==true),
         key=row.key==true or row.isKeySystem==true,source=type(row.script)=="string" and row.script or nil,
+        image=type(row.image)=="string" and row.image or (type(row.game)=="table" and row.game.imageUrl or nil),
         views=type(row.views)=="number" and row.views or nil,rawId=row.rawId,description=type(row.description)=="string" and htmlText(row.description):sub(1,600) or ""}
 end
 local function searchRemoteScripts(targetPage)
     local term=scriptSearch.query:match("^%s*(.-)%s*$") or ""
-    if #term<2 or #term>100 then scriptSearch.error="Suchbegriff: 2 bis 100 Zeichen eingeben."; render(); return end
+    if (#term>0 and #term<2) or #term>100 then scriptSearch.error="Suchbegriff: 2 bis 100 Zeichen eingeben."; render(); return end
     local provider=scriptSearch.provider
+    settings.provider=provider; settings.discovery=scriptSearch.discovery; save()
+    if term=="" and scriptSearch.discovery=="Favoriten" then
+        scriptSearch.rows={}; scriptSearch.error=nil; scriptSearch.loaded=true; scriptSearch.loading=false; scriptSearch.selected=nil; scriptSearch.source=nil
+        scriptSearch.generation=scriptSearch.generation+1; scriptSearch.page=1; scriptSearch.totalPages=1
+        for _,entry in pairs(settings.scriptFavorites) do
+            if entry.provider==provider and validSlug(entry.slug) then table.insert(scriptSearch.rows,entry) end
+        end
+        table.sort(scriptSearch.rows,function(a,b) return a.title<b.title end)
+        if render then render() end; return
+    end
     scriptSearch.generation=scriptSearch.generation+1
     local generation=scriptSearch.generation
     scriptSearch.loading=true; scriptSearch.error=nil; scriptSearch.selected=nil; scriptSearch.source=nil
@@ -295,19 +316,22 @@ local function searchRemoteScripts(targetPage)
         local ok,result=pcall(function()
             local rows,total={},1
             if provider=="ScriptBlox" then
-                local data=requestJSON("https://scriptblox.com/api/script/search?q="..Http:UrlEncode(term).."&page="..tostring(targetPage).."&max=12")
+                local url=term=="" and ("https://scriptblox.com/api/script/fetch?sortBy="..(scriptSearch.discovery=="Neu" and "updatedAt" or "views").."&order=desc&page="..targetPage.."&max=12") or ("https://scriptblox.com/api/script/search?q="..Http:UrlEncode(term).."&page="..targetPage.."&max=12")
+                local data=requestJSON(url)
                 assert(type(data.result)=="table" and type(data.result.scripts)=="table",tostring(data.message or "Ungültige ScriptBlox-Antwort"))
                 for _,row in ipairs(data.result.scripts) do local normalized=normalizeResult(provider,row); if normalized then table.insert(rows,normalized) end end
                 total=tonumber(data.result.totalPages) or 1
             else
-                local html=requestBody("https://roscripts.io/search?q="..Http:UrlEncode(term))
+                local url=term=="" and (scriptSearch.discovery=="Neu" and "https://roscripts.io/new" or "https://roscripts.io/trending") or ("https://roscripts.io/search?q="..Http:UrlEncode(term))
+                local html=requestBody(url)
                 for article in html:gmatch("<article(.-)</article>") do
                     local slug=article:match('href="/s/([^"]+)"')
                     local name=article:match("<h3[^>]*>(.-)</h3>")
                     local rawId=article:match("https://script%.roscripts%.io/([%w]+)")
                     if slug and name then
                         local row={slug=htmlText(slug),title=htmlText(name),game=htmlText(article:match('<span[^>]*title="([^"]+)"') or "Universal"),
-                            owner=htmlText(article:match('title="@([^"]+)"') or "Nicht angegeben"),rawId=rawId}
+                            owner=htmlText(article:match('title="@([^"]+)"') or "Nicht angegeben"),rawId=rawId,
+                            image=htmlText(article:match('<img[^>]-src="([^"]+)"') or "")}
                         local normalized=normalizeResult(provider,row); if normalized then table.insert(rows,normalized) end
                     end
                 end
@@ -318,7 +342,7 @@ local function searchRemoteScripts(targetPage)
             return {rows=rows,total=total}
         end)
         if not alive or generation~=scriptSearch.generation then return end
-        scriptSearch.loading=false
+        scriptSearch.loading=false; scriptSearch.loaded=true
         if ok then
             scriptSearch.page=targetPage; scriptSearch.totalPages=math.max(1,math.min(10000,result.total))
             if provider=="RoScripts" then
@@ -447,9 +471,25 @@ local function connect(signal, fn)
     table.insert(connections, con)
     return con
 end
-local function save()
-    if type(writefile) ~= "function" then return false end
-    return pcall(function() writefile(CONFIG.SaveFile, Http:JSONEncode(settings)) end)
+save=function(immediate)
+    settings.values={speedValue=state.speedValue,jumpValue=state.jumpValue,flyValue=state.flyValue,fovValue=state.fovValue}
+    runtime.saveRevision=runtime.saveRevision+1
+    local revision=runtime.saveRevision
+    if type(writefile)~="function" then runtime.saveError="Dateizugriff nicht verfügbar"; return false end
+    local function write()
+        if revision~=runtime.saveRevision then return end
+        local ok,err=pcall(function() writefile(CONFIG.SaveFile,Http:JSONEncode(settings)) end)
+        runtime.lastSaved=ok and os.date("%H:%M:%S") or runtime.lastSaved
+        if ok then runtime.saveError=nil else runtime.saveError=tostring(err):sub(1,100) end
+        return ok
+    end
+    if immediate then return write() end
+    task.delay(.3,write)
+    return true
+end
+for key,range in pairs({speedValue={8,120},jumpValue={20,150},flyValue={5,150},fovValue={40,110}}) do
+    local value=tonumber(settings.values[key])
+    if value and value==value then state[key]=math.clamp(value,range[1],range[2]) end
 end
 local function make(class, props, parent)
     local obj = Instance.new(class)
@@ -519,7 +559,13 @@ local function stroke(obj)
         local corner=obj:FindFirstChildOfClass("UICorner")
         make("UICorner",{CornerRadius=corner and corner.CornerRadius or UDim.new(0,18)},target)
     end
-    make("UIStroke", {Color = C.line, Thickness = 1, Transparency = 0.35}, target)
+    make("UIStroke", {Color = C.line, Thickness = 1, Transparency = 0.45}, target)
+end
+function runtime.glassSurface(group,radius)
+    group.BackgroundTransparency=1
+    local surface=make("Frame",{Name="GlassSurface",BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=.14,Size=UDim2.fromScale(1,1),ZIndex=0},group)
+    round(surface,radius)
+    make("UIGradient",{Rotation=75,Color=ColorSequence.new(Color3.fromRGB(50,61,77),Color3.fromRGB(13,19,29))},surface)
 end
 runtime.tweens=setmetatable({},{__mode="k"})
 local function animate(obj, props)
@@ -641,7 +687,7 @@ local function applyLighting()
 end
 
 local playerGui = player:WaitForChild("PlayerGui")
-local gui = make("ScreenGui", {Name = "ISBMenu", ResetOnSpawn = false, DisplayOrder = 90,
+local gui = make("ScreenGui", {Name = "ISBMenu", ResetOnSpawn = false, DisplayOrder = 90, IgnoreGuiInset=true, ScreenInsets=Enum.ScreenInsets.None, ClipToDeviceSafeArea=false,
     ZIndexBehavior = Enum.ZIndexBehavior.Sibling}, playerGui)
 local host = make("Frame", {Name="Workspace", BackgroundTransparency=1, AnchorPoint=Vector2.new(0.5,1),
     Position=UDim2.new(0.5,0,1,-18), Size=UDim2.fromOffset(600,552)},gui)
@@ -649,9 +695,9 @@ local scale = make("UIScale", {Scale = 1}, host)
 local window = make("CanvasGroup", {Name = "Window", BackgroundTransparency=1, GroupColor3=Color3.fromRGB(255,255,255), AnchorPoint = Vector2.new(0.5,1),
     Position = UDim2.new(0.5,0,1,-72), Size = UDim2.fromOffset(600,352), ClipsDescendants = true}, host)
 round(window, 22); stroke(window)
-local windowSurface=make("Frame",{Name="WindowSurface",BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Size=UDim2.fromScale(1,1),ZIndex=0},window)
+local windowSurface=make("Frame",{Name="WindowSurface",BackgroundTransparency=.09,BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Size=UDim2.fromScale(1,1),ZIndex=0},window)
 round(windowSurface,22)
-make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(255,255,255),C.bg)},windowSurface)
+make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(48,57,72),C.bg)},windowSurface)
 local motionScale=make("UIScale",{Scale=1},window)
 local header = make("Frame", {BackgroundTransparency=1, Size = UDim2.new(1,0,0,52), Active = true}, window)
 local logo = label(header, "ISB", 19, C.accent, UDim2.fromOffset(20,13), UDim2.fromOffset(48,38))
@@ -661,10 +707,10 @@ local title = label(header, CONFIG.Name, 18, C.text, UDim2.fromOffset(80,12), UD
 title.Font = Enum.Font.BuilderSansBold
 title.Visible=false
 local headerIcon=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(22,16),Size=UDim2.fromOffset(20,20)},header)
-local statusBar=make("CanvasGroup",{Name="StatusBar",BackgroundColor3=C.panel,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-18,0,18),Size=UDim2.fromOffset(354,44)},gui)
-round(statusBar,22); stroke(statusBar)
+local statusBar=make("CanvasGroup",{Name="StatusBar",BackgroundTransparency=.12,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-6,0,6),Size=UDim2.fromOffset(354,44)},gui)
+round(statusBar,22); runtime.glassSurface(statusBar,22); stroke(statusBar)
 local statusScale=make("UIScale",{Scale=1},statusBar)
-imageIcon(statusBar,"shield-check",18,UDim2.fromOffset(15,13),C.accent)
+runtime.statusIcon=imageIcon(statusBar,"shield-check",18,UDim2.fromOffset(15,13),C.accent)
 local metrics=label(statusBar,"ISB  /  -- Spieler  ·  -- ms  ·  -- FPS",11,C.text,UDim2.fromOffset(43,11),UDim2.new(1,-54,0,22))
 metrics.Font=Enum.Font.BuilderSansMedium
 button(header, "–", UDim2.new(1,-83,0,12), UDim2.fromOffset(28,28), function() setOpen(false) end)
@@ -672,12 +718,12 @@ button(header, "×", UDim2.new(1,-47,0,12), UDim2.fromOffset(28,28), function() 
 local launcher = button(gui, "ISB", UDim2.new(0,12,0.5,-22), UDim2.fromOffset(44,44), function() setOpen(not opened) end)
 launcher.Visible=false
 launcher.TextColor3 = C.accent; launcher.TextSize = 14; stroke(launcher)
-local dock=make("CanvasGroup",{BackgroundColor3=C.bg,AnchorPoint=Vector2.new(0.5,1),
+local dock=make("CanvasGroup",{BackgroundTransparency=.14,BackgroundColor3=C.bg,AnchorPoint=Vector2.new(0.5,1),
     Position=UDim2.new(0.5,0,1,0),Size=UDim2.fromOffset(600,56)},host)
-round(dock,28); stroke(dock)
+round(dock,28); runtime.glassSurface(dock,28); stroke(dock)
 local dockClock=label(dock,"--:--",13,C.text,UDim2.fromOffset(20,17),UDim2.fromOffset(54,22))
-local dockHint=make("CanvasGroup",{Name="DockTooltip",Visible=false,BackgroundColor3=C.panel,GroupTransparency=1,GroupColor3=Color3.fromRGB(255,255,255),AnchorPoint=Vector2.new(.5,1),Position=UDim2.new(.5,0,1,-72),Size=UDim2.fromOffset(244,64),ZIndex=8},host)
-round(dockHint,18); stroke(dockHint)
+local dockHint=make("CanvasGroup",{Name="DockTooltip",Visible=false,BackgroundTransparency=.08,BackgroundColor3=C.panel,GroupTransparency=1,GroupColor3=Color3.fromRGB(255,255,255),AnchorPoint=Vector2.new(.5,1),Position=UDim2.new(.5,0,1,-72),Size=UDim2.fromOffset(244,64),ZIndex=8},host)
+round(dockHint,18); runtime.glassSurface(dockHint,18); stroke(dockHint)
 local hintIcon=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,20),Size=UDim2.fromOffset(24,24),ZIndex=9},dockHint)
 local hintTitle=label(dockHint,"",13,C.text,UDim2.fromOffset(53,10),UDim2.fromOffset(170,22)); hintTitle.Font=Enum.Font.BuilderSansMedium
 local hintBody=label(dockHint,"",10,C.muted,UDim2.fromOffset(53,33),UDim2.fromOffset(178,20))
@@ -746,7 +792,7 @@ for i,name in ipairs(navNames) do
     connect(b.MouseEnter,function()
         hintRevision=hintRevision+1; local revision=hintRevision
         task.delay(.18,function()
-            if not alive or revision~=hintRevision or not dockVisible then return end
+            if not alive or revision~=hintRevision or not dockVisible or opened or quickSearchOpen then return end
             for _,child in ipairs(hintIcon:GetChildren()) do child:Destroy() end
             imageIcon(hintIcon,navAssetNames[i],24,UDim2.new(),C.text)
             hintTitle.Text=name; hintBody.Text=hintDescriptions[name]
@@ -796,7 +842,7 @@ notify = function(message,heading,iconName)
     round(notice,20)
     local surface=make("Frame",{Name="NoticeSurface",BorderSizePixel=0,BackgroundColor3=Color3.fromRGB(255,255,255),Size=UDim2.fromScale(1,1)},notice)
     round(surface,20)
-    make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(255,255,255),C.panel)},surface)
+    make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(42,50,64),C.panel)},surface)
     local icon=imageIcon(notice,iconName or "check-circle",20,UDim2.fromOffset(20,math.floor((height-20)/2)),C.text)
     local left=icon and 58 or 20
     local head=label(notice,heading,14,C.text,UDim2.fromOffset(left,13),UDim2.new(1,-left-18,0,19))
@@ -834,6 +880,7 @@ setOpen=function(value)
     opened=value; openRevision=openRevision+1
     local revision=openRevision
     if value then
+        hideDockHint()
         window.Visible=true
         animate(motionScale,{Scale=quickSearchOpen and .985 or 1}); animate(window,{GroupTransparency=quickSearchOpen and .65 or 0,Position=UDim2.new(0.5,0,1,-72)})
     else
@@ -866,7 +913,7 @@ setDockVisible=function(value)
 end
 local quickSearch=make("CanvasGroup",{Name="QuickSearch",Visible=false,BackgroundColor3=C.panel,GroupColor3=Color3.fromRGB(255,255,255),GroupTransparency=1,
     AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(520,108),ZIndex=30},gui)
-round(quickSearch,22); stroke(quickSearch)
+round(quickSearch,22); runtime.glassSurface(quickSearch,22); stroke(quickSearch)
 quickScale=make("UIScale",{Scale=quickBaseScale},quickSearch)
 imageIcon(quickSearch,"magnifying-glass",22,UDim2.fromOffset(20,23),C.text)
 local quickInput=make("TextBox",{Name="QuickSearchInput",Text="",PlaceholderText="Scripts suchen …",ClearTextOnFocus=false,BackgroundTransparency=1,
@@ -876,7 +923,7 @@ button(quickSearch,"Esc",UDim2.new(1,-64,0,20),UDim2.fromOffset(44,28),function(
 local quickProviderButtons={}
 for i,name in ipairs({"ScriptBlox","RoScripts"}) do
     quickProviderButtons[name]=button(quickSearch,name,UDim2.fromOffset(20+(i-1)*118,68),UDim2.fromOffset(108,26),function()
-        scriptSearch.provider=name
+        scriptSearch.provider=name; settings.provider=name; save()
         for provider,b in pairs(quickProviderButtons) do b.TextColor3=provider==name and C.text or C.muted end
         quickInput:CaptureFocus()
     end)
@@ -977,7 +1024,7 @@ end, function() return state.fov end)
 addAction("fovvalue", "Darstellung", "Sichtfeld", "Kamerawinkel in Grad", "slider", function(v) state.fovValue=v end, function() return state.fovValue end, 40,110,1)
 addAction("unspectate", "Spieler", "Eigene Kamera", "Beobachtung beenden", "button", restoreCamera)
 
-local sound = make("Sound", {Name="ISBMenuMusic", Volume=0.35, Looped=false}, SoundService)
+local sound = make("Sound", {Name="ISBMenuMusic", Volume=settings.volume/100, Looped=false}, SoundService)
 local function playQueue(index)
     if #musicQueue==0 then return end
     queueIndex=(index-1)%#musicQueue+1
@@ -1085,7 +1132,7 @@ local function drawAction(action)
         local function update(x)
             local ratio=math.clamp((x-track.AbsolutePosition.X)/math.max(track.AbsoluteSize.X,1),0,1)
             local value=math.clamp(math.floor((action.min+ratio*(action.max-action.min))/action.step+0.5)*action.step,action.min,action.max)
-            action.fn(value); valueLabel.Text=tostring(value)
+            action.fn(value); save(); valueLabel.Text=tostring(value)
             fill.Size=UDim2.new((value-action.min)/(action.max-action.min),0,1,0)
         end
         rowConnect(hit.InputBegan,function(input)
@@ -1110,7 +1157,6 @@ local function findAction(id)
     for _,action in ipairs(actions) do if action.id==id then return action end end
 end
 local function clearRows()
-    activeSlider=nil
     activeSlider=nil
     for _,con in ipairs(rowConnections) do con:Disconnect() end
     table.clear(rowConnections)
@@ -1145,51 +1191,6 @@ connect(workspace.DescendantAdded,function(obj)
         runtime.performanceOwned[obj]=obj.Enabled; obj.Enabled=false
     end
 end)
-function features.canManageOverhead() return runtime.presence.role=="Owner" or runtime.presence.role=="Admin" end
-function features.teleportToMember(other)
-    if not runtime.presence.connected or not runtime.presence.users[other.UserId] or not runtime.presence.remote then return end
-    task.spawn(function()
-        local ok,result=pcall(function() return runtime.presence.remote:InvokeServer("teleport",other.UserId) end)
-        if alive and (not ok or type(result)~="table" or not result.ok) then notify("Teleport ist aktuell nicht verfügbar.","ISB") end
-    end)
-end
-function features.updateMemberTags()
-    for _,other in ipairs(Players:GetPlayers()) do
-        local entry=runtime.presence.users[other.UserId]
-        local target=other.Character and other.Character:FindFirstChild("HumanoidRootPart")
-        local visible=runtime.presence.connected and runtime.presence.overhead and entry and target and other~=player
-        if runtime.memberTags[other] and (not visible or runtime.memberTags[other].Adornee~=target) then runtime.memberTags[other]:Destroy(); runtime.memberTags[other]=nil end
-        if visible and not runtime.memberTags[other] then
-            local tag=make("BillboardGui",{Name="ISBMember",Adornee=target,AlwaysOnTop=true,Active=true,
-                Size=UDim2.fromOffset(216,52),StudsOffset=Vector3.new(0,4,0)},gui)
-            local b=make("TextButton",{Text="",Font=Enum.Font.BuilderSansMedium,
-                TextSize=11,TextColor3=C.text,BackgroundColor3=C.panel,Size=UDim2.fromScale(1,1),AutoButtonColor=false},tag)
-            round(b,16); stroke(b)
-            imageIcon(b,"shield-check",24,UDim2.fromOffset(14,14),C.accent)
-            local name=label(b,other.DisplayName,12,C.text,UDim2.fromOffset(48,8),UDim2.new(1,-58,0,20)); name.Font=Enum.Font.BuilderSansMedium
-            local role=label(b,"ISB  /  "..tostring(entry.role),9,C.accent,UDim2.fromOffset(48,29),UDim2.new(1,-58,0,14)); role.Name="Role"
-            -- This connection belongs to the tag and is released when the tag is destroyed.
-            b.Activated:Connect(function() features.teleportToMember(other) end)
-            runtime.memberTags[other]=tag
-        end
-        if visible and runtime.memberTags[other] then
-            local b=runtime.memberTags[other]:FindFirstChildOfClass("TextButton")
-            local role=b and b:FindFirstChild("Role"); if role then role.Text="ISB  /  "..entry.role end
-        end
-    end
-end
-function features.applyPresence(snapshot)
-    if type(snapshot)~="table" or snapshot.protocol~=1 or type(snapshot.users)~="table" then return false end
-    local users={}
-    for _,entry in ipairs(snapshot.users) do
-        if type(entry)=="table" and type(entry.userId)=="number" and (entry.role=="Owner" or entry.role=="Admin" or entry.role=="Member") then users[entry.userId]=entry end
-    end
-    runtime.presence.users=users; runtime.presence.overhead=snapshot.overhead~=false; runtime.presence.connected=true
-    runtime.presence.role=users[player.UserId] and users[player.UserId].role or "Member"
-    features.updateMemberTags()
-    if render and (page=="Start" or page=="Profil") then render() end
-    return true
-end
 function features.detectGameStaff(other)
     task.spawn(function()
         local detected=table.find(CONFIG.StaffUserIds,other.UserId)~=nil
@@ -1220,26 +1221,40 @@ function features.detectGameStaff(other)
     end)
 end
 function features.drawProfile()
-    local f=plainCard(player.DisplayName,"@"..player.Name.."  ·  "..runtime.presence.role,100)
-    imageIcon(f,"shield-check",25,UDim2.new(1,-53,0,24),C.accent)
-    plainCard("ISB Netzwerk",runtime.presence.connected and "Verbunden · "..tostring(#Players:GetPlayers()).." Spieler in dieser Sitzung" or "Keine Server-Anbindung. Gemeinsame Nutzererkennung ist in diesem Spiel nicht verfügbar.",90)
-    if runtime.presence.connected then
-        if features.canManageOverhead() then
-            drawAction({id="overhead",name="ISB Overhead-Anzeigen",desc="Nur Owner und Admin können diese Einstellung ändern",kind="toggle",get=function() return runtime.presence.overhead end,fn=function()
-                task.spawn(function()
-                    local ok,result=pcall(function() return runtime.presence.remote:InvokeServer("overhead",not runtime.presence.overhead) end)
-                    if alive and ok then features.applyPresence(result) end
-                end)
-            end})
-        else plainCard("Overhead-Anzeigen","Die Einstellung verwalten Owner und Admin. Tippe auf eine ISB-Anzeige, um zum Spieler zu gelangen.",88) end
+    local hero=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,96)},content)
+    local avatar=make("ImageLabel",{Image=profile.Image,BackgroundColor3=C.card,Position=UDim2.fromOffset(0,6),Size=UDim2.fromOffset(72,72)},hero); round(avatar,36)
+    rowConnect(profile:GetPropertyChangedSignal("Image"),function() if avatar.Parent then avatar.Image=profile.Image end end)
+    local name=label(hero,player.DisplayName,22,C.text,UDim2.fromOffset(90,9),UDim2.new(1,-104,0,30)); name.Font=Enum.Font.BuilderSansBold
+    label(hero,"@"..player.Name.."  ·  "..runtime.role,12,C.accent,UDim2.fromOffset(90,45),UDim2.new(1,-104,0,22))
+    local count,scripts=0,0; for _ in pairs(settings.favorites) do count=count+1 end; for _ in pairs(settings.scriptFavorites) do scripts=scripts+1 end
+    local stats=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,168)},content)
+    local data={{"Dein Konto","ID "..tostring(player.UserId).." · "..tostring(player.AccountAge or "—").." Tage"},
+        {"Deine Sammlung",count.." Aktionen · "..scripts.." Scripts"},
+        {"Client",session.executor.." "..session.executorVersion.." · ISB "..CONFIG.Version},
+        {"Automatisches Speichern",runtime.saveError or (runtime.lastSaved and "Gespeichert · "..runtime.lastSaved or "Aktiv · lokal")}}
+    for i,entry in ipairs(data) do
+        local col=(i-1)%2; local y=math.floor((i-1)/2)
+        local tile=make("Frame",{BackgroundColor3=C.card,BackgroundTransparency=.14,Position=UDim2.new(col*.5,col*5,0,y*86),Size=UDim2.new(.5,-5,0,76)},stats); round(tile,15)
+        label(tile,entry[1],10,C.muted,UDim2.fromOffset(15,10),UDim2.new(1,-30,0,18))
+        local value=label(tile,entry[2],12,C.text,UDim2.fromOffset(15,34),UDim2.new(1,-30,0,31)); value.TextWrapped=true; value.Font=Enum.Font.BuilderSansMedium
+    end
+    plainCard("Diese Sitzung",session.placeName.."\nPlace "..tostring(game.PlaceId).."  ·  Universe "..tostring(game.GameId),94)
+    local tools=plainCard("Sitzungswerkzeuge","Deine Daten und gespeicherten Einstellungen exportieren.",110)
+    rowButton(tools,"Profil kopieren",UDim2.fromOffset(16,72),UDim2.fromOffset(120,28),function() copyText(player.Name.." / "..player.UserId.." / "..runtime.role) end)
+    rowButton(tools,"Sitzung kopieren",UDim2.fromOffset(146,72),UDim2.fromOffset(126,28),function() copyText("Place "..game.PlaceId.." / Job "..game.JobId) end)
+    rowButton(tools,"Export",UDim2.fromOffset(282,72),UDim2.fromOffset(84,28),function() copyText(Http:JSONEncode(settings)) end)
+    if runtime.role=="Owner" or runtime.role=="Admin" then
+        local admin=plainCard("ISB Verwaltung","Lokale Diagnose, Testhinweise und Konfigurationskontrolle.",112)
+        rowButton(admin,"Diagnose",UDim2.fromOffset(16,72),UDim2.fromOffset(108,28),function() copyText("ISB "..CONFIG.Version.." / "..session.executor.." / FPS "..session.fps.." / Ping "..tostring(session.ping).." / Dateien "..tostring(capabilities.files)) end)
+        rowButton(admin,"Testhinweis",UDim2.fromOffset(134,72),UDim2.fromOffset(112,28),function() notify("Oberfläche und Benachrichtigungen sind bereit.","ISB / Systemtest","shield-check") end)
+        rowButton(admin,"Erkennung prüfen",UDim2.fromOffset(256,72),UDim2.fromOffset(140,28),function() for _,other in ipairs(Players:GetPlayers()) do features.detectGameStaff(other) end; notify("Gruppenrollen werden erneut geprüft.","ISB") end)
     end
 end
-
 local function drawDashboard()
     local f=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,298)},content)
     local greeting=label(f,"Willkommen, "..player.DisplayName,18,C.text,UDim2.fromOffset(0,0),UDim2.new(1,0,0,24))
     greeting.Font=Enum.Font.BuilderSansBold
-    label(f,"ISB / "..runtime.presence.role.."  ·  "..session.placeName,12,C.muted,UDim2.fromOffset(0,27),UDim2.new(1,0,0,22))
+    label(f,"ISB / "..runtime.role.."  ·  "..session.placeName,12,C.muted,UDim2.fromOffset(0,27),UDim2.new(1,0,0,22))
     local data={{"Server","server-stack","server"},{"Freunde","users","friends"},{"Executor","code-bracket-square","executor"},{"Sitzung","globe-alt","session"}}
     for i,entry in ipairs(data) do
         local x=(i-1)%2; local y=math.floor((i-1)/2)
@@ -1303,7 +1318,7 @@ local function drawCharacter()
         state.speedValue=h and h.WalkSpeed or 16
         state.jumpValue=h and (h.UseJumpPower and h.JumpPower or math.sqrt(2*workspace.Gravity*h.JumpHeight)) or 50
         state.flyValue=45; state.fovValue=workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70
-        activeSlider=nil; render(); notify("Regler und Charakterwerte zurückgesetzt.","Charakter")
+        activeSlider=nil; save(); render(); notify("Regler und Charakterwerte zurückgesetzt.","Charakter")
     end)
     local source=findAction(tuning); local action=table.clone(source)
     action.fn=function(value)
@@ -1403,26 +1418,77 @@ local function drawScripts()
     end
     plainCard("Spiel-Erweiterungen",tostring(#actions).." registrierte Aktionen. Eigene Funktionen lassen sich über ISBMenu.AddAction ergänzen.",72)
 end
+function features.scriptBookmark(entry)
+    local key=entry.provider..":"..entry.slug
+    if settings.scriptFavorites[key] then settings.scriptFavorites[key]=nil
+    else
+        local count=0; for _ in pairs(settings.scriptFavorites) do count=count+1 end
+        if count>=60 then notify("Maximal 60 Skript-Favoriten.","Scripts"); return end
+        local copy=table.clone(entry); copy.source=nil; settings.scriptFavorites[key]=copy
+    end
+    save()
+    if scriptSearch.discovery=="Favoriten" and scriptSearch.query=="" then searchRemoteScripts(1) else render() end
+end
+function features.scriptThumbnail(parent,entry)
+    local url=entry.image
+    if type(url)~="string" or url=="" or not capabilities.icons then return end
+    if url:sub(1,1)=="/" then url=(entry.provider=="ScriptBlox" and "https://scriptblox.com" or "https://roscripts.io")..url end
+    local host=url:match("^https://([^/]+)")
+    if not host or not (host=="scriptblox.com" or host=="roscripts.io" or host:match("%.rbxcdn%.com$") or host:match("%.roscripts%.io$")) then return end
+    local image=make("ImageLabel",{Name="ScriptThumbnail",BackgroundTransparency=1,Image="",Size=UDim2.new(1,0,0,76),ScaleType=Enum.ScaleType.Crop},parent)
+    round(image,14)
+    if runtime.imageCache[url]~=nil then if runtime.imageCache[url] then image.Image=runtime.imageCache[url] end; return end
+    runtime.imageWaiters=runtime.imageWaiters or {}
+    if runtime.imageWaiters[url] then table.insert(runtime.imageWaiters[url],image); return end
+    runtime.imageWaiters[url]={image}
+    task.spawn(function()
+        local ok,asset=pcall(function()
+            local bytes=requestBody(url); assert(#bytes<2000000,"Thumbnail too large")
+            local ext=bytes:sub(1,8)=="\137PNG\13\10\26\10" and ".png" or (bytes:sub(1,2)=="\255\216" and ".jpg" or nil)
+            assert(ext,"Unsupported thumbnail format")
+            local hash=5381; for i=1,#url do hash=(hash*33+url:byte(i))%2147483647 end
+            local path="ISBMenu-thumb-"..hash..ext
+            writefile(path,bytes)
+            local asset=(type(getcustomasset)=="function" and getcustomasset or getsynasset)(path)
+            runtime.imageCache[url]=asset; return asset
+        end)
+        runtime.imageCache[url]=ok and asset or false
+        local waiting=runtime.imageWaiters[url] or {}; runtime.imageWaiters[url]=nil
+        for _,target in ipairs(waiting) do if alive and target.Parent and ok then target.Image=asset end end
+    end)
+end
 local function drawScriptSearch()
     local controls=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
     for i,name in ipairs({"ScriptBlox","RoScripts"}) do
         local b=rowButton(controls,name,UDim2.fromOffset((i-1)*104,0),UDim2.fromOffset(96,30),function()
-            scriptSearch.provider=name; scriptSearch.selected=nil; scriptSearch.source=nil; scriptSearch.rows={}; scriptSearch.allRows={}
+            scriptSearch.provider=name; settings.provider=name; save(); scriptSearch.loaded=false; scriptSearch.selected=nil; scriptSearch.source=nil; scriptSearch.rows={}; scriptSearch.allRows={}
             scriptSearch.loading=false; scriptSearch.error=nil; scriptSearch.page=1; scriptSearch.totalPages=1
             scriptSearch.generation=scriptSearch.generation+1
             render()
-            if #scriptSearch.query>=2 then searchRemoteScripts(1) end
+            searchRemoteScripts(1)
         end)
         round(b,15); b.BackgroundColor3=scriptSearch.provider==name and C.text or C.card
         b.TextColor3=scriptSearch.provider==name and C.bg or C.muted
     end
     rowButton(controls,"Suchen",UDim2.fromOffset(210,0),UDim2.fromOffset(82,30),function() searchRemoteScripts(1) end)
     rowButton(controls,"Lokal",UDim2.fromOffset(302,0),UDim2.fromOffset(74,30),function() scriptSearch.localMode=true; query=""; render() end)
+    if not scriptSearch.selected then
+        local filters=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+        for i,name in ipairs({"Beliebt","Neu","Favoriten"}) do
+            local b=rowButton(filters,name,UDim2.fromOffset((i-1)*102,0),UDim2.fromOffset(94,28),function()
+                scriptSearch.discovery=name; scriptSearch.query=""; scriptSearch.loaded=false; query=""; searchRemoteScripts(1)
+            end)
+            b.TextColor3=scriptSearch.discovery==name and C.accent or C.muted
+        end
+        label(filters,scriptSearch.query=="" and "Entdecken" or "Suchergebnisse",10,C.muted,UDim2.new(1,-116,0,5),UDim2.fromOffset(116,20))
+    end
     if scriptSearch.loading then plainCard("Wird geladen …",scriptSearch.provider,72); return end
     if scriptSearch.error then plainCard("Anbieter meldet einen Fehler",scriptSearch.error,94) end
     if scriptSearch.selected then
         local selected=scriptSearch.selected
         local detail=plainCard(selected.title,selected.game.."  ·  @"..selected.owner..(selected.key and "  ·  Key-System" or ""),112)
+        local bookmark=rowButton(detail,"",UDim2.new(1,-42,0,12),UDim2.fromOffset(28,28),function() features.scriptBookmark(selected) end)
+        imageIcon(bookmark,"star",18,UDim2.fromOffset(5,5),settings.scriptFavorites[selected.provider..":"..selected.slug] and C.accent or C.muted)
         rowButton(detail,"Zurück",UDim2.fromOffset(16,74),UDim2.fromOffset(84,28),function() scriptSearch.selected=nil; scriptSearch.source=nil; scriptSearch.error=nil; render() end)
         rowButton(detail,"Kopieren",UDim2.fromOffset(110,74),UDim2.fromOffset(94,28),function() if scriptSearch.source then copyText(scriptSearch.source) end end)
         rowButton(detail,"Ausführen",UDim2.fromOffset(214,74),UDim2.fromOffset(104,28),function()
@@ -1439,20 +1505,25 @@ local function drawScriptSearch()
         end
         return
     end
-    if #scriptSearch.rows==0 and not scriptSearch.error then plainCard("Scripts finden","Oben Suchbegriff eingeben und Suchen drücken. Anbieter lassen sich direkt hier wechseln.",88) end
+    if #scriptSearch.rows==0 and not scriptSearch.error then plainCard(scriptSearch.discovery=="Favoriten" and "Deine Skript-Favoriten" or "Keine Ergebnisse",scriptSearch.discovery=="Favoriten" and "Markiere Scripts über den Stern. Sie werden automatisch gespeichert." or "Diese Quelle hat keine passenden Scripts geliefert. Aktualisiere die Liste oder suche einen Begriff.",88) end
     for i=1,#scriptSearch.rows,2 do
-        local pair=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,120)},content)
+        local pair=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,158)},content)
         for col=0,1 do
             local entry=scriptSearch.rows[i+col]
             if entry then
-                local tile=rowButton(pair,"",UDim2.new(col*.5,col*5,0,0),UDim2.new(.5,-5,0,120),function() loadScriptSource(entry) end)
+                local tile=rowButton(pair,"",UDim2.new(col*.5,col*5,0,0),UDim2.new(.5,-5,0,158),function() loadScriptSource(entry) end)
                 round(tile,14); tile.BackgroundColor3=C.card
-                imageIcon(tile,"code-bracket-square",24,UDim2.fromOffset(14,13),C.muted)
-                local titleLabel=label(tile,entry.title,12,C.text,UDim2.fromOffset(14,48),UDim2.new(1,-28,0,34))
+                local art=make("Frame",{BackgroundColor3=C.panel,Size=UDim2.new(1,0,0,76)},tile); round(art,14)
+                make("UIGradient",{Color=ColorSequence.new(C.line,C.bg),Rotation=35},art)
+                imageIcon(art,"code-bracket-square",27,UDim2.fromOffset(16,24),C.muted)
+                features.scriptThumbnail(art,entry)
+                local star=rowButton(tile,"",UDim2.new(1,-36,0,9),UDim2.fromOffset(27,27),function() features.scriptBookmark(entry) end); star.ZIndex=4
+                imageIcon(star,"star",17,UDim2.fromOffset(5,5),settings.scriptFavorites[entry.provider..":"..entry.slug] and C.accent or C.text)
+                local titleLabel=label(tile,entry.title,12,C.text,UDim2.fromOffset(14,86),UDim2.new(1,-28,0,34))
                 titleLabel.TextWrapped=true; titleLabel.TextYAlignment=Enum.TextYAlignment.Top
-                local gameLabel=label(tile,entry.game,10,C.muted,UDim2.fromOffset(14,89),UDim2.new(1,-28,0,16))
+                local gameLabel=label(tile,entry.game..(entry.views and "  ·  "..tostring(entry.views).." Aufrufe" or ""),10,C.muted,UDim2.fromOffset(14,132),UDim2.new(1,-28,0,16))
                 gameLabel.TextTruncate=Enum.TextTruncate.AtEnd
-                if entry.verified then label(tile,"VERIFIZIERT",8,C.good,UDim2.new(1,-95,0,18),UDim2.fromOffset(82,16)) end
+                if entry.verified then label(tile,"VERIFIZIERT",8,C.good,UDim2.new(1,-109,0,58),UDim2.fromOffset(82,16)) end
             end
         end
     end
@@ -1522,6 +1593,7 @@ render = function()
         for _,part in ipairs(navIcons[name]) do part.obj[part.property]=name==page and C.accent or C.muted end
     end
     indicator.Visible=page~="Profil" and page~="Voice"
+    if runtime.statusIcon then runtime.statusIcon.ImageColor3=C.accent end
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
     if page == "Start" then
@@ -1534,7 +1606,10 @@ render = function()
     elseif page=="Voice" then
         drawVoice()
     elseif page=="Skripte" then
-        if scriptSearch.localMode then drawScripts() else drawScriptSearch() end
+        if scriptSearch.localMode then drawScripts() else
+            drawScriptSearch()
+            if not scriptSearch.loaded and not scriptSearch.loading and not scriptSearch.error then searchRemoteScripts(1) end
+        end
     elseif page == "Musik" and query == "" then
         local f=card("Deine Musik","Roblox-Audio-ID eingeben. Das Asset muss im Spiel verwendbar sein.",154)
         local input=make("TextBox",{Text="",PlaceholderText="Audio-ID",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,
@@ -1558,7 +1633,7 @@ render = function()
         rowButton(queue,"Weiter",UDim2.fromOffset(114,74),UDim2.fromOffset(88,28),function() playQueue(queueIndex+1) end)
         rowButton(queue,"Leeren",UDim2.fromOffset(212,74),UDim2.fromOffset(88,28),function() sound:Stop(); table.clear(musicQueue); queueIndex=0; render() end)
         drawAction({id="volume",name="Lautstärke",desc="Nur die Musik von ISB Menu",kind="slider",
-            min=0,max=100,step=5,get=function() return math.floor(sound.Volume*100+0.5) end,fn=function(v) sound.Volume=v/100 end})
+            min=0,max=100,step=5,get=function() return math.floor(sound.Volume*100+0.5) end,fn=function(v) sound.Volume=v/100; settings.volume=v; save() end})
         local clockCard=card("Timer und Stoppuhr","Eine kompakte Aktivitätsanzeige bleibt oberhalb des Spiels sichtbar.",150)
         local minutes=make("TextBox",{Text="5",PlaceholderText="Minuten",ClearTextOnFocus=false,
             Font=Enum.Font.BuilderSans,TextSize=13,TextColor3=C.text,BackgroundColor3=C.panel,
@@ -1603,7 +1678,7 @@ render = function()
                 local cap=plainCard("FPS-Limit","Das vorherige Limit wird beim Beenden wiederhergestellt.",94)
                 for i,value in ipairs({60,120,144,240}) do rowButton(cap,tostring(value),UDim2.fromOffset(16+(i-1)*72,58),UDim2.fromOffset(62,26),function()
                     if runtime.performanceOwned.fps==nil then local ok,old=pcall(getfpscap); if ok then runtime.performanceOwned.fps=old end end
-                    local ok=pcall(setfpscap,value); if ok then settings.fpsCap=value; notify("FPS-Limit: "..value,"Performance") end
+                    local ok=pcall(setfpscap,value); if ok then settings.fpsCap=value; save(); notify("FPS-Limit: "..value,"Performance") end
                 end) end
             end
             plainCard("Live-Messung",tostring(session.fps).." FPS  ·  "..tostring(session.ping or "—").." ms\nDie Statusleiste bleibt oben rechts sichtbar.",88)
@@ -1615,7 +1690,7 @@ render = function()
                 b=rowButton(f,settings[field],UDim2.new(1,-120,0,23),UDim2.fromOffset(104,32),function() captureKey=field; b.Text="Taste …" end)
             end
         else
-        local f=card("Akzentfarbe","ISB · Porzellan, Metall und ein klarer Farbakzent",104)
+        local f=card("Akzentfarbe","Liquid-Dark · dein persönlicher Farbakzent",104)
         for i,name in ipairs({"Neutral","Blue","Mint","Amber"}) do
             local b=rowButton(f,name,UDim2.fromOffset(16+(i-1)*104,68),UDim2.fromOffset(94,26),function()
                 settings.theme=name; C.accent=themes[name]; save()
@@ -1628,8 +1703,7 @@ render = function()
         drawAction({id="uisounds",name="Interface-Sounds",desc="Dezente Klänge bei Öffnen, Schließen und Klicks",kind="toggle",get=function() return settings.sounds end,fn=function() settings.sounds=not settings.sounds; save() end})
         local voice=card("Voice Chat","Status, Mikrofon und Verbindung prüfen",78)
         rowButton(voice,"Öffnen",UDim2.new(1,-120,0,24),UDim2.fromOffset(104,32),function() query=""; selectPage("Voice") end)
-        local s=card("Einstellungen speichern",type(writefile)=="function" and "Favoriten, Farbe und Taste werden lokal gespeichert." or "Dieser Executor bietet keinen Dateizugriff. Einstellungen gelten für diese Sitzung.")
-        rowButton(s,"Speichern",UDim2.new(1,-120,0,24),UDim2.fromOffset(104,32),function() notify(save() and "Einstellungen gespeichert." or "Speichern nicht verfügbar.") end)
+        plainCard("Automatisches Speichern",type(writefile)=="function" and "Änderungen werden automatisch lokal gespeichert. Kein zusätzlicher Speichern-Klick nötig." or "Dateizugriff fehlt: Einstellungen gelten nur für diese Sitzung.",86)
         local exit=card("Hub beenden","Aktive Funktionen zurücksetzen und Oberfläche entfernen.")
         rowButton(exit,"Beenden",UDim2.new(1,-120,0,24),UDim2.fromOffset(104,32),function() env.ISBMenu.Destroy() end)
         end
@@ -1768,20 +1842,8 @@ connect(Run.RenderStepped,function(dt)
         runtime.voiceMaintenance=runtime.voiceMaintenance+dt
         if runtime.voiceMaintenance>=3 then runtime.voiceMaintenance=0; maintainVoiceConnections() end
     end
-    if runtime.presence.remote then
-        runtime.presence.elapsed=runtime.presence.elapsed+dt
-        if runtime.presence.elapsed>=20 then
-            runtime.presence.elapsed=0
-            task.spawn(function()
-                local ok,result=pcall(function() return runtime.presence.remote:InvokeServer("register") end)
-                if not alive then return end
-                if not ok or not features.applyPresence(result) then runtime.presence.connected=false; runtime.presence.users={}; features.updateMemberTags() end
-            end)
-        end
-    end
     if visualTimer<0.25 then return end
     visualTimer=0
-    features.updateMemberTags()
     local ownRoot=root()
     for _,other in ipairs(Players:GetPlayers()) do
         if other~=player then
@@ -1828,8 +1890,7 @@ end)
 refreshPlayers=function() if page=="Spieler" or page=="Start" then render() end end
 connect(Players.PlayerAdded,function(other) features.detectGameStaff(other); refreshPlayers() end)
 connect(Players.PlayerRemoving,function(other)
-    runtime.gameStaff[other]=nil; runtime.presence.users[other.UserId]=nil
-    if runtime.memberTags[other] then runtime.memberTags[other]:Destroy(); runtime.memberTags[other]=nil end
+    runtime.gameStaff[other]=nil
     if highlights[other] then highlights[other]:Destroy(); highlights[other]=nil end
     if tags[other] then tags[other]:Destroy(); tags[other]=nil end
     if spectating==other then restoreCamera() end
@@ -1839,8 +1900,7 @@ local api = {}
 api.Destroy = function()
     if not alive then return end
     alive=false
-    if runtime.presence.remote then pcall(function() runtime.presence.remote:InvokeServer("leave") end) end
-    for _,tag in pairs(runtime.memberTags) do tag:Destroy() end; table.clear(runtime.memberTags)
+    save(true)
     settings.lowEffects=false; features.applyPerformance()
     if runtime.performanceOwned.fps~=nil and type(setfpscap)=="function" then pcall(setfpscap,runtime.performanceOwned.fps) end
     state.fly=false; state.noclip=false; state.fullbright=false; state.shadows=false
@@ -1897,22 +1957,13 @@ for _,other in ipairs(Players:GetPlayers()) do features.detectGameStaff(other) e
 task.spawn(function()
     for _,name in ipairs(CONFIG.OwnerNames) do
         local ok,id=pcall(function() return Players:GetUserIdFromNameAsync(name) end)
-        if alive and ok and player.UserId==id and not runtime.presence.connected then runtime.presence.role="Owner" end
+        if alive and ok and player.UserId==id then runtime.role="Owner" end
     end
-    if alive and table.find(CONFIG.AdminUserIds,player.UserId) and runtime.presence.role~="Owner" then runtime.presence.role="Admin" end
+    if alive and table.find(CONFIG.AdminUserIds,player.UserId) and runtime.role~="Owner" then runtime.role="Admin" end
     if alive and page=="Start" then render() end
 end)
-task.spawn(function()
-    local storage=optionalService("ReplicatedStorage")
-    local bridge=storage and storage:FindFirstChild("ISBPresence")
-    local remote=bridge and bridge:FindFirstChild("Request")
-    local changed=bridge and bridge:FindFirstChild("Changed")
-    if not remote or not remote:IsA("RemoteFunction") or not changed or not changed:IsA("RemoteEvent") then return end
-    runtime.presence.remote=remote
-    connect(changed.OnClientEvent,function(snapshot) if alive then features.applyPresence(snapshot) end end)
-    local ok,snapshot=pcall(function() return remote:InvokeServer("register") end)
-    if alive and ok then features.applyPresence(snapshot) end
-end)
+features.applyPerformance()
+save()
 render()
 window.GroupTransparency=1; motionScale.Scale=0.94; window.Visible=false
 dock.GroupTransparency=1

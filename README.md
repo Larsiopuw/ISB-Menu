@@ -1,8 +1,8 @@
-# ISB Menu 2.2 · by Larsiopuw
+# ISB Menu 2.3 · by Larsiopuw
 
-Helle Porzellanflächen, kühles Metallgrau, warmer Orange-Akzent. Feste Navigation unten mittig, eigene Statusleiste oben rechts und animierte Panels. Inspiriert vom Imperialen Sicherheitsbüro.
+Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
-![Designvorschau mit ausdrücklich gekennzeichneten Beispieldaten](ISB-Vorschau.png)
+![Designvorschau mit Beispieldaten](ISB-Vorschau.png)
 
 ## Starten
 
@@ -11,7 +11,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Larsiopuw/ISB-Menu/ma
 -- by Larsiopuw
 ```
 
-Öffentliches Repository, lesbarer Quellcode. Der Aufruf lädt den aktuellen Stand von main. Alternativ ISBMenu.lua vollständig ausführen. ISBMenu-Loader.lua lädt die lokale Datei; ISBMenu-GitHub-Loader.lua enthält zusätzliche Fehlerprüfung.
+Öffentlicher, lesbarer Quellcode. Der Loader lädt den aktuellen Stand von main. Alternativ ISBMenu.lua vollständig ausführen. Der lokale Loader lädt die Datei; der GitHub-Loader enthält Fehlerprüfung.
 
 | Taste | Funktion |
 | --- | --- |
@@ -20,62 +20,53 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Larsiopuw/ISB-Menu/ma
 | T | Mittige Skript-Schnellsuche |
 | Escape | Schnellsuche oder Tastenaufnahme abbrechen |
 
-Einstellungen → Tasten: Anklicken und gewünschte Taste drücken. Doppelte Belegungen werden abgewiesen. Beim Schreiben in Textfelder greifen die Tastenkürzel nicht. Alte RightShift-Einstellungen werden auf M umgestellt. Der aktive Dock-Tab klappt sein Panel ein. Das Avatarbild rechts öffnet dein Profil. Fenster und Dock lassen sich nicht verschieben. Einstellungen → Allgemein → Beenden räumt auf; erneutes Ausführen ersetzt die vorherige Instanz.
+Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden abgewiesen; beim Schreiben greifen die Kürzel nicht. Fenster und Dock bleiben fest positioniert. Erneutes Ausführen ersetzt die vorherige Instanz.
 
-## Änderungen in 2.2
+## Änderungen in 2.3
 
-- Helle ISB-Oberfläche, Orange-Akzent, einheitliche Favoriten-Icons, runde Dock-Buttons ohne konkurrierende Ecken.
-- Separate Statusleiste oben rechts: Spielerzahl, gemessene FPS, Ping. Keine Metriken im Panel-Kopf.
-- Animierte Rahmen innerhalb der Gruppen; Schließen und Hover-Ende verstecken alles. Neue Übergänge können ältere Animationen abbrechen.
-- Reset stellt die Spielwerte für Speed, Jump und FOV wieder her und aktualisiert gespeicherte Werte sowie sichtbare Regler. Fluggeschwindigkeit zurück auf 45.
-- Kamerabezogener Flug mit weicher Beschleunigung/Bremsung. WASD, Space hoch, linke Strg runter; Touch mit Bewegungssteuerung und Höhentasten. AutoRotate/PlatformStand werden wiederhergestellt und Restbewegung beendet.
-- Freunde blau, öffentlich erkennbare Spiel-Admins rot. Gruppenrollen über GetRolesInGroupAsync mit Kompatibilitäts-Fallback.
-- Performance: Partikel-/Trail-/Beam-/Post-Effekt-Pause, Schatten und FPS-Limits, sofern der Executor das Limit lesen und setzen kann. Vorherige Zustände werden wiederhergestellt.
-- Eigener lokaler Voice-Controller ohne externe Menü-Abhängigkeit oder fremde Menübezeichnungen.
-- Profil mit Owner/Admin/Member und optionale Server-Anbindung für gemeinsame Overhead-Anzeigen.
+- Glossy Dark mit Lichtverläufen und enthaltenen Rahmen; Akzent einstellbar.
+- Hinweiskarten erscheinen nur bei geschlossenem Panel und geschlossener Schnellsuche. Bei offenen Panels reagiert nur das Dock-Symbol auf Hover.
+- Statusleiste ignoriert den Roblox-GUI-Abstand und sitzt direkt oben rechts.
+- Profil mit Avatar, Rolle, Kontoalter, UserId, Sammlung, Executor, Version, Place/Universe, Sitzung und Speicherstatus.
+- Profilwerkzeuge zum Kopieren von Sitzungsdaten und Exportieren der Einstellungen. Owner/Admin erhalten lokale Diagnose-, Benachrichtigungs- und Erkennungswerkzeuge.
+- Automatisches Speichern von Einstellungen, Tasten, Reglerwerten, Lautstärke, Erkennung, Performance, Anbieter und Favoriten.
+- Skripte laden direkt beim Öffnen: Beliebt, Neu oder Favoriten. Karten mit Titel, Spiel, Aufrufen und Vorschaubild, soweit verfügbar.
+- Overhead-Anbindung und zugehöriges Server-Skript entfernt.
 
 ## Funktionen
 
 | Bereich | Enthalten |
 | --- | --- |
-| Start | Spielname, Spieler/Freunde, Executor und Version, Sitzungsdauer, ISB-Rolle |
-| Bewegung | Fliegen, Noclip, Mehrfachsprung, Speed, Jump, Flight, FOV, Reset, Respawn, Rejoin, Serverhop |
-| Spieler | Suche, Avatare, Beobachten, Kamerarückkehr und lokale Positionsänderung |
-| Server | Öffentliche Server, Sortierung, Cursor-Seiten, Ping/FPS soweit geliefert, Beitreten, Join-Script kopieren |
+| Start | Spiel, Spieler/Freunde, Executor, Sitzungsdauer und Rolle |
+| Bewegung | Weicher kamerabezogener Flug, Noclip, Mehrfachsprung, Speed/Jump/Flight/FOV, Reset, Respawn, Rejoin, Serverhop |
+| Spieler | Suche, Avatare, Beobachten, Kamerarückkehr, lokale Positionsänderung |
+| Server | Öffentliche Server, Sortierung, Cursor-Seiten, Beitreten, Join-Script kopieren |
 | Darstellung | Highlights, Namen/Entfernung, Tageslicht, Schatten, FOV |
-| Skripte | ScriptBlox/RoScripts, Anbieterwechsel, Quelltextvorschau, Kopieren, ausdrückliches Ausführen und lokale Lua-Dateien |
-| Musik | Roblox-Audio-IDs, Warteschlange, Lautstärke, Pause, Timer und Stoppuhr |
-| Favoriten | Gespeicherte Aktionen über den Stern bei einer Funktion |
-| Einstellungen | Akzent, Klänge, Tasten, Performance, Erkennung und Protokoll |
-| Profil | Rolle, Netzwerkstatus, Overhead-Verwaltung für Owner/Admin |
+| Skripte | ScriptBlox/RoScripts, Entdecken, Suche, gespeicherte Skripte, Quelltextvorschau, Kopieren, ausdrückliches Ausführen, lokale Lua-Dateien |
+| Musik | Roblox-Audio-IDs, Warteschlange, Lautstärke, Pause, Timer, Stoppuhr |
+| Einstellungen | Akzent, Klänge, Tasten, Performance, Erkennung, Protokoll |
+| Profil | Konto-/Sitzungsdaten, Speicherstatus, Export, lokale Verwaltungswerkzeuge |
 
-## Overhead-Anzeigen in deinen eigenen Spielen
+Flug: WASD, Space hoch, linke Strg runter; Touch mit Bewegungssteuerung und Höhentasten. Reset aktualisiert Spielwerte und sichtbare Regler. Freunde werden blau, öffentlich erkennbare Spiel-Admins rot markiert.
 
-1. Öffne dein Spiel in Roblox Studio.
-2. Lege **ISBPresence.server.lua als Script in ServerScriptService** ab, genau eine Instanz pro Spiel.
-3. Kontrolliere OWNER_NAMES (Standard Larsiopuw). Zusätzliche Menü-Admins: numerische Roblox-UserIds in ADMIN_IDS.
-4. Veröffentliche die Änderung und starte einen neuen Server. ISB-Clients verbinden sich automatisch.
+## Speicherung und Rollen
 
-Der Server löst den Owner-Namen in eine Roblox-UserId auf und vergibt Rollen anhand der tatsächlichen Spieleridentität. Öffentlich erkannte Gruppen-Admins erhalten dadurch keine Menü-Adminrechte.
+Einstellungen werden automatisch in ISBMenu-settings.json im Dateibereich des Executors gespeichert. Dafür sind readfile/writefile nötig; fehlender Dateizugriff erscheint im Profil. Skript-Favoriten speichern Metadaten, keinen fremden Quelltext. Aktive Bewegungsmodi werden beim Neustart nicht automatisch eingeschaltet.
 
-Registrierte Clients melden sich alle 20 Sekunden; nach 65 Sekunden ohne Meldung entfernt der Server die Registrierung. Die Anzeige enthält Namen und Rolle. Anklicken fordert einen Teleport zum registrierten, lebenden Ziel an; der Server prüft Registrierung, Ziel und Charaktere. Nur Owner und konfigurierte Menü-Admins dürfen die gemeinsame Anzeige im Profil ein-/ausschalten. Member haben keinen entsprechenden Schalter. Anfragen werden begrenzt; Rollenangaben vom Client werden nicht angenommen.
-
-In Spielen ohne diese Server-Anbindung gibt es keine gemeinsame ISB-Nutzererkennung. Ein Executor sieht die lokalen Oberflächen anderer Spieler nicht. Das Menü zeigt die Funktion dort als nicht verfügbar. Registrierung ist eine Anwesenheitsmeldung, kein kryptographischer Nachweis eines unveränderten Clients. Öffentlicher Client-Code kann verändert werden; verbindliche Berechtigungen liegen deshalb auf dem Server.
+OwnerNames enthält Larsiopuw; zusätzliche Menü-Admins stehen als numerische UserIds in CONFIG.AdminUserIds. Die Rolle steuert lokale Menüwerkzeuge und vergibt keine serverseitigen Spielrechte. Erkannte Gruppen-Admins sind davon getrennt.
 
 ## Prüfung und Grenzen
 
-205 Client-Assertions und 14 Server-Assertions bestehen in einer simulierten Roblox-API. Alle Lua-Dateien kompilieren mit Luau 0.741. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten und führt keine Roblox-/Executor-Funktionen aus.
+224 Assertions bestehen mit einer simulierten Roblox-API. Menü und beide Loader kompilieren mit Luau. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten. **Kein Live-Test in Roblox/Executor durchgeführt.** Bewegung, Voice, Assets und Teleports hängen vom Spiel und Executor ab.
 
-**Kein Live-Test in Roblox/Executor durchgeführt.** Die Server-Anbindung wurde nicht in deinen Spielen installiert. Bewegung, Voice, Assets und lokale Teleports hängen vom Spiel und Executor ab.
+ScriptBlox nutzt die öffentliche API: Beliebt nach Aufrufen, Neu nach Aktualisierung. RoScripts nutzt öffentliche Trending-/Neu-Seiten und Such-HTML. Kein API-Key. ScriptBlox lieferte bei der Prüfung HTTP 200; der direkte RoScripts-Abruf wurde hier mit HTTP 403 blockiert. Anbieterfehler werden angezeigt; Website-Änderungen können Anpassungen erfordern. Fremder Code läuft erst nach ausdrücklichem Klick.
 
-„Anti-VC Ban“ bezeichnet einen experimentellen lokalen Voice-Modus: Er verwaltet zugängliche Voice-Signalverbindungen, erneuert die Verbindung und stellt gespeicherte Verbindungszustände beim Ausschalten wieder her. **Kein nachgewiesener Schutz vor serverseitigen Voice-Sperren.** Fehlende APIs werden angezeigt.
+Vorschaubilder benötigen Dateizugriff und getcustomasset/getsynasset; PNG/JPEG werden unterstützt. Andernfalls bleibt eine gestaltete Ersatzfläche. Audio benötigt passende Asset-Freigaben. Heroicons unter beiliegender MIT-Lizenz; Interface-Klänge selbst synthetisiert.
 
-Gruppenrollen werden anhand öffentlicher Namen wie Admin, Owner, Developer, Moderator oder Staff eingeordnet. Das ist eine Erkennungshilfe, kein vollständiger Nachweis von Berechtigungen. Versteckte oder anders benannte Rollen können fehlen; StaffUserIds ergänzen die Erkennung.
+Der experimentelle lokale Voice-Modus bietet keinen nachgewiesenen Schutz vor serverseitigen Voice-Sperren. Gruppenrollen werden anhand öffentlicher Bezeichnungen eingeordnet; versteckte oder anders benannte Rollen können fehlen. CONFIG.StaffUserIds ergänzt die Erkennung.
 
-ScriptBlox nutzt die öffentliche Such-/Detail-API; RoScripts nutzt öffentliches HTML und dort angegebene Raw-URLs. Kein API-Key. Anbieteränderungen oder Ausfälle können Anpassungen erfordern. Fremder Code läuft erst nach ausdrücklichem Klick. Audio braucht passende Asset-Freigaben. Icons/Klänge benötigen Dateizugriff plus getcustomasset/getsynasset. Heroicons unter beiliegender MIT-Lizenz; Interface-Klänge selbst synthetisiert.
+Erweiterungen: ISBMenu.AddAction, ISBMenu.Notify und ISBMenu.Destroy.
 
-Erweiterungen über ISBMenu.AddAction und ISBMenu.Notify; ISBMenu.Destroy räumt auf.
-
-Quellen: [ISB-Referenz](https://www.starwars.com/databank/imperial-security-bureau), [Roblox GroupService](https://create.roblox.com/docs/reference/engine/classes/GroupService), [Heroicons](https://github.com/tailwindlabs/heroicons).
+Designreferenz: [Apple Liquid Glass](https://developer.apple.com/videos/play/wwdc2025/219/). Anbieter: [ScriptBlox](https://docs.scriptblox.com/docs/scripts/fetch), [RoScripts Trending](https://roscripts.io/trending).
 
 <!-- -- by Larsiopuw -->
