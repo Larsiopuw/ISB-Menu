@@ -1,7 +1,7 @@
--- ISB Menu 2.0 | Own-game universal client toolkit
+-- ISB Menu 2.1 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.0.0",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.1.0",
     ToggleKey = Enum.KeyCode.RightShift,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {},
@@ -65,6 +65,14 @@ local ICON_DATA = {
 }
 -- by Larsiopuw
 
+-- Original short UI tones synthesized for ISB Menu.
+local UI_SOUND_DATA = {
+    ["open"]="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xP+6/7b/tv+7/8X/1P/l//n/DQAgADAAPQBFAEkARwBBADcAKgAaAAsA+//t/+L/2f/T/9D/0P/T/9f/3P/i/+n/7//2//z/AgAJAA8AFQAbACEAJwArAC0ALgAsACcAHwAVAAgA+v/s/93/0f/H/8H/vv/A/8f/0v/g//D/AgATACMAMAA5AD8AQAA8ADUAKwAfABEAAwD2/+v/4v/b/9f/1v/X/9r/3v/j/+j/7v/0//n///8EAAoAEAAVABoAHwAkACcAKAAoACUAHwAXAA0AAgD1/+j/3f/S/8v/x//H/8v/0v/d/+r/+f8IABcAJAAuADUAOAA3ADIAKwAhABUACQD9//P/6f/j/97/3P/b/93/4P/k/+n/7v/z//j//f8BAAYACwAQABUAGQAdACEAIwAjACIAHgAYABEABwD9//H/5//d/9X/0P/O/8//1P/c/+b/8/8AAA0AGQAkACsAMAAxAC4AKQAiABgADgADAPn/8P/p/+T/4f/g/+H/4//m/+n/7v/y//b/+////wMABwALABAAFAAYABsAHQAfAB4AHAAYABIACwACAPn/7//m/97/2P/V/9T/1//c/+T/7v/6/wUAEAAaACIAKAAqACoAJwAhABoAEQAIAP//9//v/+r/5v/k/+T/5f/o/+v/7v/y//b/+f/9/wEABAAIAAwADwATABYAGAAaABsAGgAXABMADQAGAP7/9v/t/+b/4P/c/9r/2//e/+T/7P/1////CQASABoAIAAkACUAIwAgABoAEwALAAMA/P/1/+//6//p/+j/6P/q/+z/7//y//X/+P/8////AgAFAAgADAAPABIAFAAWABcAFwAVABMADgAJAAIA+//0/+3/5//i/+D/3//h/+X/6//y//r/AwAMABMAGQAdACAAHwAdABkAFAANAAYAAAD5//T/8P/t/+v/6//s/+7/8P/y//X/+P/7//7/AAADAAYACAALAA4AEAASABMAFAATABEADgAKAAUA///5//P/7f/o/+X/5P/k/+f/6//w//f///8GAA0AEwAYABoAGwAaABgAFAAPAAkAAwD9//j/9P/x/+//7v/u/+//8f/z//X/+P/6//3///8BAAQABgAIAAsADQAPABAAEQARABAADgALAAcAAgD9//f/8v/u/+r/6P/o/+n/7P/w//X/+/8CAAgADgASABYAFwAXABYAEwAPAAoABQAAAPz/+P/0//L/8f/x//H/8v/0//b/+P/6//z//v8AAAIABAAGAAgACgAMAA0ADgAPAA4ADQALAAgABAAAAPv/9//y/+//7f/r/+z/7f/w//T/+f/+/wQACQAOABEAEwAUABMAEgAPAAsABwADAP7/+//3//X/9P/z//P/9P/1//b/+P/6//z//f///wEAAgAEAAYACAAJAAsADAAMAAwADAAKAAgABQACAP7/+v/2//P/8P/v/+7/7//x//T/+P/8/wEABQAKAA0ADwARABEAEAAOAAsACAAEAAAA/f/6//j/9v/1//X/9f/2//f/+P/6//v//f/+/wAAAQADAAQABgAHAAgACQAKAAsACgAJAAgABgADAAAA/f/6//f/9P/y//H/8f/y//T/9//7////AwAGAAoADAAOAA4ADgANAAsACAAFAAIA///8//r/+P/3//f/9//3//j/+f/6//v//f/+////AAACAAMABAAFAAYABwAIAAkACQAIAAcABgAEAAIA///8//n/9//1//T/8//0//X/9//6//3/AAAEAAcACQALAAwADAALAAoACAAGAAMAAQD+//z/+v/5//j/+P/4//n/+v/7//z//f/+////AAABAAIAAwAEAAUABgAHAAcABwAHAAcABgAEAAIAAAD+//z/+v/4//b/9v/2//b/+P/6//z///8CAAQABgAIAAoACgAKAAkACAAGAAQAAgAAAP7//P/7//r/+f/5//r/+v/7//z//f/+//////8AAAEAAgADAAQABAAFAAYABgAGAAYABQAEAAMAAQD///3//P/6//n/+P/3//j/+P/6//z//v8AAAIABAAGAAcACAAIAAgABwAGAAQAAgABAP///f/8//v/+//7//v/+//8//z//f/+//7///8AAAEAAQACAAMAAwAEAAQABQAFAAUABQAEAAMAAgAAAP///f/8//r/+f/5//n/+f/6//z//f///wEAAwAEAAYABgAHAAcABgAFAAQAAwABAAAA/v/9//z//P/8//z//P/8//3//f/+//7///8AAAAAAQABAAIAAgADAAMABAAEAAQABAAEAAMAAgABAAAA/v/9//z/+//6//r/+v/7//z//f/+/wAAAQADAAQABQAFAAYABQAFAAQAAwACAAAA///+//7//f/9//z//P/9//3//f/+//7//////wAAAAABAAEAAgACAAMAAwADAAMAAwADAAMAAgABAAAA///+//3//P/8//v/+//8//z//f/+////AAACAAMABAAEAAQABAAEAAQAAwACAAEAAAD///7//v/9//3//f/9//3//v/+//7//////wAAAAAAAAEAAQACAAIAAgACAAMAAwADAAIAAgABAAEAAAD///7//f/9//z//P/8//3//f/+////AAABAAIAAgADAAMABAADAAMAAwACAAEAAAAAAP///v/+//7//v/+//7//v/+/////////wAAAAAAAAAAAQABAAEAAgACAAIAAgACAAIAAgABAAEAAAAAAP///v/+//3//f/9//3//v/+//////8AAAEAAgACAAMAAwADAAMAAgACAAEAAQAAAP////////7//v/+//7//v///////////wAAAAAAAAAAAAABAAEAAQABAAEAAgACAAIAAQABAAEAAAAAAP////////7//v/+//7//v/+//////8AAAAAAQABAAIAAgACAAIAAgACAAEAAQAAAAAA/////////////////////////////wAAAAAAAAAAAAAAAAEAAQABAAEAAQABAAEAAQABAAEAAQAAAAAA/////////v/+//7//v////////8AAAAAAQABAAEAAQACAAIAAQABAAEAAQAAAAAAAAD//////////////////////////wAAAAAAAAAAAAAAAAAAAAABAAEAAQABAAEAAQABAAEAAQAAAAAAAAD///////////////////////8AAAAAAAABAAEAAQABAAEAAQABAAEAAQAAAAAAAAAAAAAA//////////////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQABAAEAAQABAAEAAAAAAAAAAAAAAAAA//////////////////8AAAAAAAAAAAAAAQABAAEAAQABAAEAAQAAAAAAAAAAAAAAAAAAAAAA//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP//////////AAAAAAAAAAAAAAAAAAAAAAEAAQABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    ["close"]="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5P/o/+3/8v/3//z/AgAGAAsADwASABUAFwAXABgAFwAVABMAEAAMAAgABAAAAPz/+P/0//H/7v/s/+r/6v/q/+v/7f/v//L/9v/6////AwAIAAwAEQAUABgAGwAcAB4AHgAdABwAGgAXABMADwAKAAUA///6//T/7//r/+b/4//g/97/3f/d/93/3//h/+T/6P/t//L/9//9/wMACAANABIAFgAaAB0AHwAhACEAIQAgAB4AGwAYABQADwALAAYAAQD8//j/9P/w/+3/6//p/+j/5//o/+n/6v/t/+//8//2//r//f8BAAQABwAKAAwADgAPABAAEAAQAA8ADQALAAkABgADAAAA/f/7//j/9v/0//L/8f/x//H/8f/z//T/9v/5//z///8CAAUACAALAA4AEAASABMAFAAUABQAEwASABAADQAKAAcABAAAAPz/+P/1//L/7//s/+r/6f/o/+j/6P/p/+v/7f/w//P/9v/6//7/AQAFAAkADAAPABEAFAAVABYAFgAWABUAFAASABAADQALAAcABAABAP7/+//4//b/8//y//D/8P/v//D/8P/x//P/9f/3//n/+//+/wAAAwAFAAcACAAJAAoACwALAAsACgAJAAgABgAEAAIAAAD+//3/+//5//j/9//2//b/9v/2//f/+P/5//v//f///wEAAwAFAAcACQALAAwADQANAA4ADQANAAwACwAJAAcABQADAAAA/v/7//n/9//1//P/8v/x//D/8P/w//H/8v/z//X/9//5//z//v8BAAMABQAIAAoACwANAA4ADgAPAA8ADgANAAwACwAJAAcABQADAAEA///9//v/+f/4//f/9v/1//X/9f/2//b/9//5//r/+//9//7/AAACAAMABAAFAAYABwAHAAcABwAGAAYABQAEAAMAAgAAAP///v/9//z/+//6//r/+f/5//r/+v/7//z//f/+////AQACAAMABQAGAAcACAAIAAkACQAJAAgACAAHAAYABQADAAIAAAD///3//P/6//n/+P/3//b/9v/2//b/9v/3//j/+f/6//z//f///wAAAgADAAUABgAHAAgACQAJAAkACQAJAAgACAAHAAYABQADAAIAAQD///7//f/8//v/+v/6//n/+f/5//r/+v/7//v//P/9//7///8AAAEAAgADAAMABAAEAAQABAAEAAQABAADAAMAAgABAAAAAAD///7//f/9//z//P/8//z//P/8//3//f/+//////8AAAEAAgADAAMABAAFAAUABQAFAAUABQAFAAQABAADAAIAAQAAAP///v/9//3//P/7//v/+v/6//r/+v/6//v/+//8//z//f/+////AAABAAIAAwAEAAQABQAFAAUABgAGAAUABQAFAAQABAADAAIAAQAAAAAA///+//7//f/9//z//P/8//z//P/8//3//f/+//7//////wAAAAABAAEAAgACAAIAAwADAAMAAgACAAIAAgABAAEAAAAAAP////////7//v/+//7//v/+//7//v/+//////8AAAAAAQABAAIAAgACAAMAAwADAAMAAwADAAMAAgACAAIAAQABAAAAAAD//////v/+//3//f/9//3//f/9//3//f/9//7//v/+//////8AAAEAAQACAAIAAgADAAMAAwADAAMAAwADAAMAAgACAAIAAQABAAAAAAD////////+//7//v/+//7//v/+//7//v/+/////////wAAAAAAAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAAAAAAAAAAD///////////////////////////////8AAAAAAAAAAAEAAQABAAEAAQABAAIAAgACAAIAAQABAAEAAQABAAAAAAAAAAAA///////////+//7//v/+//7//v/+//////////////8AAAAAAAABAAEAAQABAAEAAQACAAIAAgACAAEAAQABAAEAAQABAAAAAAAAAAAAAAD//////////////////////////////////wAAAAAAAAAAAAAAAAAAAQABAAEAAQABAAEAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAP///////////////wAAAAAAAAAAAAAAAAAAAAAAAAAAAQABAAEAAQABAAEAAQABAAEAAQAAAAAAAAAAAAAAAAAAAAAA/////////////////////////////wAAAAAAAAAAAAAAAAAAAAAAAAAAAQABAAEAAQABAAEAAQABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    ["tap"]="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7//3/wAACQAQABQAFAARAAoAAwD7//X/8v/x//L/9v/6////AwAGAAgACQAJAAkACAAGAAMA///7//f/9P/z//T/9//8/wIACAANABAADwAMAAcAAAD5//T/8f/x//T/+f/+/wQACAAKAAsACgAHAAQAAQD+//z/+v/5//n/+v/6//z//v8BAAQABgAIAAkACQAHAAMA/v/6//f/9f/1//f/+/8AAAUACAAKAAoACQAFAAEA/f/6//n/+P/5//v//f///wEAAwAEAAUABQAFAAQAAwABAP///f/8//r/+f/6//v//v8BAAQABwAIAAgABgADAAAA/f/6//n/+f/6//z///8CAAQABQAFAAUAAwACAAAA///+//3//f/9//3//f/+////AAACAAMABAAEAAQAAwABAP///f/8//v/+//8//7/AAACAAQABQAFAAQAAgABAP///f/9//z//f/+////AAABAAEAAgACAAIAAgACAAEAAQAAAP///v/9//3//f/+////AAACAAMAAwADAAMAAQAAAP///v/9//3//f/+/wAAAQACAAIAAgACAAEAAQAAAAAA//////////////////8AAAAAAQABAAIAAgACAAEAAQAAAP///v/+//7//v///wAAAQACAAIAAgACAAEAAAAAAP////////////8AAAAAAAABAAEAAQABAAEAAQAAAAAAAAAAAP////////////8AAAAAAQABAAEAAQABAAAAAAAAAP////////////8AAAAAAQABAAEAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAA/////wAAAAAAAAAAAAABAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+}
+-- by Larsiopuw
+
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local Run = game:GetService("RunService")
@@ -80,12 +88,12 @@ if env.ISBMenu and type(env.ISBMenu.Destroy) == "function" then
 end
 
 local C = {
-    bg = Color3.fromRGB(12, 12, 13), panel = Color3.fromRGB(22, 22, 24),
-    card = Color3.fromRGB(29, 29, 31), line = Color3.fromRGB(48, 48, 51),
-    text = Color3.fromRGB(246, 246, 247), muted = Color3.fromRGB(151, 151, 157),
+    bg = Color3.fromRGB(12, 12, 13), panel = Color3.fromRGB(26, 26, 29),
+    card = Color3.fromRGB(34, 34, 38), line = Color3.fromRGB(61, 61, 66),
+    text = Color3.fromRGB(250, 250, 252), muted = Color3.fromRGB(170, 170, 178),
     accent = Color3.fromRGB(238, 238, 240), good = Color3.fromRGB(69, 203, 135),
 }
-local settings = {favorites = {}, theme = "Neutral", reducedMotion = false, key = "RightShift", blur=false}
+local settings = {favorites = {}, theme = "Neutral", reducedMotion = false, key = "RightShift", dockKey="K", searchKey="T", sounds=true, blur=false}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -96,6 +104,13 @@ if type(readfile) == "function" then
         end
         if data.theme == "Neutral" or data.theme == "Mint" or data.theme == "Amber" or data.theme == "Blue" then settings.theme = data.theme end
         settings.blur=data.blur==true
+        settings.sounds=data.sounds~=false
+        for _,field in ipairs({"dockKey","searchKey"}) do
+            if type(data[field])=="string" then
+                local valid,key=pcall(function() return Enum.KeyCode[data[field]] end)
+                if valid and key and key~=Enum.KeyCode.Unknown then settings[field]=data[field] end
+            end
+        end
         settings.reducedMotion = data.reducedMotion == true
         if type(data.key) == "string" then
             local valid, key = pcall(function() return Enum.KeyCode[data.key] end)
@@ -106,6 +121,12 @@ end
 local themes = {Neutral=Color3.fromRGB(238,238,240), Blue = Color3.fromRGB(77,151,255), Mint = Color3.fromRGB(85,216,165), Amber = Color3.fromRGB(255,188,83)}
 C.accent = themes[settings.theme]
 CONFIG.ToggleKey = Enum.KeyCode[settings.key]
+if settings.dockKey==settings.key then settings.dockKey=settings.key=="K" and "J" or "K" end
+if settings.searchKey==settings.key or settings.searchKey==settings.dockKey then
+    for _,candidate in ipairs({"T","F","G","H"}) do
+        if candidate~=settings.key and candidate~=settings.dockKey then settings.searchKey=candidate; break end
+    end
+end
 local alive, connections, actions = true, {}, {}
 local state = {fly = false, noclip = false, infiniteJump = false, esp = false, names = false,
     speed = false, jump = false, speedValue = 24, jumpValue = 65, flyValue = 45,
@@ -117,7 +138,10 @@ local spectateOriginal={}
 local page, query, captureKey, activeSlider = "Start", "", false, nil
 local updatingSearch = false
 local opened=true
-local notify, render, refreshPlayers, setOpen, selectPage
+local notify, render, refreshPlayers, setOpen, selectPage, setDockVisible, setQuickSearch
+local playUISound=function() end
+local dockVisible,quickSearchOpen=true,false
+local quickScale,quickBaseScale=nil,1
 local startedAt=os.clock()
 local session={executor="Nicht erkannt",executorVersion="",placeName="Place "..tostring(game.PlaceId),friends={},friendTotal=nil,
     onlineFriends=nil,voiceStatus="Nicht geprüft",voiceChecking=false,logs={},fps=0,ping=nil}
@@ -127,13 +151,41 @@ local musicQueue={}
 local queueIndex=0
 local sessionTick=0
 local scriptSearch={provider="ScriptBlox",query="",page=1,rows={},allRows={},totalPages=1,loading=false,error=nil,
-    generation=0,selected=nil,rsKey=nil,source=nil,localMode=false}
+    generation=0,selected=nil,source=nil,localMode=false}
 local function optionalService(name)
     local ok,service=pcall(function() return game:GetService(name) end)
     return ok and service or nil
 end
 local Teleport=optionalService("TeleportService")
 local Voice=optionalService("VoiceChatService")
+local VoiceInternal=optionalService("VoiceChatInternal")
+local antiVC={active=false,loading=false,module=nil,originalConnections={}}
+local function restoreVoiceConnections()
+    for connection,enabled in pairs(antiVC.originalConnections) do
+        pcall(function() if enabled then connection:Enable() else connection:Disable() end end)
+    end
+    table.clear(antiVC.originalConnections)
+end
+local function stopAntiVC()
+    antiVC.active=false
+    -- An in-flight original start is cleaned up immediately after it returns.
+    if not antiVC.loading then
+        if antiVC.module and type(antiVC.module.cleanup)=="function" then pcall(antiVC.module.cleanup) end
+        antiVC.module=nil; restoreVoiceConnections()
+    end
+end
+local function captureVoiceConnections(enumerator)
+    for _,entry in ipairs({{VoiceInternal,"StateChanged"},{VoiceInternal,"Participants"},{Voice,"StateChanged"},{Voice,"PlayerMicStateChanged"}}) do
+        pcall(function()
+            local service=entry[1]; if not service then return end
+            local signal=entry[2]=="Participants" and service:GetPropertyChangedSignal("Participants") or service[entry[2]]
+            if not signal then return end
+            for _,connection in pairs(enumerator(signal)) do
+                if antiVC.originalConnections[connection]==nil and type(connection.Enabled)=="boolean" then antiVC.originalConnections[connection]=connection.Enabled end
+            end
+        end)
+    end
+end
 local Marketplace=optionalService("MarketplaceService")
 do
     local detector=type(identifyexecutor)=="function" and identifyexecutor or (type(getexecutorname)=="function" and getexecutorname)
@@ -169,6 +221,29 @@ local function requestJSON(url,headers)
     assert(type(decoded)=="table","Ungültige JSON-Antwort")
     return decoded
 end
+local function toggleAntiVC()
+    if antiVC.active then stopAntiVC(); notify("Originalmodul wird beendet.","Anti-VC Ban"); return end
+    if antiVC.loading then notify("Der vorherige Start wird noch beendet.","Voice"); return end
+    local enumerator=type(getconnections)=="function" and getconnections or (type(get_signal_cons)=="function" and get_signal_cons)
+    if not enumerator or type(loadstring)~="function" or not Voice then notify("VoiceChatService, loadstring und getconnections werden benötigt.","Anti-VC Ban"); return end
+    antiVC.active=true; antiVC.loading=true
+    task.spawn(function()
+        local ok,message=pcall(function()
+            local source=requestBody("https://raw.githubusercontent.com/TLMenu/TLMenuParts/2f3763d829de7407bb96fe43d1350a8013ed4c0a/TL-ANTIVCBAN.lua")
+            if not alive or not antiVC.active then return end
+            local chunk,reason=loadstring(source,"TLMenu/AntiVCBan"); assert(chunk,reason)
+            local module=chunk(); assert(type(module)=="table" and type(module.start)=="function" and type(module.cleanup)=="function","Ungültiges TLMenu-Modul")
+            antiVC.module=module; captureVoiceConnections(enumerator)
+            module.start(function(title,message) if alive and antiVC.active then notify(message,title) end end)
+        end)
+        antiVC.loading=false
+        if not ok or not alive or not antiVC.active then stopAntiVC() end
+        if alive then
+            if not ok then notify(tostring(message):sub(1,180),"Voice-Modul konnte nicht gestartet werden") end
+            if page=="Voice" then render() end
+        end
+    end)
+end
 local function htmlText(text)
     local values={quot='"',apos="'",amp="&",lt="<",gt=">",nbsp=" "}
     return (tostring(text or ""):gsub("<[^>]+>",""):gsub("&([%w#]+);",function(entity)
@@ -195,7 +270,6 @@ local function searchRemoteScripts(targetPage)
     local term=scriptSearch.query:match("^%s*(.-)%s*$") or ""
     if #term<2 or #term>100 then scriptSearch.error="Suchbegriff: 2 bis 100 Zeichen eingeben."; render(); return end
     local provider=scriptSearch.provider
-    if provider=="RScripts" and not scriptSearch.rsKey then scriptSearch.error="RScripts benötigt einen persönlichen API-Key. Unter dem Anbieterfeld für diese Sitzung eintragen."; render(); return end
     scriptSearch.generation=scriptSearch.generation+1
     local generation=scriptSearch.generation
     scriptSearch.loading=true; scriptSearch.error=nil; scriptSearch.selected=nil; scriptSearch.source=nil
@@ -208,12 +282,6 @@ local function searchRemoteScripts(targetPage)
                 assert(type(data.result)=="table" and type(data.result.scripts)=="table",tostring(data.message or "Ungültige ScriptBlox-Antwort"))
                 for _,row in ipairs(data.result.scripts) do local normalized=normalizeResult(provider,row); if normalized then table.insert(rows,normalized) end end
                 total=tonumber(data.result.totalPages) or 1
-            elseif provider=="RScripts" then
-                local data=requestJSON("https://api.rscripts.net/v1/search?q="..Http:UrlEncode(term).."&index=scripts&limit=12&page="..tostring(targetPage),{Authorization="Bearer "..scriptSearch.rsKey})
-                assert(data.success==true and type(data.data)=="table" and type(data.data.scripts)=="table","Ungültige RScripts-Antwort")
-                for _,row in ipairs(data.data.scripts) do local normalized=normalizeResult(provider,row); if normalized then table.insert(rows,normalized) end end
-                local meta=data.meta and data.meta.pagination and data.meta.pagination.scripts
-                total=meta and tonumber(meta.totalPages) or 1
             else
                 local html=requestBody("https://roscripts.io/search?q="..Http:UrlEncode(term))
                 for article in html:gmatch("<article(.-)</article>") do
@@ -259,9 +327,6 @@ local function loadScriptSource(entry)
                 if type(record)=="table" then return record.script end
                 if type(record)=="string" then return record end
                 return entry.source
-            elseif entry.provider=="RScripts" then
-                local data=requestJSON("https://api.rscripts.net/v1/scripts/"..Http:UrlEncode(entry.slug),{Authorization="Bearer "..scriptSearch.rsKey})
-                assert(data.success==true and type(data.data)=="table","Detailantwort fehlt"); return data.data.script
             else
                 assert(type(entry.rawId)=="string" and entry.rawId:match("^%w+$"),"Kein lesbarer RoScripts-Loader gefunden")
                 return requestBody("https://script.roscripts.io/"..entry.rawId)
@@ -408,6 +473,23 @@ local function imageIcon(parent,name,size,pos,color)
     return make("ImageLabel",{BackgroundTransparency=1,Image=asset,ImageColor3=color or C.text,
         ScaleType=Enum.ScaleType.Fit,Position=pos or UDim2.fromOffset(0,0),Size=UDim2.fromOffset(size or 20,size or 20)},parent)
 end
+local uiSounds={}
+playUISound=function(name)
+    if not alive or not settings.sounds then return end
+    local clip=uiSounds[name]
+    if not clip then
+        if not capabilities.icons or not UI_SOUND_DATA[name] then return end
+        local ok,asset=pcall(function()
+            local path="ISBMenu-sound-v21-"..name..".wav"
+            if type(isfile)~="function" or not isfile(path) then writefile(path,decodeBase64(UI_SOUND_DATA[name])) end
+            return (type(getcustomasset)=="function" and getcustomasset or getsynasset)(path)
+        end)
+        if not ok or type(asset)~="string" then return end
+        clip=make("Sound",{Name="ISBUISound_"..name,SoundId=asset,Volume=.25,Looped=false},SoundService)
+        uiSounds[name]=clip
+    end
+    pcall(function() clip:Stop(); clip:Play() end)
+end
 local function round(obj, radius)
     make("UICorner", {CornerRadius = UDim.new(0, radius or 12)}, obj)
 end
@@ -434,6 +516,7 @@ local function button(parent, text, pos, dims, fn)
     connect(b.MouseEnter, function() animate(b, {BackgroundColor3 = C.line}) end)
     connect(b.MouseLeave, function() animate(b, {BackgroundColor3 = C.card}) end)
     connect(b.Activated, function()
+        playUISound("tap")
         local ok, err = pcall(fn)
         if not ok then warn("ISB Menu: " .. tostring(err)); if notify then notify("Aktion konnte nicht ausgeführt werden.") end end
     end)
@@ -531,10 +614,12 @@ local gui = make("ScreenGui", {Name = "ISBMenu", ResetOnSpawn = false, DisplayOr
 local host = make("Frame", {Name="Workspace", BackgroundTransparency=1, AnchorPoint=Vector2.new(0.5,1),
     Position=UDim2.new(0.5,0,1,-18), Size=UDim2.fromOffset(600,552)},gui)
 local scale = make("UIScale", {Scale = 1}, host)
-local window = make("CanvasGroup", {Name = "Window", BackgroundColor3 = C.bg, AnchorPoint = Vector2.new(0.5,1),
+local window = make("CanvasGroup", {Name = "Window", BackgroundTransparency=1, GroupColor3=Color3.fromRGB(255,255,255), AnchorPoint = Vector2.new(0.5,1),
     Position = UDim2.new(0.5,0,1,-72), Size = UDim2.fromOffset(600,352), ClipsDescendants = true}, host)
 round(window, 22); stroke(window)
-make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(24,24,26),C.bg)},window)
+local windowSurface=make("Frame",{Name="WindowSurface",BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Size=UDim2.fromScale(1,1),ZIndex=0},window)
+round(windowSurface,22)
+make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(28,28,31),C.bg)},windowSurface)
 local motionScale=make("UIScale",{Scale=1},window)
 local header = make("Frame", {BackgroundTransparency=1, Size = UDim2.new(1,0,0,52), Active = true}, window)
 local logo = label(header, "ISB", 19, C.accent, UDim2.fromOffset(20,13), UDim2.fromOffset(48,38))
@@ -553,9 +638,18 @@ local dock=make("CanvasGroup",{BackgroundColor3=C.bg,AnchorPoint=Vector2.new(0.5
     Position=UDim2.new(0.5,0,1,0),Size=UDim2.fromOffset(600,56)},host)
 round(dock,28); stroke(dock)
 local dockClock=label(dock,"--:--",13,C.text,UDim2.fromOffset(20,17),UDim2.fromOffset(54,22))
-local dockHint=label(host,"",11,C.muted,UDim2.new(0.5,-90,1,-80),UDim2.fromOffset(180,20))
-dockHint.ZIndex=8
-dockHint.TextXAlignment=Enum.TextXAlignment.Center
+local dockHint=make("CanvasGroup",{Name="DockTooltip",Visible=false,BackgroundColor3=C.panel,GroupTransparency=1,GroupColor3=Color3.fromRGB(255,255,255),AnchorPoint=Vector2.new(.5,1),Position=UDim2.new(.5,0,1,-72),Size=UDim2.fromOffset(244,64),ZIndex=8},host)
+round(dockHint,18); stroke(dockHint)
+local hintIcon=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,20),Size=UDim2.fromOffset(24,24),ZIndex=9},dockHint)
+local hintTitle=label(dockHint,"",13,C.text,UDim2.fromOffset(53,10),UDim2.fromOffset(170,22)); hintTitle.Font=Enum.Font.BuilderSansMedium
+local hintBody=label(dockHint,"",10,C.muted,UDim2.fromOffset(53,33),UDim2.fromOffset(178,20))
+local hintRevision=0
+local hintDescriptions={Start="Deine aktuelle Sitzung",Bewegung="Charakter und Bewegung",Spieler="Spieler im Server",Server="Server finden und wechseln",Darstellung="Kamera und Darstellung",Skripte="Scripts suchen und verwalten",Musik="Musik, Timer und Stoppuhr",Favoriten="Deine gespeicherten Aktionen",Einstellungen="Dein Menü anpassen"}
+local function hideDockHint()
+    hintRevision=hintRevision+1; local revision=hintRevision
+    animate(dockHint,{GroupTransparency=1})
+    task.delay(settings.reducedMotion and 0 or .24,function() if alive and revision==hintRevision then dockHint.Visible=false end end)
+end
 local indicator=make("Frame",{BackgroundColor3=C.accent,BorderSizePixel=0,
     Position=UDim2.fromOffset(99,47),Size=UDim2.fromOffset(20,3)},dock)
 round(indicator,2)
@@ -611,8 +705,19 @@ for i,name in ipairs(navNames) do
     round(b,18)
     b.Name="Nav"..name
     navIcons[name]=drawIcon(b,i)
-    connect(b.MouseEnter,function() dockHint.Text=name end)
-    connect(b.MouseLeave,function() dockHint.Text="" end)
+    connect(b.MouseEnter,function()
+        hintRevision=hintRevision+1; local revision=hintRevision
+        task.delay(.18,function()
+            if not alive or revision~=hintRevision or not dockVisible then return end
+            for _,child in ipairs(hintIcon:GetChildren()) do child:Destroy() end
+            imageIcon(hintIcon,navAssetNames[i],24,UDim2.new(),C.text)
+            hintTitle.Text=name; hintBody.Text=hintDescriptions[name]
+            dockHint.Position=UDim2.new(0,math.clamp(98+(i-1)*46,128,472),1,-65)
+            dockHint.Visible=true; dockHint.GroupTransparency=1
+            animate(dockHint,{GroupTransparency=0,Position=UDim2.new(0,math.clamp(98+(i-1)*46,128,472),1,-72)})
+        end)
+    end)
+    connect(b.MouseLeave,hideDockHint)
     connect(b.MouseLeave,function() animate(b,{BackgroundColor3=page==name and C.card or C.panel}) end)
     navButtons[name] = b
 end
@@ -648,9 +753,11 @@ notify = function(message,heading,iconName)
     logEvent(heading,message)
     while #notices>=3 do local old=table.remove(notices,1); old:Destroy() end
     local height=message=="" and 44 or 58+math.max(0,math.ceil(#message/38)-1)*14
-    local notice=make("CanvasGroup",{BackgroundColor3=C.bg,Size=UDim2.new(1,0,0,height),GroupTransparency=1,ZIndex=20},notificationStack)
+    local notice=make("CanvasGroup",{BackgroundTransparency=1,GroupColor3=Color3.fromRGB(255,255,255),Size=UDim2.new(1,0,0,height),GroupTransparency=1,ZIndex=20},notificationStack)
     round(notice,20)
-    make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(24,24,26),Color3.fromRGB(10,10,11))},notice)
+    local surface=make("Frame",{Name="NoticeSurface",BorderSizePixel=0,BackgroundColor3=Color3.fromRGB(255,255,255),Size=UDim2.fromScale(1,1)},notice)
+    round(surface,20)
+    make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(28,28,31),Color3.fromRGB(10,10,11))},surface)
     local icon=imageIcon(notice,iconName or "check-circle",20,UDim2.fromOffset(20,math.floor((height-20)/2)),C.text)
     local left=icon and 58 or 20
     local head=label(notice,heading,14,C.text,UDim2.fromOffset(left,13),UDim2.new(1,-left-18,0,19))
@@ -676,16 +783,19 @@ local function fit()
     if not camera then return end
     local size = camera.ViewportSize
     scale.Scale = math.min(1, math.max(0.1, (size.X-24)/600), math.max(0.1, (size.Y-100)/552))
+    quickBaseScale=math.min(1,math.max(.1,(size.X-24)/520),math.max(.1,(size.Y-24)/108))
+    if quickScale then quickScale.Scale=quickBaseScale end
     host.Position = UDim2.new(0.5,0,1,-18)
 end
 fit()
 local openRevision=0
 setOpen=function(value)
+    if value~=opened then playUISound(value and "open" or "close") end
     opened=value; openRevision=openRevision+1
     local revision=openRevision
     if value then
         window.Visible=true
-        animate(motionScale,{Scale=1}); animate(window,{GroupTransparency=0,Position=UDim2.new(0.5,0,1,-72)})
+        animate(motionScale,{Scale=quickSearchOpen and .985 or 1}); animate(window,{GroupTransparency=quickSearchOpen and .65 or 0,Position=UDim2.new(0.5,0,1,-72)})
     else
         animate(motionScale,{Scale=0.94}); animate(window,{GroupTransparency=1,Position=UDim2.new(0.5,0,1,-54)})
         task.delay(settings.reducedMotion and 0 or 0.25,function() if alive and revision==openRevision then window.Visible=false end end)
@@ -704,6 +814,56 @@ selectPage=function(name)
         render(); setOpen(true)
     end)
 end
+local dockRevision=0
+setDockVisible=function(value)
+    dockVisible=value; dockRevision=dockRevision+1; local revision=dockRevision
+    hideDockHint(); playUISound(value and "open" or "close")
+    if value then dock.Visible=true end
+    animate(dock,{Position=UDim2.new(.5,0,1,value and 0 or 94),GroupTransparency=value and 0 or 1})
+    task.delay(settings.reducedMotion and 0 or .25,function()
+        if alive and revision==dockRevision and not value then dock.Visible=false end
+    end)
+end
+local quickSearch=make("CanvasGroup",{Name="QuickSearch",Visible=false,BackgroundColor3=C.panel,GroupColor3=Color3.fromRGB(255,255,255),GroupTransparency=1,
+    AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(520,108),ZIndex=30},gui)
+round(quickSearch,22); stroke(quickSearch)
+quickScale=make("UIScale",{Scale=quickBaseScale},quickSearch)
+imageIcon(quickSearch,"magnifying-glass",22,UDim2.fromOffset(20,23),C.text)
+local quickInput=make("TextBox",{Name="QuickSearchInput",Text="",PlaceholderText="Scripts suchen …",ClearTextOnFocus=false,BackgroundTransparency=1,
+    TextXAlignment=Enum.TextXAlignment.Left,TextColor3=C.text,PlaceholderColor3=C.muted,Font=Enum.Font.BuilderSans,TextSize=17,
+    Position=UDim2.fromOffset(57,14),Size=UDim2.new(1,-140,0,42)},quickSearch)
+button(quickSearch,"Esc",UDim2.new(1,-64,0,20),UDim2.fromOffset(44,28),function() setQuickSearch(false) end)
+local quickProviderButtons={}
+for i,name in ipairs({"ScriptBlox","RoScripts"}) do
+    quickProviderButtons[name]=button(quickSearch,name,UDim2.fromOffset(20+(i-1)*118,68),UDim2.fromOffset(108,26),function()
+        scriptSearch.provider=name
+        for provider,b in pairs(quickProviderButtons) do b.TextColor3=provider==name and C.text or C.muted end
+        quickInput:CaptureFocus()
+    end)
+    quickProviderButtons[name].TextColor3=scriptSearch.provider==name and C.text or C.muted
+end
+label(quickSearch,"Enter zum Suchen",10,C.muted,UDim2.new(1,-136,0,72),UDim2.fromOffset(116,20))
+local quickRevision=0
+setQuickSearch=function(value)
+    quickSearchOpen=value; quickRevision=quickRevision+1; local revision=quickRevision
+    playUISound(value and "open" or "close")
+    if opened then animate(window,{GroupTransparency=value and .65 or 0}); animate(motionScale,{Scale=value and .985 or 1}) end
+    if value then
+        quickSearch.Visible=true; quickInput.Text=scriptSearch.query; quickScale.Scale=quickBaseScale*.96
+        for provider,b in pairs(quickProviderButtons) do b.TextColor3=provider==scriptSearch.provider and C.text or C.muted end
+        animate(quickSearch,{GroupTransparency=0,Position=UDim2.fromScale(.5,.5)}); animate(quickScale,{Scale=quickBaseScale})
+        task.delay(.12,function() if alive and revision==quickRevision and quickSearchOpen then quickInput:CaptureFocus() end end)
+    else
+        quickInput:ReleaseFocus(false)
+        animate(quickSearch,{GroupTransparency=1,Position=UDim2.new(.5,0,.5,12)}); animate(quickScale,{Scale=quickBaseScale*.96})
+        task.delay(settings.reducedMotion and 0 or .25,function() if alive and revision==quickRevision and not value then quickSearch.Visible=false end end)
+    end
+end
+connect(quickInput.FocusLost,function(enterPressed)
+    if not enterPressed or not quickSearchOpen then return end
+    scriptSearch.query=quickInput.Text; scriptSearch.localMode=false
+    setQuickSearch(false); page="Skripte"; query=""; render(); setOpen(true); searchRemoteScripts(1)
+end)
 
 -- Each page has its own connections; rebuilding a page releases them.
 local rowConnections = {}
@@ -1049,7 +1209,8 @@ local function drawVoice()
         notify(input.Muted and "Mikrofon stummgeschaltet." or "Mikrofon freigegeben.","Mikrofon","microphone")
     end)
     rowButton(f,"Reconnect",UDim2.fromOffset(272,73),UDim2.fromOffset(108,28),reconnectVoice)
-    plainCard("Anti-VC Ban","Kein nachgewiesener Schutz vor serverseitigen Voice-Sperren. Lokale Mute- und Reconnect-Werkzeuge findest du oben.",90)
+    drawAction({id="antivc",name="Anti-VC Ban · TLMenu",desc=antiVC.loading and "Originalmodul wird gestartet / beendet …" or "TLMenu-Originalmodul · explizit aktivieren",kind="toggle",get=function() return antiVC.active end,fn=toggleAntiVC})
+    plainCard("Originalmodul", "Lädt das separate TLMenu-Voice-Modul beim Einschalten unverändert. Es bringt seine Mikrofon-Oberfläche mit. Ein serverseitiger Sperrschutz ist hier nicht live verifiziert.",98)
 end
 local function drawScripts()
     local mode=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
@@ -1080,7 +1241,7 @@ local function drawScripts()
 end
 local function drawScriptSearch()
     local controls=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
-    for i,name in ipairs({"ScriptBlox","RoScripts","RScripts"}) do
+    for i,name in ipairs({"ScriptBlox","RoScripts"}) do
         local b=rowButton(controls,name,UDim2.fromOffset((i-1)*104,0),UDim2.fromOffset(96,30),function()
             scriptSearch.provider=name; scriptSearch.selected=nil; scriptSearch.source=nil; scriptSearch.rows={}; scriptSearch.allRows={}
             scriptSearch.loading=false; scriptSearch.error=nil; scriptSearch.page=1; scriptSearch.totalPages=1
@@ -1091,20 +1252,8 @@ local function drawScriptSearch()
         round(b,15); b.BackgroundColor3=scriptSearch.provider==name and C.text or C.card
         b.TextColor3=scriptSearch.provider==name and C.bg or C.muted
     end
-    rowButton(controls,"Suchen",UDim2.fromOffset(314,0),UDim2.fromOffset(82,30),function() searchRemoteScripts(1) end)
-    rowButton(controls,"Lokal",UDim2.fromOffset(406,0),UDim2.fromOffset(74,30),function() scriptSearch.localMode=true; query=""; render() end)
-    if scriptSearch.provider=="RScripts" then
-        local keyFrame=plainCard("RScripts API-Zugang",scriptSearch.rsKey and "Key für diese Sitzung hinterlegt. Wird nicht gespeichert oder exportiert." or "Persönlichen API-Key eintragen; ausschließlich an api.rscripts.net gesendet.",116)
-        local keyInput=make("TextBox",{Text="",PlaceholderText=scriptSearch.rsKey and "Neuen Key eintragen" or "rsc_live_…",ClearTextOnFocus=false,
-            Font=Enum.Font.BuilderSans,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,
-            Position=UDim2.fromOffset(16,78),Size=UDim2.new(1,-144,0,28)},keyFrame)
-        round(keyInput,14)
-        rowButton(keyFrame,"Übernehmen",UDim2.new(1,-112,0,78),UDim2.fromOffset(96,28),function()
-            local key=keyInput.Text:match("^%s*(.-)%s*$")
-            if not key or not key:match("^rsc_live_[%w_%-]+$") or #key>256 then notify("Gültigen RScripts API-Key eintragen.","RScripts"); return end
-            scriptSearch.rsKey=key; keyInput.Text=""; render()
-        end)
-    end
+    rowButton(controls,"Suchen",UDim2.fromOffset(210,0),UDim2.fromOffset(82,30),function() searchRemoteScripts(1) end)
+    rowButton(controls,"Lokal",UDim2.fromOffset(302,0),UDim2.fromOffset(74,30),function() scriptSearch.localMode=true; query=""; render() end)
     if scriptSearch.loading then plainCard("Wird geladen …",scriptSearch.provider,72); return end
     if scriptSearch.error then plainCard("Anbieter meldet einen Fehler",scriptSearch.error,94) end
     if scriptSearch.selected then
@@ -1147,7 +1296,7 @@ local function drawScriptSearch()
     rowButton(paging,"Zurück",UDim2.fromOffset(0,0),UDim2.fromOffset(90,30),function() if scriptSearch.page>1 then searchRemoteScripts(scriptSearch.page-1) end end)
     label(paging,tostring(scriptSearch.page).." / "..tostring(scriptSearch.totalPages),11,C.muted,UDim2.fromOffset(105,4),UDim2.fromOffset(80,20))
     rowButton(paging,"Weiter",UDim2.fromOffset(196,0),UDim2.fromOffset(90,30),function() if scriptSearch.page<scriptSearch.totalPages then searchRemoteScripts(scriptSearch.page+1) end end)
-    local footer=label(content,scriptSearch.provider=="RScripts" and "Powered by Rscripts.net" or "Quelle: "..scriptSearch.provider,10,C.muted,UDim2.new(),UDim2.new(1,0,0,18))
+    local footer=label(content,"Quelle: "..scriptSearch.provider,10,C.muted,UDim2.new(),UDim2.new(1,0,0,18))
 end
 local function drawPlayers()
     for _,other in ipairs(Players:GetPlayers()) do
@@ -1281,6 +1430,13 @@ render = function()
             drawAction({id="motion",name="Weniger Animationen",desc="Direkte Übergänge",kind="toggle",get=function() return settings.reducedMotion end,fn=function() settings.reducedMotion=not settings.reducedMotion; save() end})
             drawAction({id="blur",name="Hintergrund weichzeichnen",desc="Nur während das Menü geöffnet ist",kind="toggle",get=function() return settings.blur end,fn=function() settings.blur=not settings.blur; save(); setOpen(opened) end})
             plainCard("Live-Messung",tostring(session.fps).." FPS  ·  "..tostring(session.ping or "—").." ms\nDie Werte stehen auch in der Kopfzeile.",88)
+        elseif settingsSection=="Tasten" then
+            for _,entry in ipairs({{"key","Menü öffnen / schließen"},{"dockKey","Dock einfahren / ausfahren"},{"searchKey","Skript-Schnellsuche"}}) do
+                local field=entry[1]
+                local f=plainCard(entry[2],"Anklicken, Taste drücken. Escape bricht ab.",78)
+                local b
+                b=rowButton(f,settings[field],UDim2.new(1,-120,0,23),UDim2.fromOffset(104,32),function() captureKey=field; b.Text="Taste …" end)
+            end
         else
         local f=card("Akzentfarbe","Graphit mit deinem bevorzugten Farbakzent",104)
         for i,name in ipairs({"Neutral","Blue","Mint","Amber"}) do
@@ -1301,6 +1457,7 @@ render = function()
             get=function() return settings.reducedMotion end,fn=function() settings.reducedMotion=not settings.reducedMotion; save() end})
         drawAction({id="blur",name="Hintergrund weichzeichnen",desc="Nur während das Menü geöffnet ist",kind="toggle",
             get=function() return settings.blur end,fn=function() settings.blur=not settings.blur; save(); setOpen(opened) end})
+        drawAction({id="uisounds",name="Interface-Sounds",desc="Dezente Klänge bei Öffnen, Schließen und Klicks",kind="toggle",get=function() return settings.sounds end,fn=function() settings.sounds=not settings.sounds; save() end})
         local voice=card("Voice Chat","Status, Mikrofon und Verbindung prüfen",78)
         rowButton(voice,"Öffnen",UDim2.new(1,-120,0,24),UDim2.fromOffset(104,32),function() query=""; selectPage("Voice") end)
         local s=card("Einstellungen speichern",type(writefile)=="function" and "Favoriten, Farbe und Taste werden lokal gespeichert." or "Dieser Executor bietet keinen Dateizugriff. Einstellungen gelten für diese Sitzung.")
@@ -1333,13 +1490,23 @@ connect(UIS.JumpRequest,function()
 end)
 connect(UIS.InputBegan,function(input,processed)
     if captureKey and input.UserInputType==Enum.UserInputType.Keyboard then
+        local field=captureKey==true and "key" or captureKey
         captureKey=false
         if input.KeyCode~=Enum.KeyCode.Escape and input.KeyCode~=Enum.KeyCode.Unknown then
-            CONFIG.ToggleKey=input.KeyCode; settings.key=input.KeyCode.Name; save()
+            for _,other in ipairs({"key","dockKey","searchKey"}) do
+                if other~=field and settings[other]==input.KeyCode.Name then notify("Diese Taste wird bereits verwendet.","Tastenkürzel"); render(); return end
+            end
+            settings[field]=input.KeyCode.Name
+            if field=="key" then CONFIG.ToggleKey=input.KeyCode end
+            save()
         end
         render(); return
     end
-    if not processed and not UIS:GetFocusedTextBox() and input.KeyCode==CONFIG.ToggleKey then setOpen(not opened) end
+    if input.KeyCode==Enum.KeyCode.Escape and quickSearchOpen then setQuickSearch(false); return end
+    if processed or UIS:GetFocusedTextBox() then return end
+    if input.KeyCode==CONFIG.ToggleKey then setOpen(not opened)
+    elseif input.KeyCode==Enum.KeyCode[settings.dockKey] then setDockVisible(not dockVisible)
+    elseif input.KeyCode==Enum.KeyCode[settings.searchKey] then setQuickSearch(not quickSearchOpen) end
 end)
 local drag
 connect(header.InputBegan,function(input)
@@ -1491,7 +1658,7 @@ api.Destroy = function()
     alive=false; state.fly=false; state.noclip=false; state.fullbright=false; state.shadows=false
     for _,con in ipairs(connections) do con:Disconnect() end
     for _,con in ipairs(rowConnections) do con:Disconnect() end
-    stopFly(); restoreCollisions(); clearVisuals(); applyLighting(); restoreCamera()
+    stopFly(); restoreCollisions(); clearVisuals(); applyLighting(); restoreCamera(); stopAntiVC()
     for h,values in pairs(originals) do
         if h.Parent then
             if values.speedOwned then h.WalkSpeed=values.WalkSpeed end
@@ -1499,6 +1666,7 @@ api.Destroy = function()
         end
     end
     for camera,value in pairs(cameraOriginal) do if camera.Parent then camera.FieldOfView=value end end
+    for _,clip in pairs(uiSounds) do clip:Destroy() end
     sound:Destroy(); backdropBlur:Destroy(); gui:Destroy()
     if env.ISBMenu==api then env.ISBMenu=nil end
 end
