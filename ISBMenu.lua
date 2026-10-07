@@ -2039,10 +2039,21 @@ render = function()
         if count==0 and page~="Spieler" then card("Noch nichts gefunden", page=="Favoriten" and "Mit dem Stern an einer Funktion fügst du sie hier hinzu." or "Versuche einen anderen Suchbegriff.") end
     end
     content.CanvasPosition=scroll
+    runtime.pendingScroll={position=scroll,revision=revision}
     task.defer(function()
         if alive and runtime.renderRevision==revision then content.CanvasPosition=scroll end
     end)
 end
+connect(content:GetPropertyChangedSignal("AbsoluteCanvasSize"),function()
+    local pending=runtime.pendingScroll
+    if not pending then return end
+    task.defer(function()
+        if alive and runtime.pendingScroll==pending and runtime.renderRevision==pending.revision then
+            content.CanvasPosition=pending.position
+            runtime.pendingScroll=nil
+        end
+    end)
+end)
 connect(search:GetPropertyChangedSignal("Text"),function()
     if updatingSearch then return end
     if page=="Skripte" and not scriptSearch.localMode then scriptSearch.query=search.Text; return end
