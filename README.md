@@ -1,4 +1,4 @@
-# ISB Menu 2.5.5 · by Larsiopuw
+# ISB Menu 2.5.6 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,14 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Korrekturen in 2.5.6
+
+Alle Buttons verwenden eine gemeinsame bewegte Ebene für Fläche und Inhalt, einschließlich kleinen Fensterbuttons, Kategorien, Bewegungskacheln und Schaltern. Das Dock behält seine angehobene Hoverbewegung. In den Panels bewegt sich die vollständige Fläche innerhalb ihrer festen Eingabegrenzen; Icons erhalten zusätzlich eine zentrierte Vergrößerung. Rahmen liegen einen Pixel innen und folgen derselben Ebene. Verschachtelte Skriptbilder erhalten keine eigene Vergrößerung. Favoritensterne sind im inaktiven Zustand heller.
+
+Namenskarten sind fest 156 × 44 Pixel groß: Name 14 Pixel, Entfernung 12 Pixel. Sie schrumpfen nicht mehr mit der Weltentfernung. Die Musiklautstärke hat im selben Einstellungsbereich einen Reset auf den bisherigen Standard von 35 Prozent; Wert, Skala und gespeicherte Einstellung werden aktualisiert. Die Designvorschau enthält den gleichen Reset.
+
+1264 simulierte Assertions bestehen, einschließlich Randgeometrie für kleine und breite Buttons, Hover-Rücksetzung, Start-Hover vor fertigem Layout, Lautstärke-Reset und dauerhaft lesbarer Namensschrift. Luau und Preview-JavaScript sind geprüft. Die Testfassung wurde in Roblox mit Real 2.7.5 geladen. Eine Engine-Aufnahme erfasste 32 Button-Flächen mit innenliegendem Rahmen, darunter eine aktive Hover-Fläche innerhalb ihrer Eingabegrenzen, sowie 27 Namenskarten mit 14-Pixel-Schrift. Das bestätigt diese Aufnahme und ersetzt keine Prüfung jedes Controls in allen Spielen.
 
 ## Korrekturen in 2.5.5
 

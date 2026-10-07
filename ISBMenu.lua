@@ -1,7 +1,7 @@
--- ISB Menu 2.5.5 | Own-game universal client toolkit
+-- ISB Menu 2.5.6 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.5",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.6",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -640,40 +640,55 @@ function runtime.bindPress(obj,callback,register)
     local glow=make("Frame",{Name="ButtonMotion",Active=false,Selectable=false,BackgroundColor3=C.accent,BackgroundTransparency=1,
         AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.new(1,-8,1,-8),ZIndex=obj.ZIndex or 1},obj)
     round(glow,10)
-    local motion=make("UIScale",{Name="HoverScale",Scale=1},glow)
+    -- The outline belongs to the face and sits a full pixel inside it.
+    glow.Parent=face; glow.Size=UDim2.new(1,-2,1,-2); glow.ZIndex=(obj.ZIndex or 1)+1
     local edge=make("UIStroke",{Color=C.accent,Thickness=1,Transparency=1},glow)
-    register(obj:GetPropertyChangedSignal("ZIndex"),function() glow.ZIndex=obj.ZIndex; face.ZIndex=obj.ZIndex end)
-    local hovered,pressed=false,nil
-    local fontBase,iconScales=nil,setmetatable({},{__mode="k"})
-    local iconPositions=setmetatable({},{__mode="k"})
-    local function geometry()
-        face.Size=UDim2.fromScale(1,1); glow.Size=face.Size
+    local function contents(child)
+        if child~=face and child~=glow and child:IsA("GuiObject") and child.Name~="MicHint" then child.Parent=face end
     end
-    geometry()
+    for _,child in ipairs(obj:GetChildren()) do contents(child) end
+    register(obj.ChildAdded,contents)
+    register(obj:GetPropertyChangedSignal("ZIndex"),function() face.ZIndex=obj.ZIndex; glow.ZIndex=obj.ZIndex+1 end)
+    local hovered,pressed=false,nil
+    local fontBase=nil
+    local iconScales=setmetatable({},{__mode="k"})
     local function pose(down)
         local enabled=not settings.reducedMotion
         glow.BackgroundColor3=C.accent; edge.Color=C.accent
-        local corner=obj:FindFirstChildOfClass("UICorner"); if corner then glow:FindFirstChildOfClass("UICorner").CornerRadius=corner.CornerRadius end
+        local corner=obj:FindFirstChildOfClass("UICorner")
+        if corner then
+            face:FindFirstChildOfClass("UICorner").CornerRadius=corner.CornerRadius
+            glow:FindFirstChildOfClass("UICorner").CornerRadius=UDim.new(corner.CornerRadius.Scale,math.max(0,corner.CornerRadius.Offset-1))
+        end
         local navigation=obj.Name:sub(1,3)=="Nav"
-        -- Small controls and switches retain their full silhouette and contents.
-        local spacious=obj.Size.X.Offset>=80 and obj.Text~="" and obj.Size.X.Scale==0
-        local lift=enabled and hovered and not down and (navigation and -4 or (spacious and -1 or 0)) or 0
-        local factor=enabled and (navigation and (down and .96 or (hovered and 1.12 or 1)) or (spacious and (down and .96 or (hovered and .985 or 1)) or 1)) or 1
+        local height=obj.AbsoluteSize.Y
+        if height<=0 then
+            height=obj.Size.Y.Offset
+            local ancestor=obj.Parent
+            while ancestor do
+                local ancestorScale=ancestor:FindFirstChildOfClass("UIScale")
+                if ancestorScale then height=height*ancestorScale.Scale end
+                ancestor=ancestor.Parent
+            end
+        end
+        -- All controls move as one unit. Inner movement fits even flush clipping edges.
+        local factor=enabled and (down and .92 or (hovered and (navigation and 1.12 or .94) or 1)) or 1
+        local lift=enabled and hovered and not down and (navigation and -4 or -math.min(2,height*.02)) or 0
         animate(faceScale,{Scale=factor})
         animate(face,{Position=UDim2.new(.5,0,.5,lift)})
-        animate(motion,{Scale=factor})
-        animate(glow,{BackgroundTransparency=down and .78 or (hovered and .86 or 1),Position=UDim2.new(.5,0,.5,lift)})
+        animate(glow,{BackgroundTransparency=down and .78 or (hovered and .86 or 1)})
         animate(edge,{Transparency=hovered and .35 or 1})
         if obj:IsA("TextLabel") and obj.Text~="" then
             fontBase=fontBase or obj.TextSize
-            animate(obj,{TextSize=fontBase*(enabled and (down and .97 or (hovered and 1.06 or 1)) or 1)})
+            animate(obj,{TextSize=fontBase*(enabled and (hovered and not down and 1.08 or 1) or 1)})
         end
-        for _,child in ipairs(obj:GetChildren()) do if child:IsA("ImageLabel") and child~=face and child.Name~="MicIcon" and child.Name~="ScriptThumbnail" then
-            local scale=iconScales[child]
-            if not scale then scale=make("UIScale",{Name="ButtonIconMotion",Scale=1},child); iconScales[child]=scale; iconPositions[child]=child.Position end
-            animate(scale,{Scale=enabled and (down and .94 or (hovered and (navigation and 1.15 or 1.10) or 1)) or 1})
-            animate(child,{Position=iconPositions[child]+UDim2.fromOffset(0,lift)})
-        end end
+        for _,child in ipairs(face:GetChildren()) do
+            if child:IsA("ImageLabel") and child.Name~="ScriptThumbnail" then
+                local iconScale=iconScales[child]
+                if not iconScale then iconScale=make("UIScale",{Name="ButtonIconMotion",Scale=1},child); iconScales[child]=iconScale end
+                animate(iconScale,{Scale=enabled and (down and .94 or (hovered and 1.12 or 1)) or 1})
+            end
+        end
     end
     local function clearHover()
         hovered=false; pressed=nil; pose(false)
@@ -1393,7 +1408,7 @@ function runtime.drawRuler(parent,action)
     end)
 end
 local function drawAction(action)
-    local f = card(action.name,action.desc,action.kind == "slider" and 126 or 58)
+    local f = card(action.name,action.desc,action.kind == "slider" and (action.id=="volume" and 164 or 126) or 58)
     local children=f:GetChildren()
     for _,child in ipairs(children) do
         if child:IsA("TextLabel") then
@@ -1406,7 +1421,7 @@ local function drawAction(action)
         save(); render()
     end)
     favorite.BackgroundTransparency=1
-    imageIcon(favorite,"star",18,UDim2.fromOffset(5,5),settings.favorites[action.id] and C.accent or C.line)
+    imageIcon(favorite,"star",18,UDim2.fromOffset(5,5),settings.favorites[action.id] and C.accent or C.muted)
     if action.kind == "toggle" then
         local enabled = action.get()
         local b, knob, status
@@ -1428,6 +1443,11 @@ local function drawAction(action)
         rowButton(f,"Start",UDim2.new(1,-112,0,13),UDim2.fromOffset(70,32),action.fn)
     else
         runtime.drawRuler(f,action)
+        if action.id=="volume" then
+            rowButton(f,"Standard · 35 %",UDim2.fromOffset(16,126),UDim2.fromOffset(146,28),function()
+                action.fn(35); render()
+            end)
+        end
     end
 end
 
@@ -1888,9 +1908,9 @@ function runtime.syncVoiceMic()
     if input and (not runtime.voiceMuteAt or os.clock()-runtime.voiceMuteAt>3) then runtime.voiceMuted=input.Muted==true end
     if runtime.voiceMic then
         local muted=runtime.voiceMuted==true
-        runtime.voiceMic:FindFirstChild("MicIcon").Image="rbxasset://textures/ui/VoiceChat/MicLight/"..(muted and "Muted.png" or "Unmuted0.png")
+        runtime.voiceMic:FindFirstChild("MicIcon",true).Image="rbxasset://textures/ui/VoiceChat/MicLight/"..(muted and "Muted.png" or "Unmuted0.png")
         runtime.voiceMic.BackgroundColor3=muted and Color3.fromRGB(106,46,51) or C.panel
-        runtime.voiceMic:FindFirstChild("MicHint").Text=muted and "Mikrofon stumm · Einschalten" or "Mikrofon an · Stummschalten"
+        runtime.voiceMic:FindFirstChild("MicHint",true).Text=muted and "Mikrofon stumm · Einschalten" or "Mikrofon an · Stummschalten"
     end
 end
 function runtime.applyVoiceMute(muted)
@@ -2618,18 +2638,18 @@ connect(Run.RenderStepped,function(dt)
             if state.names and targetRoot then
                 if not tags[other] then
                     local tag=make("BillboardGui",{Name="ISBNametag",Adornee=targetRoot,AlwaysOnTop=true,
-                        Size=UDim2.fromOffset(190,56),StudsOffset=Vector3.new(0,3.5,0)},gui)
-                    local shell=make("Frame",{Name="NameCard",Size=UDim2.fromOffset(190,56),BackgroundColor3=C.panel,BackgroundTransparency=.12},tag); round(shell,14); stroke(shell)
+                        Size=UDim2.fromOffset(156,44),StudsOffset=Vector3.new(0,3.5,0)},gui)
+                    local shell=make("Frame",{Name="NameCard",Size=UDim2.fromOffset(156,44),BackgroundColor3=C.panel,BackgroundTransparency=.12},tag); round(shell,14); stroke(shell)
                     make("UIScale",{Name="DistanceScale",Scale=1},shell)
-                    local badge=make("ImageLabel",{Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",Name="Badge",BackgroundColor3=color,Position=UDim2.fromOffset(10,13),Size=UDim2.fromOffset(28,28)},shell); round(badge,14)
-                    local name=label(shell,other.DisplayName,13,C.text,UDim2.fromOffset(46,7),UDim2.new(1,-56,0,22)); name.Name="PlayerName"; name.Font=Enum.Font.BuilderSansBold; name.TextTruncate=Enum.TextTruncate.AtEnd
-                    local info=label(shell,"",10,C.muted,UDim2.fromOffset(46,30),UDim2.new(1,-56,0,17)); info.Name="PlayerInfo"
+                    local badge=make("ImageLabel",{Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",Name="Badge",BackgroundColor3=color,Position=UDim2.fromOffset(8,10),Size=UDim2.fromOffset(24,24)},shell); round(badge,14)
+                    local name=label(shell,other.DisplayName,14,C.text,UDim2.fromOffset(38,4),UDim2.new(1,-46,0,20)); name.Name="PlayerName"; name.Font=Enum.Font.BuilderSansBold; name.TextTruncate=Enum.TextTruncate.AtEnd
+                    local info=label(shell,"",12,C.muted,UDim2.fromOffset(38,24),UDim2.new(1,-46,0,16)); info.Name="PlayerInfo"
                     tags[other]=tag
                 end
                 local distance=ownRoot and math.floor((ownRoot.Position-targetRoot.Position).Magnitude) or 0
                 local shell=tags[other]:FindFirstChild("NameCard")
-                local scale=1-.6*math.clamp((distance-15)/145,0,1)
-                shell:FindFirstChild("DistanceScale").Scale=scale; tags[other].Size=UDim2.fromOffset(190*scale,56*scale)
+                -- Pixel-sized labels retain readable type at every world distance.
+                shell:FindFirstChild("DistanceScale").Scale=1; tags[other].Size=UDim2.fromOffset(156,44)
                 shell:FindFirstChild("PlayerName").Text=other.DisplayName
                 shell:FindFirstChild("PlayerInfo").Text=distance.." studs"..(staff and " · Admin" or (friend and " · Freund" or ""))
                 shell:FindFirstChild("Badge").BackgroundColor3=color
