@@ -1,4 +1,4 @@
-# ISB Menu 2.5.8 · by Larsiopuw
+# ISB Menu 2.6.0 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,24 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Änderungen in 2.6.0
+
+Freunde erhalten blaue, Spiel-Admins rote Karten samt Kennzeichnung. Bei blauem Akzent erscheinen normale ESP-Markierungen goldgelb; Freunde bleiben blau und Admins rot. Roleplay folgt dem Ziel direkt nach der Charakteraktualisierung ohne die bisherige Lerp-Verzögerung. Zielgeschwindigkeit wird übernommen; die bereits bestätigte Avatar-Sichtbarkeit bleibt erhalten. Das Verhalten bei bewegten Zielen benötigt weiterhin einen Test mit einem anderen Spieler.
+
+Timer und Stoppuhr sind vollständig entfernt. Der Musik-Tab enthält einen Windows-Player für Spotify und Browser-Medien sowie zusätzlich Roblox-Audio. [ISBMediaBridge.exe](ISBMediaBridge.exe) muss dafür im Hintergrund laufen; [Anleitung](ISBMediaBridge-README.md). Titel, Künstler, Coverbild, Position und Quellen werden automatisch erkannt. Cover werden aus der Windows-Mediensitzung gelesen und beim Titelwechsel zwischengespeichert. Befehle hängen von den Funktionen des jeweiligen Players ab. Lautstärke betrifft die gesamte ausgewählte App, bei YouTube den Browser. Die App muss dafür eine Windows-Audiositzung bereitstellen.
+
+Tabs wechseln ohne künstliches Ausblenden. Neu aufgebaute Karten blenden nicht jedes Mal ein. Gesundheits-, Team- und Rollenwerte ändern sich in bestehenden Spieler-Details; Listen-Aktualisierungen werden gesammelt. Reset-Regler aktualisieren vorhandene Controls. Helligkeit hat einen Reset auf den tatsächlichen Spielwert vor der ersten Änderung. Musiklautstärke kehrt auf 35 Prozent zurück. Die App-Lautstärke wird lokal sofort dargestellt, Windows erhält während des Ziehens neue Werte mit maximal etwa 12 Aktualisierungen pro Sekunde und beim Loslassen den Abschlusswert; verspätete Rückmeldungen setzen den Regler nicht zurück. Beide Lautstärke-Skalen unterstützen feinere Ziehschritte.
+
+Klick-, Hover-, Hinweis-, Beitritts- und Austrittssounds sind lauter; neue Cache-Dateien verhindern die Verwendung der alten leisen WAVs. Der redundante Minimieren-Knopf wurde entfernt. X schließt die Ansicht, K Ansicht und Toolbar zusammen; M funktioniert nur mit sichtbarer Toolbar.
+
+Luau und Preview-JavaScript geprüft; 1268 simulierte Interaktions-/Lifecycle-Assertions bestanden. Die gebaute Windows-EXE wurde gestartet, Spotify und Opera wurden erkannt, ein Positionsbefehl für Spotify wurde angenommen. Unauthentifizierte Anfragen und Browser-Origin-Anfragen werden mit 403 abgewiesen. Die Testfassung wurde in Roblox geladen; der Benutzer bestätigte die Medienanzeige und den Helligkeits-Reset. Auch die flüssige Lautstärke-Regelung und die entfernte Minus-Schaltfläche wurden vom Benutzer im Spiel bestätigt. Die direkte Roleplay-Zielbindung ist implementiert und simuliert geprüft; ein Test mit bewegtem Ziel und anderem Spieler steht noch aus.
+
+Die Begrüßung verwendet dieselbe Glasfläche wie das Dock, zeigt „Hey <Anzeigename>“ rund 2,8 Sekunden und blendet danach Uhr, Navigationsicons und zuletzt das Profil gestaffelt ein. Nach insgesamt rund 4,8 Sekunden erscheint die Startansicht. Reduzierte Bewegung überspringt die Sequenz; K kann sie abbrechen. Coverbild, Begrüßungsreihenfolge und laufende Lautstärkeübertragung während des Ziehens wurden vom Benutzer im Spiel bestätigt.
+
+Gemeinsame Karten, Sitzungs- und Profilflächen verwenden abgestufte Flächenfarben, feine Konturen und weichere Rundungen entsprechend der Designvorschau. Schaltflächen haben dezente Konturen. Helligkeits- und Musik-Reset stehen in einer eigenen Zeile unter der Reglerkarte. Lange Zahlen werden mit höchstens zwei Nachkommastellen angezeigt; der Helligkeits-Reset behält den exakten ursprünglichen Spielwert. Die abschließende Flächen-Anpassung wurde ohne Scriptfehler in Roblox geladen und simuliert geprüft; ihre visuelle Live-Prüfung wurde durch den Benutzer beendet und steht noch aus.
+
+Die folgenden Abschnitte dokumentieren frühere Versionen.
 
 ## Änderungen in 2.5.8
 
