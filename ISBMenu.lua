@@ -1,7 +1,7 @@
--- ISB Menu 2.6.3 | Own-game universal client toolkit
+-- ISB Menu 2.6.4 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.3",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.4",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -3185,7 +3185,7 @@ render()
 window.GroupTransparency=1; motionScale.Scale=0.94; window.Visible=false
 dock.GroupTransparency=1
 -- The greeting shares the dock glass, followed by a staggered left-to-right reveal.
-do
+function runtime.startWelcomeIntro()
     runtime.welcomeActive=true
     local welcome=make("CanvasGroup",{Name="WelcomeCapsule",BackgroundColor3=dock.BackgroundColor3,
         AnchorPoint=dock.AnchorPoint,Position=dock.Position+UDim2.fromOffset(0,16),Size=dock.Size,
@@ -3233,5 +3233,6 @@ do
         if alive then runtime.finishWelcome(false) end
     end)
 end
+runtime.startWelcomeIntro()
 return api
 -- by Larsiopuw

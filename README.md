@@ -1,4 +1,4 @@
-# ISB Menu 2.6.3 · by Larsiopuw
+# ISB Menu 2.6.4 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,12 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Änderungen in 2.6.4
+
+Executor-Kompatibilität: Die Begrüßung wird in einer eigenen Funktion aufgebaut. Der unoptimierte Luau-Compiler überschritt in 2.6.3 beim Aufbau der Begrüßung die Grenze von 200 lokalen Registern; Optimierungsstufe 1 und 2 waren nicht betroffen. 2.6.4 kompiliert nun auf allen drei Stufen (-O0, -O1 und -O2). 1707 simulierte Interaktions-/Lifecycle-Prüfungen bestehen weiterhin.
+
+Die gemeldete Potassium-Fehlermeldung ist mit diesem Compilerfehler vereinbar; die konkrete Fehlerrückgabe aus Potassium und ein Live-Test dort stehen noch aus. [Diagnose-Loader](ISBMenu-Executor-Diagnose.lua) trennt Download, Kompilierung und Menüstart und zeigt den ursprünglichen Fehler. Die Optik und Animation der Begrüßung bleiben erhalten.
 
 ## Änderungen in 2.6.3
 
