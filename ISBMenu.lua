@@ -1,7 +1,7 @@
--- ISB Menu 2.6.2 | Own-game universal client toolkit
+-- ISB Menu 2.6.3 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.2",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.3",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -164,7 +164,7 @@ do
     end
 end
 local state = {fly = false, noclip = false, infiniteJump = false, esp = false, names = false,
-    speed = false, jump = false, speedValue = 24, jumpValue = 65, flyValue = 45,
+    speed = false, jump = false, speedValue = 24, jumpValue = 65,
     fullbright = false, shadows = false, fov = false, fovValue = 80}
 local originals, collisions, highlights, tags = {}, {}, {}, {}
 local flyObjects, flyHumanoid, flyAutoRotate = {}, nil, nil
@@ -505,7 +505,7 @@ local function connect(signal, fn)
     return con
 end
 save=function(immediate)
-    settings.values={speedValue=state.speedValue,jumpValue=state.jumpValue,flyValue=state.flyValue,fovValue=state.fovValue}
+    settings.values={speedValue=state.speedValue,jumpValue=state.jumpValue,fovValue=state.fovValue}
     runtime.saveRevision=runtime.saveRevision+1
     local revision=runtime.saveRevision
     if type(writefile)~="function" then runtime.saveError="Dateizugriff nicht verfügbar"; return false end
@@ -520,7 +520,7 @@ save=function(immediate)
     task.delay(.3,write)
     return true
 end
-for key,range in pairs({speedValue={0,10000},jumpValue={0,10000},flyValue={0,10000},fovValue={1,120}}) do
+for key,range in pairs({speedValue={0,10000},jumpValue={0,10000},fovValue={1,120}}) do
     local value=tonumber(settings.values[key])
     if value and value==value then state[key]=math.clamp(value,range[1],range[2]) end
 end
@@ -814,6 +814,18 @@ function runtime.muteFlightSound(obj)
     end))
 end
 -- Animation IDs and glide/forward switching adapted from the TL flight module.
+runtime.flightLevels={
+    {name="GLIDE",speed=55,color=Color3.fromRGB(100,200,255)},
+    {name="NORMAL",speed=110,color=Color3.fromRGB(120,200,255)},
+    {name="FAST",speed=140,color=Color3.fromRGB(255,150,100)},
+    {name="TURBO",speed=250,color=Color3.fromRGB(255,80,80)},
+}
+function runtime.flightLevel() return runtime.flightLevels[runtime.flightTier or 1] end
+function runtime.setFlightTier(value)
+    runtime.flightTier=math.clamp(math.floor(value+.5),1,4)
+    if runtime.actionRefresh and runtime.actionRefresh.flyspeed then runtime.actionRefresh.flyspeed() end
+end
+function runtime.nextFlightTier() runtime.setFlightTier((runtime.flightTier or 1)%4+1) end
 runtime.flightStyles={
     {name="Fly",idle="89068086839142",fwd="101570135818967",glide="85697950221122",fwd2="115638214618522"},
     {name="Mysterious",idle="121818495967360",fwd="138488768673643",glide="101573394483995"},
@@ -1370,7 +1382,7 @@ end
 addAction("fly", "Bewegung", "Fliegen", "WASD / Bewegung • Space hoch • Strg runter", "toggle", function()
     state.fly = not state.fly; if state.fly then startFly() else stopFly() end
 end, function() return state.fly end)
-addAction("flyspeed", "Bewegung", "Fluggeschwindigkeit", "Studs pro Sekunde", "slider", function(v) state.flyValue=v end, function() return state.flyValue end, 5,150,5)
+addAction("flyspeed", "Bewegung", "Flugstufe", "GLIDE 55 · NORMAL 110 · FAST 140 · TURBO 250 studs/s", "slider", runtime.setFlightTier, function() return runtime.flightTier or 1 end, 1,4,1)
 addAction("noclip", "Bewegung", "Noclip", "Kollision des eigenen Charakters ausschalten", "toggle", function()
     state.noclip = not state.noclip; if not state.noclip then restoreCollisions() end
 end, function() return state.noclip end)
@@ -1449,7 +1461,7 @@ runtime.flightTier=1
 runtime.flightHud=make("CanvasGroup",{Name="FlightHUD",Visible=false,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(.5,0),Position=UDim2.new(.5,0,0,58),Size=UDim2.fromOffset(540,48)},gui)
 round(runtime.flightHud,16); runtime.glassSurface(runtime.flightHud,16); stroke(runtime.flightHud)
 runtime.flightInfo=label(runtime.flightHud,"",13,C.text,UDim2.fromOffset(14,7),UDim2.fromOffset(254,34)); runtime.flightInfo.Font=Enum.Font.BuilderSansBold
-runtime.flightNext=button(runtime.flightHud,"",UDim2.fromOffset(272,9),UDim2.fromOffset(76,30),function() runtime.flightTier=runtime.flightTier%4+1; playUISound("tap") end)
+runtime.flightNext=button(runtime.flightHud,"",UDim2.fromOffset(272,9),UDim2.fromOffset(76,30),function() runtime.nextFlightTier(); playUISound("tap") end)
 runtime.flightStyleButton=button(runtime.flightHud,"",UDim2.new(1,-196,0,9),UDim2.fromOffset(182,30),function()
     runtime.flightStyleMenu.Visible=not runtime.flightStyleMenu.Visible
 end)
@@ -1555,8 +1567,8 @@ function runtime.drawRuler(parent,action)
     end)
     rowConnect(valueBox.FocusLost,function()
         local value=tonumber((valueBox.Text:gsub(",",".")))
-        local maximum=action.id=="uiscale" and 120 or (action.id=="mediavolume" and 100 or (action.id=="volume" and 1000 or (action.id=="fovvalue" and 120 or 10000)))
-        local minimum=action.id=="uiscale" and 50 or (action.id=="fovvalue" and 1 or 0)
+        local maximum=action.id=="flyspeed" and 4 or action.id=="uiscale" and 120 or (action.id=="mediavolume" and 100 or (action.id=="volume" and 1000 or (action.id=="fovvalue" and 120 or 10000)))
+        local minimum=action.id=="flyspeed" and 1 or action.id=="uiscale" and 50 or (action.id=="fovvalue" and 1 or 0)
         if not value or value~=value or value<minimum or value>maximum then
             paint(action.get()); notify("Bitte eine Zahl zwischen "..minimum.." und "..maximum.." eingeben.",action.name); return
         end
@@ -1992,7 +2004,7 @@ local function drawCharacter()
         local h=humanoid()
         state.speedValue=h and h.WalkSpeed or 16
         state.jumpValue=h and (h.UseJumpPower and h.JumpPower or math.sqrt(2*workspace.Gravity*h.JumpHeight)) or 50
-        state.flyValue=45; state.fovValue=workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70
+        runtime.setFlightTier(1); state.fovValue=workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70
         activeSlider=nil; save(); runtime.refreshControls(); notify("Regler und Charakterwerte zurückgesetzt.","Charakter")
     end)
     local selectedTuning=tuning
@@ -2804,7 +2816,7 @@ connect(UIS.InputBegan,function(input,processed)
     if pressed==settings.key and dockVisible then setOpen(not opened)
     elseif pressed==settings.dockKey then setDockVisible(not dockVisible)
     elseif pressed==settings.searchKey then setQuickSearch(not quickSearchOpen)
-    elseif state.fly and pressed==settings.flightTierKey then runtime.flightTier=(runtime.flightTier or 1)%4+1; playUISound("tap")
+    elseif state.fly and pressed==settings.flightTierKey then runtime.nextFlightTier(); playUISound("tap")
     else
         for _,entry in ipairs({{"flyKey","fly"},{"noclipKey","noclip"},{"espKey","esp"},{"speedKey","speed"}}) do
             if pressed==settings[entry[1]] then
@@ -2884,7 +2896,7 @@ connect(Run.PreSimulation,function(dt)
         else direction=Vector3.zero; up=0 end
         local target=direction+Vector3.new(0,up,0)
         if target.Magnitude>1 then target=target.Unit end
-        target=target*state.flyValue*({1,1.5,2,3})[runtime.flightTier or 1]
+        target=target*runtime.flightLevel().speed
         local step=math.clamp(dt,0,.25)
         local frequency=target.Magnitude>.01 and 8 or 10
         local offset=runtime.flightVelocity-target
@@ -2893,7 +2905,7 @@ connect(Run.PreSimulation,function(dt)
         runtime.flightVelocity=target+(offset+change*step)*decay
         runtime.flightAcceleration=(runtime.flightAcceleration-change*frequency*step)*decay
         if target.Magnitude<.01 and runtime.flightVelocity.Magnitude<.05 and runtime.flightAcceleration.Magnitude<.1 then runtime.flightVelocity=Vector3.zero; runtime.flightAcceleration=Vector3.zero end
-        runtime.updateFlightAnimation(runtime.flightVelocity.Magnitude,state.flyValue*({1,1.5,2,3})[runtime.flightTier or 1])
+        runtime.updateFlightAnimation(runtime.flightVelocity.Magnitude,runtime.flightLevel().speed)
         flyObjects[1].VectorVelocity=runtime.flightVelocity
         flyObjects[2].CFrame=CFrame.lookAt(Vector3.zero,camera.CFrame.LookVector,camera.CFrame.UpVector)
         if h and h:GetState()~=Enum.HumanoidStateType.Physics then h:ChangeState(Enum.HumanoidStateType.Physics) end
@@ -2919,7 +2931,8 @@ connect(Run.RenderStepped,function(dt)
 
     runtime.flightHud.Visible=state.fly
     if state.fly then
-        runtime.flightInfo.Text="ISB FLUG  ·  "..({"Normal","Schnell","Turbo","Maximum"})[runtime.flightTier].."  ·  "..string.format("%g",state.flyValue*({1,1.5,2,3})[runtime.flightTier]).." studs/s"
+        runtime.flightInfo.Text="ISB FLUG  ·  "..runtime.flightLevel().name.."  ·  "..runtime.flightLevel().speed.." studs/s"
+        runtime.flightInfo.TextColor3=runtime.flightLevel().color
         runtime.flightNext.Text=settings.flightTierKey.."  "..runtime.flightTier.."/4"
         local viewport=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.X or 1280
         local width=math.min(540,math.max(260,viewport-24)); local compact=width<500
