@@ -1,7 +1,7 @@
--- ISB Menu 2.5.4 | Own-game universal client toolkit
+-- ISB Menu 2.5.5 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.4",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.5",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -556,7 +556,7 @@ local function imageIcon(parent,name,size,pos,color)
     local asset=iconAsset(name)
     if not asset then return nil end
     return make("ImageLabel",{BackgroundTransparency=1,Image=asset,ImageColor3=color or C.text,
-        ScaleType=Enum.ScaleType.Fit,AnchorPoint=Vector2.new(.5,.5),Position=(pos or UDim2.fromOffset(0,0))+UDim2.fromOffset((size or 20)/2,(size or 20)/2),Size=UDim2.fromOffset(size or 20,size or 20)},parent)
+        ZIndex=parent.ZIndex or 1,ScaleType=Enum.ScaleType.Fit,AnchorPoint=Vector2.new(.5,.5),Position=(pos or UDim2.fromOffset(0,0))+UDim2.fromOffset((size or 20)/2,(size or 20)/2),Size=UDim2.fromOffset(size or 20,size or 20)},parent)
 end
 local uiSounds={}
 playUISound=function(name)
@@ -647,22 +647,18 @@ function runtime.bindPress(obj,callback,register)
     local fontBase,iconScales=nil,setmetatable({},{__mode="k"})
     local iconPositions=setmetatable({},{__mode="k"})
     local function geometry()
-        local inset=(obj.Name:sub(1,3)=="Nav" or obj:IsA("ImageLabel")) and 0 or 8
-        face.Size=UDim2.new(1,-inset,1,-inset); glow.Size=face.Size
-        return inset
+        face.Size=UDim2.fromScale(1,1); glow.Size=face.Size
     end
-    geometry(); register(obj:GetPropertyChangedSignal("Name"),geometry)
+    geometry()
     local function pose(down)
         local enabled=not settings.reducedMotion
         glow.BackgroundColor3=C.accent; edge.Color=C.accent
         local corner=obj:FindFirstChildOfClass("UICorner"); if corner then glow:FindFirstChildOfClass("UICorner").CornerRadius=corner.CornerRadius end
         local navigation=obj.Name:sub(1,3)=="Nav"
-        local lift=enabled and hovered and not down and (navigation and -4 or -2) or 0
-        local factor=enabled and (down and .96 or (hovered and (navigation and 1.12 or 1.035) or 1)) or 1
-        if geometry()>0 and factor>1 then
-            local size=obj.AbsoluteSize
-            if size.X>8 and size.Y>8 then factor=math.min(factor,(size.X-2)/(size.X-8),(size.Y-6)/(size.Y-8)) end
-        end
+        -- Small controls and switches retain their full silhouette and contents.
+        local spacious=obj.Size.X.Offset>=80 and obj.Text~="" and obj.Size.X.Scale==0
+        local lift=enabled and hovered and not down and (navigation and -4 or (spacious and -1 or 0)) or 0
+        local factor=enabled and (navigation and (down and .96 or (hovered and 1.12 or 1)) or (spacious and (down and .96 or (hovered and .985 or 1)) or 1)) or 1
         animate(faceScale,{Scale=factor})
         animate(face,{Position=UDim2.new(.5,0,.5,lift)})
         animate(motion,{Scale=factor})
@@ -672,14 +668,22 @@ function runtime.bindPress(obj,callback,register)
             fontBase=fontBase or obj.TextSize
             animate(obj,{TextSize=fontBase*(enabled and (down and .97 or (hovered and 1.06 or 1)) or 1)})
         end
-        for _,child in ipairs(obj:GetDescendants()) do if child:IsA("ImageLabel") and child~=face then
+        for _,child in ipairs(obj:GetChildren()) do if child:IsA("ImageLabel") and child~=face and child.Name~="MicIcon" and child.Name~="ScriptThumbnail" then
             local scale=iconScales[child]
             if not scale then scale=make("UIScale",{Name="ButtonIconMotion",Scale=1},child); iconScales[child]=scale; iconPositions[child]=child.Position end
             animate(scale,{Scale=enabled and (down and .94 or (hovered and (navigation and 1.15 or 1.10) or 1)) or 1})
             animate(child,{Position=iconPositions[child]+UDim2.fromOffset(0,lift)})
         end end
     end
-    local function enter() hovered=true; pose(pressed~=nil) end
+    local function clearHover()
+        hovered=false; pressed=nil; pose(false)
+        if runtime.hoverOwner==obj then runtime.hoverOwner=nil; runtime.clearHover=nil end
+    end
+    local function enter()
+        if runtime.hoverOwner~=obj and runtime.clearHover then runtime.clearHover() end
+        runtime.hoverOwner=obj; runtime.clearHover=clearHover
+        hovered=true; pose(pressed~=nil)
+    end
     register(obj.MouseEnter,enter); register(face.MouseEnter,enter)
     local function begin(input)
         if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then pressed=input; pose(true) end
@@ -691,17 +695,11 @@ function runtime.bindPress(obj,callback,register)
     end
     register(obj.InputBegan,begin); register(face.InputBegan,begin)
     register(obj.InputEnded,finish); register(face.InputEnded,finish)
-    local function leave()
-        local ok,inside=pcall(function()
-            local pointer=UIS:GetMouseLocation(); local inset=runtime.guiService:GetGuiInset(); pointer=pointer-inset
-            local origin,size=obj.AbsolutePosition,obj.AbsoluteSize
-            return pointer.X>=origin.X and pointer.Y>=origin.Y and pointer.X<origin.X+size.X and pointer.Y<origin.Y+size.Y
-        end)
-        if ok and inside then return end
-        hovered=false; pressed=nil; pose(false)
-    end
-    register(obj.MouseLeave,leave); register(face.MouseLeave,leave)
-    register(UIS.WindowFocusReleased,function() hovered=false; pressed=nil; pose(false) end)
+    -- Root hit geometry never moves; leaving it always clears the hover.
+    register(obj.MouseLeave,clearHover)
+    register(obj:GetPropertyChangedSignal("Visible"),function() if not obj.Visible then clearHover() end end)
+    register(UIS.WindowFocusReleased,clearHover)
+
 end
 local function button(parent, text, pos, dims, fn)
     local b = make("TextLabel", {Text = text, Font = Enum.Font.BuilderSansMedium, TextSize = 13,
@@ -1085,6 +1083,23 @@ function runtime.updateInventoryClearance()
                             ancestor=ancestor.Parent
                         end
                         if not visible or not named then return nil end
+                        local occupied=false
+                        for _,slot in ipairs(obj:GetDescendants()) do
+                            if slot:IsA("GuiObject") and slot.Visible then
+                                local shown=true; local parent=slot.Parent
+                                while parent and parent~=obj do
+                                    if parent:IsA("GuiObject") and not parent.Visible then shown=false; break end
+                                    parent=parent.Parent
+                                end
+                                if source~=playerGui then
+                                    local slotName=slot.Name:lower()
+                                    shown=shown and (slotName=="toolicon" or slotName=="toolname")
+                                end
+                                if shown and ((slot:IsA("ImageLabel") or slot:IsA("ImageButton")) and slot.Image~=""
+                                    or (slot:IsA("TextLabel") or slot:IsA("TextButton")) and slot.Text~="" and not tostring(slot.Text):match("^%d+$")) then occupied=true; break end
+                            end
+                        end
+                        if not occupied then return nil end
                         local absolute,size=obj.AbsolutePosition,obj.AbsoluteSize
                         local origin=gui.AbsolutePosition
                         local position=Vector2.new(absolute.X-origin.X,absolute.Y-origin.Y)
@@ -1106,7 +1121,9 @@ runtime.inventoryTimer=0
 runtime.updateInventoryClearance()
 local openRevision=0
 setOpen=function(value)
+    value=value and dockVisible
     if value~=opened then playUISound(value and "open" or "close") end
+    if not value and runtime.clearHover then runtime.clearHover() end
     opened=value; openRevision=openRevision+1
     local revision=openRevision
     if value then
@@ -1121,6 +1138,7 @@ setOpen=function(value)
 end
 local pageRevision=0
 selectPage=function(name)
+    if not dockVisible then return end
     pageRevision=pageRevision+1
     local revision=pageRevision
     if page==name then setOpen(not opened); return end
@@ -1133,6 +1151,7 @@ selectPage=function(name)
 end
 local dockRevision=0
 setDockVisible=function(value)
+    if not value then pageRevision=pageRevision+1; setOpen(false); if runtime.clearHover then runtime.clearHover() end end
     dockVisible=value; dockRevision=dockRevision+1; local revision=dockRevision
     hideDockHint(); playUISound(value and "open" or "close")
     if value then dock.Visible=true end
@@ -1814,7 +1833,7 @@ local function drawScriptSearch()
             if entry then
                 local tile=rowButton(pair,"",UDim2.new(col*.5,col*5,0,0),UDim2.new(.5,-5,0,158),function() loadScriptSource(entry) end)
                 round(tile,14); tile.BackgroundColor3=C.card
-                local art=make("Frame",{BackgroundColor3=C.panel,Size=UDim2.new(1,0,0,76)},tile); round(art,14)
+                local art=make("Frame",{Name="ScriptArtwork",ClipsDescendants=true,BackgroundColor3=C.panel,Size=UDim2.new(1,0,0,76)},tile); round(art,14)
                 make("UIGradient",{Color=ColorSequence.new(C.line,C.bg),Rotation=35},art)
                 imageIcon(art,"code-bracket-square",27,UDim2.fromOffset(16,24),C.muted)
                 features.scriptThumbnail(art,entry)
@@ -1910,8 +1929,8 @@ function runtime.buildVoiceMic()
     if not attached then micGui.Parent=playerGui end
     local mic=make("TextLabel",{Name="ISBVoiceMic",Text="",BackgroundColor3=C.panel,BackgroundTransparency=.08,Position=UDim2.fromOffset(166,12),Size=UDim2.fromOffset(44,44),ZIndex=100},micGui)
     runtime.voiceMic=mic; round(mic,16); stroke(mic)
-    make("ImageLabel",{Name="MicIcon",BackgroundTransparency=1,Position=UDim2.fromOffset(7,7),Size=UDim2.fromOffset(30,30),ZIndex=101},mic)
-    local hint=label(mic,"",11,C.text,UDim2.fromOffset(0,50),UDim2.fromOffset(226,28)); hint.Name="MicHint"; hint.Visible=false; hint.ZIndex=101; hint.BackgroundColor3=C.panel; hint.BackgroundTransparency=.08; round(hint,10)
+    make("ImageLabel",{Name="MicIcon",BackgroundTransparency=1,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(26,26),ScaleType=Enum.ScaleType.Fit,ZIndex=101},mic)
+    local hint=label(mic,"",11,C.text,UDim2.fromOffset(-91,52),UDim2.fromOffset(226,32)); hint.Name="MicHint"; hint.TextXAlignment=Enum.TextXAlignment.Center; hint.Visible=false; hint.ZIndex=101; hint.BackgroundColor3=C.panel; hint.BackgroundTransparency=.08; round(hint,10)
     local function register(signal,fn) local connection=signal:Connect(fn); table.insert(runtime.voiceMicConnections,connection); return connection end
     register(mic.MouseEnter,function() hint.Visible=true end); register(mic.MouseLeave,function() hint.Visible=false end)
     runtime.bindPress(mic,runtime.toggleVoiceMute,register)
@@ -1964,10 +1983,16 @@ function runtime.roleplayFrame(owned,part,dt)
     if mode.id=="head" or mode.id=="piggy" or mode.id=="piggy2" then
         local target=mode.id=="head" and (part.Position+Vector3.new(0,1,0)) or (part.Position-part.CFrame.LookVector*1.1+Vector3.new(0,.2,0))
         owned.followPosition=owned.followPosition and owned.followPosition:Lerp(target,1-math.pow(.02,math.max(dt or 1/60,0)*60)) or target
-        local look=mode.id=="head" and part.Position or owned.followPosition+part.CFrame.LookVector
+        local look=mode.id=="head" and part.Position or owned.root.Position+part.CFrame.LookVector
         return CFrame.new(owned.followPosition,look)
     end
     local offset=mode.offset
+    if mode.id=="hug" then
+        owned.oscTime=(owned.oscTime or 0)+(dt or 1/60)*10
+        local target=part.CFrame*CFrame.new(0,.05,-1.35-math.sin(owned.oscTime)*.04)*CFrame.Angles(0,math.pi,0)
+        owned.hugFrame=owned.hugFrame and owned.hugFrame:Lerp(target,1-math.pow(.12,(dt or 1/60)*60)) or target
+        return owned.hugFrame
+    end
     return part.CFrame*CFrame.new(offset[1],offset[2],offset[3])*CFrame.Angles(0,mode.rotation or 0,0)
 end
 function runtime.startRoleplay(mode)
@@ -1987,10 +2012,26 @@ function runtime.startRoleplay(mode)
     runtime.roleplay=owned; h.PlatformStand=true; h.AutoRotate=false
     for _,item in ipairs(runtime.quickActionButtons or {}) do if item.button.Parent then item.button.BackgroundColor3=item.mode==mode and C.accent:Lerp(C.panel,.7) or C.card end end
     local animator=h:FindFirstChildOfClass("Animator")
-    if animator then
-        owned.animation=make("Animation",{Name="ISBRoleplayAnimation",AnimationId="rbxassetid://"..mode.animation})
+    if animator and h.RigType~=Enum.HumanoidRigType.R6 then
+        local resolved="rbxassetid://"..mode.animation
+        -- TL uses packaged Animation assets; their asset ID can differ from the clip ID.
+        pcall(function()
+            local objects=game:GetObjects(resolved)
+            for _,asset in ipairs(objects) do
+                local clip=asset:IsA("Animation") and asset or asset:FindFirstChildOfClass("Animation")
+                if clip and clip.AnimationId~="" then resolved=clip.AnimationId end
+                asset:Destroy()
+            end
+        end)
+        if runtime.roleplay~=owned then return end
+        owned.animation=make("Animation",{Name="ISBRoleplayAnimation",AnimationId=resolved})
         local ok,track=pcall(function() return animator:LoadAnimation(owned.animation) end)
-        if ok and track then owned.track=track; track.Looped=true; track.Priority=Enum.AnimationPriority.Action; pcall(function() track:Play(.15) end)
+        if ok and track then
+            owned.track=track; track.Looped=true; track.Priority=Enum.AnimationPriority.Action4
+            pcall(function() track:Play(.05,1,1) end)
+            if mode.id=="head" then
+                task.delay(2,function() if runtime.roleplay==owned then owned.frozenPose=true; pcall(function() track:AdjustSpeed(0); track.TimePosition=2 end) end end)
+            end
         else notify("Position aktiv; die Animation ist in diesem Spiel nicht verfügbar.","Roleplay") end
     end
     if runtime.quickState then runtime.quickState.Text=mode.name.." · "..target.DisplayName end
@@ -2393,7 +2434,7 @@ connect(UIS.InputBegan,function(input,processed)
     if input.KeyCode==Enum.KeyCode.Escape and quickSearchOpen then setQuickSearch(false); return end
     if input.KeyCode==Enum.KeyCode.Escape and runtime.quickPanel and runtime.quickPanel.Visible then runtime.quickPanel.Visible=false; return end
     if processed or UIS:GetFocusedTextBox() then return end
-    if pressed==settings.key then setOpen(not opened)
+    if pressed==settings.key and dockVisible then setOpen(not opened)
     elseif pressed==settings.dockKey then setDockVisible(not dockVisible)
     elseif pressed==settings.searchKey then setQuickSearch(not quickSearchOpen)
     elseif state.fly and pressed==settings.flightTierKey then runtime.flightTier=(runtime.flightTier or 1)%4+1; playUISound("tap")
@@ -2437,6 +2478,10 @@ connect(Run.PreSimulation,function(dt)
                 local rep=owned.mode.id=="head" and part or owned.target.Character:FindFirstChild("HumanoidRootPart")
                 if rep then pcall(sethiddenproperty,r,"PhysicsRepRootPart",rep) end
             end
+            if owned.track then pcall(function()
+                if not owned.track.IsPlaying then owned.track:Play(.05,1,1) end
+                if owned.frozenPose then owned.track:AdjustSpeed(0); owned.track.TimePosition=2 end
+            end) end
             r.CFrame=runtime.roleplayFrame(owned,part,dt)
             r.AssemblyLinearVelocity=Vector3.zero; r.AssemblyAngularVelocity=Vector3.zero; owned.h.PlatformStand=true; owned.h.AutoRotate=false
             pcall(function() if owned.h:GetState()==Enum.HumanoidStateType.Seated then owned.h:ChangeState(Enum.HumanoidStateType.Physics) end end)

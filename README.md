@@ -1,4 +1,4 @@
-# ISB Menu 2.5.4 · by Larsiopuw
+# ISB Menu 2.5.5 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,16 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Korrekturen in 2.5.5
+
+Hover gehört nur einem Bedienelement gleichzeitig und endet beim Verlassen, Fokusverlust oder Schließen. Kleine Buttons und Schalter behalten ihre vollständige Form; Rahmen und Fläche haben dieselbe Geometrie. Die Animation bewegt nur direkte Icons und keine verschachtelten Vorschaubilder. Skriptbilder bleiben im Bildbereich; Favoriten-Icons erhalten die Ebene ihres Buttons. Mikrofonbild und Hinweis sind zentriert.
+
+K schließt Dock und Fenster gemeinsam. M öffnet das Fenster nur bei sichtbarem Dock; auch verzögerte Tabwechsel können kein einzelnes Fenster mehr öffnen. Sichtbare leere native Werkzeugleisten reservieren keinen Abstand. Bei unbekannten eigenen Inventaren bleibt die Erkennung von sichtbaren Inhalten abhängig.
+
+Roleplay löst wie TL verpackte Animationsassets vor dem Laden auf, verwendet Action4 und hält die Kopf-Sitzpose nach zwei Sekunden fest. Huckepack folgt der Referenz-Ausrichtung; ohne Auswahl wird der nächste verfügbare Spieler gewählt. Schulter- und Trageanimationen laufen weiter, statt versehentlich die Kopf-Pose zu übernehmen.
+
+946 simulierte Assertions und Luau-Kompilierung bestehen. Roblox war bei dieser Prüfung geschlossen; Layout, Mikrofonbedienung und Roleplay-Physik dieser Fassung wurden noch nicht erneut im Spiel bestätigt. Die folgenden Abschnitte dokumentieren ältere Versionen.
 
 ## Live-Prüfung und Korrekturen in 2.5.4
 
