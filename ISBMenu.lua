@@ -1,7 +1,7 @@
--- ISB Menu 2.5.2 | Own-game universal client toolkit
+-- ISB Menu 2.5.3 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.2",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.3",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -273,6 +273,8 @@ local function toggleAntiVC()
         notify("Die benötigten Voice-Funktionen sind hier nicht verfügbar.","Voice"); return
     end
     antiVC.active=true; antiVC.loading=true
+    local micReady,micError=pcall(runtime.buildVoiceMic)
+    if not micReady then stopAntiVC(); notify("Mikrofon-Steuerung konnte nicht geöffnet werden.","Voice"); warn("ISB Mikrofon: "..tostring(micError)); return end
     antiVC.generation=(antiVC.generation or 0)+1; local generation=antiVC.generation
     local enumerator=type(getconnections)=="function" and getconnections or get_signal_cons
     captureVoiceConnections(enumerator)
@@ -285,7 +287,7 @@ local function toggleAntiVC()
         task.delay(.3,function()
             if not alive or not antiVC.active or antiVC.generation~=generation then return end
             maintainVoiceConnections(true); antiVC.loading=false
-            runtime.buildVoiceMic()
+            runtime.syncVoiceMic()
             notify("Voice-Verbindung erneuert und Client-Modus gestartet.","Voice")
             if page=="Voice" then render() end
         end)
@@ -608,18 +610,44 @@ end
 pcall(function() runtime.guiService=game:GetService("GuiService") end)
 -- Plain interactive labels avoid Roblox's automatic GuiButton hand-cursor swaps.
 function runtime.bindPress(obj,callback,register)
-    obj.Active=true; obj.Selectable=true
-    local pressed
+    obj.Active=true; obj.Selectable=UIS.GamepadEnabled==true
+    -- Animate decoration and contents; the interactive rectangle stays still.
+    local glow=make("Frame",{Name="ButtonMotion",Active=false,Selectable=false,BackgroundColor3=C.accent,BackgroundTransparency=1,
+        AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.new(1,-4,1,-4),ZIndex=obj.ZIndex or 1},obj)
+    round(glow,10)
+    local motion=make("UIScale",{Name="HoverScale",Scale=1},glow)
+    local edge=make("UIStroke",{Color=C.accent,Thickness=1,Transparency=1},glow)
+    register(obj:GetPropertyChangedSignal("ZIndex"),function() glow.ZIndex=obj.ZIndex end)
+    local hovered,pressed=false,nil
+    local fontBase,iconScales=nil,setmetatable({},{__mode="k"})
+    local function pose(down)
+        local enabled=not settings.reducedMotion
+        glow.BackgroundColor3=C.accent; edge.Color=C.accent
+        local corner=obj:FindFirstChildOfClass("UICorner"); if corner then glow:FindFirstChildOfClass("UICorner").CornerRadius=corner.CornerRadius end
+        animate(motion,{Scale=enabled and (down and .94 or (hovered and 1.06 or 1)) or 1})
+        animate(glow,{BackgroundTransparency=down and .84 or (hovered and .94 or 1)})
+        animate(edge,{Transparency=hovered and .55 or 1})
+        if obj:IsA("TextLabel") and obj.Text~="" then
+            fontBase=fontBase or obj.TextSize
+            animate(obj,{TextSize=fontBase*(enabled and (down and .97 or (hovered and 1.045 or 1)) or 1)})
+        end
+        for _,child in ipairs(obj:GetDescendants()) do if child:IsA("ImageLabel") then
+            local scale=iconScales[child]
+            if not scale then scale=make("UIScale",{Name="ButtonIconMotion",Scale=1},child); iconScales[child]=scale end
+            animate(scale,{Scale=enabled and (down and .94 or (hovered and 1.10 or 1)) or 1})
+        end end
+    end
+    register(obj.MouseEnter,function() hovered=true; pose(pressed~=nil) end)
     register(obj.InputBegan,function(input)
-        if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then pressed=input end
+        if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then pressed=input; pose(true) end
         if (input.KeyCode==Enum.KeyCode.Return or input.KeyCode==Enum.KeyCode.Space or input.KeyCode==Enum.KeyCode.ButtonA)
             and runtime.guiService and runtime.guiService.SelectedObject==obj then callback() end
     end)
     register(obj.InputEnded,function(input)
-        if pressed and (input==pressed or input.UserInputType==Enum.UserInputType.MouseButton1) then pressed=nil; callback() end
+        if pressed and (input==pressed or input.UserInputType==Enum.UserInputType.MouseButton1) then pressed=nil; pose(false); callback() end
     end)
-    register(obj.MouseLeave,function() pressed=nil end)
-    register(UIS.WindowFocusReleased,function() pressed=nil end)
+    register(obj.MouseLeave,function() hovered=false; pressed=nil; pose(false) end)
+    register(UIS.WindowFocusReleased,function() hovered=false; pressed=nil; pose(false) end)
 end
 local function button(parent, text, pos, dims, fn)
     local b = make("TextLabel", {Text = text, Font = Enum.Font.BuilderSansMedium, TextSize = 13,
@@ -781,7 +809,7 @@ function runtime.updateStatusLayout()
         local ok,size=pcall(function() return runtime.textService:GetTextSize(text,12,font,Vector2.new(1000,22)) end)
         return math.ceil(ok and size.X or #text*6.3)
     end
-    local metricWidth=width(metrics.Text,metrics.Font)
+    local metricWidth=width((metrics.Text:gsub("<.->","")),metrics.Font)
     local executorWidth=math.min(150,width(session.executor,runtime.statusExecutor.Font))
     metrics.Size=UDim2.fromOffset(metricWidth,22)
     runtime.statusDivider.Position=UDim2.fromOffset(98+metricWidth+10,14)
@@ -795,6 +823,12 @@ function runtime.updateStatusLayout()
         runtime.quickPanel.Position=UDim2.new(1,-6,0,6+44*statusScale.Scale+8)
         runtime.quickScale.Scale=statusScale.Scale
     end
+end
+metrics.RichText=true
+function runtime.metricTint(value,kind)
+    if not value then return "#AAB9CE" end
+    if kind=="ping" then return value<=100 and "#63D6A1" or (value<=200 and "#F1C66B" or "#F07B83") end
+    return value>=55 and "#63D6A1" or (value>=30 and "#F1C66B" or "#F07B83")
 end
 metrics.Name="Metrics"; metrics.Font=Enum.Font.BuilderSansBold; metrics.TextSize=12
 runtime.statusExecutor.Font=Enum.Font.BuilderSansBold; runtime.statusExecutor.TextSize=12
@@ -981,7 +1015,7 @@ function runtime.updateInventoryClearance()
         local ok,objects=pcall(function() return source:GetDescendants() end)
         if ok then
             for _,obj in ipairs(objects) do
-                if source==playerGui and obj:IsA("ScreenGui") and obj~=gui and obj.Enabled~=false then
+                if source==playerGui and obj:IsA("ScreenGui") and obj~=gui and obj~=runtime.voiceMicGui and obj.Enabled~=false then
                     order=math.max(order,math.min(2147483646,(obj.DisplayOrder or 0)+1))
                 end
                 if obj:IsA("GuiObject") then
@@ -1011,6 +1045,7 @@ function runtime.updateInventoryClearance()
         end
     end
     gui.DisplayOrder=order
+    if runtime.voiceMicGui then runtime.voiceMicGui.DisplayOrder=math.max(1000,order+1) end
     if runtime.dockClearance~=clearance then runtime.dockClearance=clearance; fit() end
 end
 runtime.inventoryTimer=0
@@ -1772,6 +1807,7 @@ function runtime.removeVoiceMic()
     runtime.voiceMuteSerial=(runtime.voiceMuteSerial or 0)+1
     for _,connection in ipairs(runtime.voiceMicConnections) do connection:Disconnect() end
     table.clear(runtime.voiceMicConnections)
+    if runtime.voiceMicGui then runtime.voiceMicGui:Destroy(); runtime.voiceMicGui=nil end
     if runtime.voiceMic then runtime.voiceMic:Destroy(); runtime.voiceMic=nil end
 end
 function runtime.syncVoiceMic()
@@ -1812,7 +1848,13 @@ end
 function runtime.buildVoiceMic()
     runtime.removeVoiceMic()
     local input=voiceInput(); runtime.voiceMuted=input and input.Muted==true or false; runtime.voiceMuteAt=nil
-    local mic=make("TextLabel",{Name="ISBVoiceMic",Text="",BackgroundColor3=C.panel,BackgroundTransparency=.08,Position=UDim2.fromOffset(166,12),Size=UDim2.fromOffset(44,44),ZIndex=100},gui)
+    local micGui=make("ScreenGui",{Name="ISBVoiceControls",Enabled=true,ResetOnSpawn=false,IgnoreGuiInset=true,ScreenInsets=Enum.ScreenInsets.None,DisplayOrder=math.max(1000,gui.DisplayOrder+1),ZIndexBehavior=Enum.ZIndexBehavior.Sibling})
+    runtime.voiceMicGui=micGui
+    local parent=optionalService("CoreGui")
+    if type(gethui)=="function" then local ok,hidden=pcall(gethui); if ok and hidden then parent=hidden end end
+    local attached=parent and pcall(function() micGui.Parent=parent end)
+    if not attached then micGui.Parent=playerGui end
+    local mic=make("TextLabel",{Name="ISBVoiceMic",Text="",BackgroundColor3=C.panel,BackgroundTransparency=.08,Position=UDim2.fromOffset(166,12),Size=UDim2.fromOffset(44,44),ZIndex=100},micGui)
     runtime.voiceMic=mic; round(mic,16); stroke(mic)
     make("ImageLabel",{Name="MicIcon",BackgroundTransparency=1,Position=UDim2.fromOffset(7,7),Size=UDim2.fromOffset(30,30),ZIndex=101},mic)
     local hint=label(mic,"",11,C.text,UDim2.fromOffset(0,50),UDim2.fromOffset(226,28)); hint.Name="MicHint"; hint.Visible=false; hint.ZIndex=101; hint.BackgroundColor3=C.panel; hint.BackgroundTransparency=.08; round(hint,10)
@@ -2443,16 +2485,17 @@ connect(Run.RenderStepped,function(dt)
         dockClock.Text=os.date("%H:%M")
         local ok,ping=pcall(function() return player:GetNetworkPing()*1000 end)
         session.fps=math.floor(frames/fpsTime+0.5); session.ping=ok and math.floor(ping+0.5) or nil
-        metrics.Text=string.format("%d / %s Spieler  ·  %s ms  ·  %d FPS",#Players:GetPlayers(),tostring(Players.MaxPlayers or "—"),session.ping and tostring(session.ping) or "--",session.fps)
+        metrics.Text=string.format('%d / %s Spieler  ·  <font color="%s">%s ms</font>  ·  <font color="%s">%d FPS</font>',#Players:GetPlayers(),tostring(Players.MaxPlayers or "—"),runtime.metricTint(session.ping,"ping"),session.ping and tostring(session.ping) or "--",runtime.metricTint(session.fps,"fps"),session.fps)
         runtime.updateStatusLayout()
         if page=="Start" then updateDashboard() end
         frames=0; fpsTime=0
     end
-    if antiVC.active and not antiVC.loading then
+    if antiVC.active then
+        if not runtime.voiceMic or not runtime.voiceMic.Parent then pcall(runtime.buildVoiceMic) end
         runtime.voiceMicSync=(runtime.voiceMicSync or 0)+dt
         if runtime.voiceMicSync>=.1 then runtime.voiceMicSync=0; runtime.syncVoiceMic() end
         runtime.voiceMaintenance=runtime.voiceMaintenance+dt
-        if runtime.voiceMaintenance>=3 then runtime.voiceMaintenance=0; maintainVoiceConnections() end
+        if runtime.voiceMaintenance>=3 and not antiVC.loading then runtime.voiceMaintenance=0; maintainVoiceConnections() end
     end
     if visualTimer<0.25 then return end
     visualTimer=0
