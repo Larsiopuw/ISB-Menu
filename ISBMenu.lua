@@ -1,7 +1,7 @@
--- ISB Menu 2.5.3 | Own-game universal client toolkit
+-- ISB Menu 2.5.4 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.3",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.4",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -199,9 +199,13 @@ local function restoreVoiceConnections()
     table.clear(antiVC.originalConnections)
 end
 local function stopAntiVC()
+    local muted
+    if antiVC.active then muted=runtime.voiceMuted end
     antiVC.generation=(antiVC.generation or 0)+1
     antiVC.active=false; antiVC.loading=false
     restoreVoiceConnections()
+    -- Restored core listeners must not silently change the user's mute choice.
+    if type(muted)=="boolean" and runtime.applyVoiceMute then runtime.applyVoiceMute(muted) end
     if runtime.removeVoiceMic then runtime.removeVoiceMic() end
 end
 local function captureVoiceConnections(enumerator)
@@ -552,7 +556,7 @@ local function imageIcon(parent,name,size,pos,color)
     local asset=iconAsset(name)
     if not asset then return nil end
     return make("ImageLabel",{BackgroundTransparency=1,Image=asset,ImageColor3=color or C.text,
-        ScaleType=Enum.ScaleType.Fit,Position=pos or UDim2.fromOffset(0,0),Size=UDim2.fromOffset(size or 20,size or 20)},parent)
+        ScaleType=Enum.ScaleType.Fit,AnchorPoint=Vector2.new(.5,.5),Position=(pos or UDim2.fromOffset(0,0))+UDim2.fromOffset((size or 20)/2,(size or 20)/2),Size=UDim2.fromOffset(size or 20,size or 20)},parent)
 end
 local uiSounds={}
 playUISound=function(name)
@@ -586,7 +590,7 @@ local function stroke(obj)
 end
 function runtime.glassSurface(group,radius)
     group.BackgroundTransparency=1
-    local surface=make("Frame",{Name="GlassSurface",BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=.14,Size=UDim2.fromScale(1,1),ZIndex=0},group)
+    local surface=make("Frame",{Name="GlassSurface",BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=.025,Size=UDim2.fromScale(1,1),ZIndex=0},group)
     round(surface,radius)
     make("UIGradient",{Rotation=75,Color=ColorSequence.new(Color3.fromRGB(50,61,77),Color3.fromRGB(13,19,29))},surface)
 end
@@ -611,42 +615,92 @@ pcall(function() runtime.guiService=game:GetService("GuiService") end)
 -- Plain interactive labels avoid Roblox's automatic GuiButton hand-cursor swaps.
 function runtime.bindPress(obj,callback,register)
     obj.Active=true; obj.Selectable=UIS.GamepadEnabled==true
+    -- Keep the real input label fixed and animate a separate rendered face.
+    local face=make(obj.ClassName,{Name="ButtonFace",Active=false,Selectable=false,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromScale(1,1),ZIndex=obj.ZIndex or 1},obj)
+    local faceScale=make("UIScale",{Name="ButtonFaceScale",Scale=1},face)
+    round(face,10)
+    local properties={"BackgroundColor3","BackgroundTransparency","BorderSizePixel"}
+    if obj:IsA("TextLabel") then
+        for _,key in ipairs({"Text","Font","TextSize","TextColor3","TextTransparency","TextXAlignment","TextYAlignment","TextWrapped","TextScaled","RichText","TextTruncate"}) do table.insert(properties,key) end
+    elseif obj:IsA("ImageLabel") then
+        for _,key in ipairs({"Image","ImageColor3","ImageTransparency","ScaleType"}) do table.insert(properties,key) end
+    end
+    for _,key in ipairs(properties) do
+        if obj[key]~=nil then face[key]=obj[key] end
+        register(obj:GetPropertyChangedSignal(key),function() face[key]=obj[key] end)
+    end
+    -- UIGradient affects this label's own paint, not its child face or icons.
+    make("UIGradient",{Name="InputOnlyPaint",Transparency=NumberSequence.new(1)},obj)
+    local parentCorner=obj:FindFirstChildOfClass("UICorner")
+    if parentCorner then
+        face:FindFirstChildOfClass("UICorner").CornerRadius=parentCorner.CornerRadius
+        register(parentCorner:GetPropertyChangedSignal("CornerRadius"),function() face:FindFirstChildOfClass("UICorner").CornerRadius=parentCorner.CornerRadius end)
+    end
     -- Animate decoration and contents; the interactive rectangle stays still.
     local glow=make("Frame",{Name="ButtonMotion",Active=false,Selectable=false,BackgroundColor3=C.accent,BackgroundTransparency=1,
-        AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.new(1,-4,1,-4),ZIndex=obj.ZIndex or 1},obj)
+        AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.new(1,-8,1,-8),ZIndex=obj.ZIndex or 1},obj)
     round(glow,10)
     local motion=make("UIScale",{Name="HoverScale",Scale=1},glow)
     local edge=make("UIStroke",{Color=C.accent,Thickness=1,Transparency=1},glow)
-    register(obj:GetPropertyChangedSignal("ZIndex"),function() glow.ZIndex=obj.ZIndex end)
+    register(obj:GetPropertyChangedSignal("ZIndex"),function() glow.ZIndex=obj.ZIndex; face.ZIndex=obj.ZIndex end)
     local hovered,pressed=false,nil
     local fontBase,iconScales=nil,setmetatable({},{__mode="k"})
+    local iconPositions=setmetatable({},{__mode="k"})
+    local function geometry()
+        local inset=(obj.Name:sub(1,3)=="Nav" or obj:IsA("ImageLabel")) and 0 or 8
+        face.Size=UDim2.new(1,-inset,1,-inset); glow.Size=face.Size
+        return inset
+    end
+    geometry(); register(obj:GetPropertyChangedSignal("Name"),geometry)
     local function pose(down)
         local enabled=not settings.reducedMotion
         glow.BackgroundColor3=C.accent; edge.Color=C.accent
         local corner=obj:FindFirstChildOfClass("UICorner"); if corner then glow:FindFirstChildOfClass("UICorner").CornerRadius=corner.CornerRadius end
-        animate(motion,{Scale=enabled and (down and .94 or (hovered and 1.06 or 1)) or 1})
-        animate(glow,{BackgroundTransparency=down and .84 or (hovered and .94 or 1)})
-        animate(edge,{Transparency=hovered and .55 or 1})
+        local navigation=obj.Name:sub(1,3)=="Nav"
+        local lift=enabled and hovered and not down and (navigation and -4 or -2) or 0
+        local factor=enabled and (down and .96 or (hovered and (navigation and 1.12 or 1.035) or 1)) or 1
+        if geometry()>0 and factor>1 then
+            local size=obj.AbsoluteSize
+            if size.X>8 and size.Y>8 then factor=math.min(factor,(size.X-2)/(size.X-8),(size.Y-6)/(size.Y-8)) end
+        end
+        animate(faceScale,{Scale=factor})
+        animate(face,{Position=UDim2.new(.5,0,.5,lift)})
+        animate(motion,{Scale=factor})
+        animate(glow,{BackgroundTransparency=down and .78 or (hovered and .86 or 1),Position=UDim2.new(.5,0,.5,lift)})
+        animate(edge,{Transparency=hovered and .35 or 1})
         if obj:IsA("TextLabel") and obj.Text~="" then
             fontBase=fontBase or obj.TextSize
-            animate(obj,{TextSize=fontBase*(enabled and (down and .97 or (hovered and 1.045 or 1)) or 1)})
+            animate(obj,{TextSize=fontBase*(enabled and (down and .97 or (hovered and 1.06 or 1)) or 1)})
         end
-        for _,child in ipairs(obj:GetDescendants()) do if child:IsA("ImageLabel") then
+        for _,child in ipairs(obj:GetDescendants()) do if child:IsA("ImageLabel") and child~=face then
             local scale=iconScales[child]
-            if not scale then scale=make("UIScale",{Name="ButtonIconMotion",Scale=1},child); iconScales[child]=scale end
-            animate(scale,{Scale=enabled and (down and .94 or (hovered and 1.10 or 1)) or 1})
+            if not scale then scale=make("UIScale",{Name="ButtonIconMotion",Scale=1},child); iconScales[child]=scale; iconPositions[child]=child.Position end
+            animate(scale,{Scale=enabled and (down and .94 or (hovered and (navigation and 1.15 or 1.10) or 1)) or 1})
+            animate(child,{Position=iconPositions[child]+UDim2.fromOffset(0,lift)})
         end end
     end
-    register(obj.MouseEnter,function() hovered=true; pose(pressed~=nil) end)
-    register(obj.InputBegan,function(input)
+    local function enter() hovered=true; pose(pressed~=nil) end
+    register(obj.MouseEnter,enter); register(face.MouseEnter,enter)
+    local function begin(input)
         if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then pressed=input; pose(true) end
         if (input.KeyCode==Enum.KeyCode.Return or input.KeyCode==Enum.KeyCode.Space or input.KeyCode==Enum.KeyCode.ButtonA)
             and runtime.guiService and runtime.guiService.SelectedObject==obj then callback() end
-    end)
-    register(obj.InputEnded,function(input)
+    end
+    local function finish(input)
         if pressed and (input==pressed or input.UserInputType==Enum.UserInputType.MouseButton1) then pressed=nil; pose(false); callback() end
-    end)
-    register(obj.MouseLeave,function() hovered=false; pressed=nil; pose(false) end)
+    end
+    register(obj.InputBegan,begin); register(face.InputBegan,begin)
+    register(obj.InputEnded,finish); register(face.InputEnded,finish)
+    local function leave()
+        local ok,inside=pcall(function()
+            local pointer=UIS:GetMouseLocation(); local inset=runtime.guiService:GetGuiInset(); pointer=pointer-inset
+            local origin,size=obj.AbsolutePosition,obj.AbsoluteSize
+            return pointer.X>=origin.X and pointer.Y>=origin.Y and pointer.X<origin.X+size.X and pointer.Y<origin.Y+size.Y
+        end)
+        if ok and inside then return end
+        hovered=false; pressed=nil; pose(false)
+    end
+    register(obj.MouseLeave,leave); register(face.MouseLeave,leave)
     register(UIS.WindowFocusReleased,function() hovered=false; pressed=nil; pose(false) end)
 end
 local function button(parent, text, pos, dims, fn)
@@ -781,7 +835,7 @@ local scale = make("UIScale", {Scale = 1}, host)
 local window = make("CanvasGroup", {Name = "Window", BackgroundTransparency=1, GroupColor3=Color3.fromRGB(255,255,255), AnchorPoint = Vector2.new(0.5,1),
     Position = UDim2.new(0.5,0,1,-72), Size = UDim2.fromOffset(600,352), ClipsDescendants = true}, host)
 round(window, 22); stroke(window)
-local windowSurface=make("Frame",{Name="WindowSurface",BackgroundTransparency=.09,BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Size=UDim2.fromScale(1,1),ZIndex=0},window)
+local windowSurface=make("Frame",{Name="WindowSurface",BackgroundTransparency=.025,BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Size=UDim2.fromScale(1,1),ZIndex=0},window)
 round(windowSurface,22)
 make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(48,57,72),C.bg)},windowSurface)
 local motionScale=make("UIScale",{Scale=1},window)

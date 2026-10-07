@@ -1,4 +1,4 @@
-# ISB Menu 2.5.3 · by Larsiopuw
+# ISB Menu 2.5.4 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,14 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Live-Prüfung und Korrekturen in 2.5.4
+
+Das Menü wurde in Roblox mit Real 2.7.4 geöffnet und die Navigation samt Eingabeereignissen geprüft. Die Browser-Vorschau verwendete stärkere Bewegungen als die Spieloberfläche. Icons skalieren jetzt um ihre Mitte; Dock-Hover hebt sie vier Pixel an, andere Button-Icons zwei Pixel. Die vollständige Button-Fläche samt Beschriftung liegt in einer eigenen animierten visuellen Ebene: zwei Pixel Lift, bis zu 1,035-fache Hover-Skalierung und 0,96-fache Druck-Skalierung. Rahmen und Fläche skalieren gemeinsam; ein Sicherheitsrand und begrenzte Expansion verhindern das Abschneiden an umgebenden Karten. Die Hervorhebung ist stärker, die klickbare Fläche bleibt unverändert. Dunkle Glasflächen lassen nur noch 2,5 Prozent des Hintergrundes durch.
+
+Beim Beenden des Voice-Modus wird die letzte gewählte Stummschaltung nach Wiederherstellen der Core-Verbindungen erneut angewendet, soweit die Voice-API zugänglich ist.
+
+938 simulierte Assertions und Luau-Kompilierung bestehen. Der Live-Test bestätigt Tabwechsel und sichtbare Hover-Zustände, Der Benutzer bestätigt angehobene Dock-Icons, funktionierende Hoveranimation auf den übrigen Schaltflächen und verschwundenes Mausflackern; dies ist kein allgemeiner Nachweis für alle Spiele/Executors. Farbwerte in der PC-Aufnahme weichen selbst bei einfachen Testflächen von den gesetzten RGB-Werten ab; die Ursache dieser Aufnahme-/Darstellungsabweichung ist noch offen. Die Palette wird daher nicht blind auf diese Messung angepasst. Browser und Roblox verwenden unterschiedliche Renderer und Schriftmetriken.
 
 ## Korrekturen in 2.5.3
 
@@ -24,7 +32,7 @@ Der aktive Voice-Modus besitzt oben links ein eigenes Mikrofon zum Stummschalten
 
 ISBQ enthält eine kompakte Spielerauswahl mit Avatar, Suche und Entfernung. Ohne feste Auswahl wird bei jedem Start der nächste lebende, verfügbare Spieler gewählt. „Automatisch · Nächster Spieler“ entfernt eine feste Auswahl. Kopf-/Huckepack-Aktionen übernehmen Position, Ausrichtung, gedämpftes Nachführen und Sitz-Zustandssteuerung aus der Referenz. Die optionale Physik-Verknüpfung wird bei zugänglicher Lese-/Schreib-API gesetzt und beim Stoppen wiederhergestellt. Namenskarten werden mit zunehmender Entfernung kleiner (bis 40 %).
 
-Die Browser-Vorschau zeigt Beispieldaten und führt keine Roblox-Aktionen aus. Neue Mikrofon-/Roleplay-Funktionen wurden mit der simulierten API geprüft; ein Live-Test im Executor steht noch aus.
+Die Browser-Vorschau zeigt Beispieldaten und führt keine Roblox-Aktionen aus. Mikrofon-/Roleplay-Funktionen wurden mit der simulierten API geprüft. Ein vollständiger Live-Test von Mute/Unmute und Roleplay-Physik ist weiterhin offen.
 
 ## Korrekturen in 2.5.1
 
