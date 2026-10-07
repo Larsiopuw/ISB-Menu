@@ -1,7 +1,7 @@
--- ISB Menu 2.4 | Own-game universal client toolkit
+-- ISB Menu 2.4.1 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.4.0",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.4.1",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -754,11 +754,14 @@ local title = label(header, CONFIG.Name, 18, C.text, UDim2.fromOffset(80,12), UD
 title.Font = Enum.Font.BuilderSansBold
 title.Visible=false
 local headerIcon=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(22,16),Size=UDim2.fromOffset(20,20)},header)
-local statusBar=make("CanvasGroup",{Name="StatusBar",BackgroundTransparency=.12,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-6,0,6),Size=UDim2.fromOffset(354,44)},gui)
+local statusBar=make("CanvasGroup",{Name="StatusBar",BackgroundTransparency=.12,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-6,0,6),Size=UDim2.fromOffset(414,44)},gui)
 round(statusBar,22); runtime.glassSurface(statusBar,22); stroke(statusBar)
 local statusScale=make("UIScale",{Scale=1},statusBar)
 runtime.statusIcon=imageIcon(statusBar,"shield-check",18,UDim2.fromOffset(15,13),C.accent)
-local metrics=label(statusBar,"ISB  /  -- Spieler  ·  -- ms  ·  -- FPS",11,C.text,UDim2.fromOffset(43,11),UDim2.new(1,-54,0,22))
+local metrics=label(statusBar,"ISB  /  -- Spieler  ·  -- ms  ·  -- FPS",11,C.text,UDim2.fromOffset(43,11),UDim2.fromOffset(250,22))
+make("Frame",{Name="ExecutorDivider",BackgroundColor3=C.muted,BackgroundTransparency=.7,Position=UDim2.new(1,-116,0,14),Size=UDim2.fromOffset(1,16)},statusBar)
+runtime.statusExecutor=label(statusBar,session.executor,11,C.text,UDim2.new(1,-109,0,11),UDim2.fromOffset(95,22))
+runtime.statusExecutor.Name="ExecutorName"; runtime.statusExecutor.TextXAlignment=Enum.TextXAlignment.Right; runtime.statusExecutor.TextTruncate=Enum.TextTruncate.AtEnd
 metrics.Font=Enum.Font.BuilderSansMedium
 button(header, "–", UDim2.new(1,-83,0,12), UDim2.fromOffset(28,28), function() setOpen(false) end)
 button(header, "×", UDim2.new(1,-47,0,12), UDim2.fromOffset(28,28), function() setOpen(false) end)
@@ -914,7 +917,7 @@ local function fit()
     local camera = workspace.CurrentCamera
     if not camera then return end
     local size = camera.ViewportSize
-    statusScale.Scale=math.min(1,math.max(.1,(size.X-24)/354))
+    statusScale.Scale=math.min(1,math.max(.1,(size.X-24)/414))
     scale.Scale = math.min(1, math.max(0.1, (size.X-24)/600), math.max(0.1, (size.Y-100)/552))
     quickBaseScale=math.min(1,math.max(.1,(size.X-24)/520),math.max(.1,(size.Y-24)/108))
     if quickScale then quickScale.Scale=quickBaseScale end
