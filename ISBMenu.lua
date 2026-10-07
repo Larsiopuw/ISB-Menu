@@ -1,7 +1,7 @@
--- ISB Menu 2.6.1 | Own-game universal client toolkit
+-- ISB Menu 2.6.2 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.1",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.2",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -97,7 +97,7 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {favorites = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
+local settings = {flightStyle="Fly", favorites = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -107,6 +107,8 @@ if type(readfile) == "function" then
             end
         end
         if data.theme == "Neutral" or data.theme == "Mint" or data.theme == "Amber" or data.theme == "Blue" then settings.theme = data.theme end
+        if data.flightStyle=="TLFly" then data.flightStyle="Fly" end
+        if data.flightStyle=="Fly" or data.flightStyle=="Mysterious" or data.flightStyle=="Villain Fly" or data.flightStyle=="Superman" or data.flightStyle=="Halloween Fly" then settings.flightStyle=data.flightStyle end
         settings.blur=false
         if data.designVersion~="2.2" and data.designVersion~="2.3" then settings.theme="Amber" end
         settings.friendHighlights=data.friendHighlights~=false; settings.staffHighlights=data.staffHighlights~=false
@@ -811,7 +813,83 @@ function runtime.muteFlightSound(obj)
         if state.fly and obj.Parent and obj.Volume~=0 then obj.Volume=0 end
     end))
 end
+-- Animation IDs and glide/forward switching adapted from the TL flight module.
+runtime.flightStyles={
+    {name="Fly",idle="89068086839142",fwd="101570135818967",glide="85697950221122",fwd2="115638214618522"},
+    {name="Mysterious",idle="121818495967360",fwd="138488768673643",glide="101573394483995"},
+    {name="Villain Fly",idle="89068086839142",fwd="134861929761233",glide="89369893784562"},
+    {name="Superman",idle="107357050902519",fwd="83739357666592",glide="135720178713765",fwd2="106493972274585"},
+    {name="Halloween Fly",idle="132315093859677",fwd="94684994062212",glide="131408449832678",fwd2="123347895201748"},
+}
+runtime.flightClips={}; runtime.flightAnimationGeneration=0
+function runtime.clearFlightAnimations()
+    runtime.flightAnimationGeneration=runtime.flightAnimationGeneration+1
+    for _,owned in pairs(runtime.flightTracks or {}) do
+        pcall(function() owned.track:Stop(.25); owned.track:Destroy() end)
+        owned.animation:Destroy()
+    end
+    runtime.flightTracks=nil; runtime.flightCurrentTrack=nil; runtime.flightCurrentMode=nil
+end
+function runtime.loadFlightStyle()
+    runtime.clearFlightAnimations()
+    local generation=runtime.flightAnimationGeneration
+    local h=humanoid(); if not h or not state.fly then return end
+    local pack=runtime.flightStyles[1]
+    for _,entry in ipairs(runtime.flightStyles) do if entry.name==settings.flightStyle then pack=entry end end
+    task.spawn(function()
+        local animator=h:FindFirstChildOfClass("Animator") or make("Animator",{},h)
+        local loaded={}
+        for _,mode in ipairs({"idle","glide","fwd","fwd2"}) do
+            local id=pack[mode]
+            if id then
+                local resolved=runtime.flightClips[id] or "rbxassetid://"..id
+                if not runtime.flightClips[id] then
+                    pcall(function()
+                        local assets=game:GetObjects(resolved)
+                        for _,asset in ipairs(assets or {}) do
+                            local clip=asset:IsA("Animation") and asset or asset:FindFirstChildOfClass("Animation")
+                            if clip and clip.AnimationId~="" then resolved=clip.AnimationId end
+                            asset:Destroy()
+                        end
+                    end)
+                    runtime.flightClips[id]=resolved
+                end
+                if not alive or generation~=runtime.flightAnimationGeneration or not state.fly or humanoid()~=h then break end
+                local animation=make("Animation",{Name="ISBFlight_"..mode,AnimationId=resolved})
+                local ok,track=pcall(function() return animator:LoadAnimation(animation) end)
+                if ok and track then
+                    track.Looped=true; track.Priority=Enum.AnimationPriority.Action4
+                    loaded[mode]={track=track,animation=animation}
+                else animation:Destroy() end
+            end
+        end
+        if not alive or generation~=runtime.flightAnimationGeneration or not state.fly or humanoid()~=h then
+            for _,owned in pairs(loaded) do pcall(function() owned.track:Stop(0); owned.track:Destroy() end); owned.animation:Destroy() end
+            return
+        end
+        runtime.flightTracks=loaded
+        if not next(loaded) then notify("Dieser Flugstyle konnte im Spiel nicht geladen werden.","Fluganimation") end
+    end)
+end
+function runtime.updateFlightAnimation(speed,maximum)
+    local tracks=runtime.flightTracks; if not tracks then return end
+    local ratio=speed/math.max(maximum,1); local tier=runtime.flightTier or 1
+    local mode="idle"
+    if tier==1 then mode="glide"
+    elseif tier>=3 and ratio>((runtime.flightCurrentMode=="fwd" or runtime.flightCurrentMode=="fwd2") and .45 or .7) then mode="fwd" end
+    if tier==4 and ratio>.8 and tracks.fwd2 then mode="fwd2" end
+    local owned=tracks[mode] or tracks.idle or tracks.glide or tracks.fwd
+    if not owned then return end
+    if runtime.flightCurrentTrack~=owned.track then
+        local fade=.6+(1-math.clamp(ratio,0,1))*.4
+        if runtime.flightCurrentTrack then pcall(function() runtime.flightCurrentTrack:Stop(fade) end) end
+        pcall(function() owned.track:Play(fade) end)
+        runtime.flightCurrentTrack=owned.track; runtime.flightCurrentMode=mode
+    end
+end
 local function stopFly()
+    runtime.clearFlightAnimations()
+    if runtime.flightStyleMenu then runtime.flightStyleMenu.Visible=false end
     for _,con in ipairs(runtime.flightConnections) do con:Disconnect() end
     table.clear(runtime.flightConnections)
     for obj,volume in pairs(runtime.flightSounds) do if obj.Parent then obj.Volume=volume end end
@@ -839,6 +917,7 @@ local function startFly()
     local orientation = make("AlignOrientation", {Name = "ISBFlyOrientation", Attachment0 = attachment,
         Mode = Enum.OrientationAlignmentMode.OneAttachment, MaxTorque = math.huge, MaxAngularVelocity=math.huge, Responsiveness = 35}, r)
     flyObjects = {velocity, orientation, attachment}
+    runtime.loadFlightStyle()
 end
 local function restoreCollisions()
     for part, original in pairs(collisions) do
@@ -1367,10 +1446,50 @@ for i,caption in ipairs({"↑","↓"}) do
     end)
 end
 runtime.flightTier=1
-runtime.flightHud=make("CanvasGroup",{Name="FlightHUD",Visible=false,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(.5,0),Position=UDim2.new(.5,0,0,58),Size=UDim2.fromOffset(360,48)},gui)
-round(runtime.flightHud,16); stroke(runtime.flightHud)
+runtime.flightHud=make("CanvasGroup",{Name="FlightHUD",Visible=false,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(.5,0),Position=UDim2.new(.5,0,0,58),Size=UDim2.fromOffset(540,48)},gui)
+round(runtime.flightHud,16); runtime.glassSurface(runtime.flightHud,16); stroke(runtime.flightHud)
 runtime.flightInfo=label(runtime.flightHud,"",13,C.text,UDim2.fromOffset(14,7),UDim2.fromOffset(254,34)); runtime.flightInfo.Font=Enum.Font.BuilderSansBold
 runtime.flightNext=button(runtime.flightHud,"",UDim2.fromOffset(272,9),UDim2.fromOffset(76,30),function() runtime.flightTier=runtime.flightTier%4+1; playUISound("tap") end)
+runtime.flightStyleButton=button(runtime.flightHud,"",UDim2.new(1,-196,0,9),UDim2.fromOffset(182,30),function()
+    runtime.flightStyleMenu.Visible=not runtime.flightStyleMenu.Visible
+end)
+runtime.flightStyleButton.Name="FlightStyleButton"
+local flightArrow=make("Frame",{Name="ButtonGlyph",BackgroundTransparency=1,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.new(1,-18,.5,0),Size=UDim2.fromOffset(14,14)},runtime.flightStyleButton)
+for i,angle in ipairs({45,-45}) do
+    local line=make("Frame",{BackgroundColor3=C.muted,BorderSizePixel=0,Position=UDim2.fromOffset(i==1 and 2 or 6,6),Size=UDim2.fromOffset(6,2),Rotation=angle},flightArrow)
+    round(line,1)
+end
+runtime.flightStyleMenu=make("CanvasGroup",{Name="FlightStyleMenu",Visible=false,BackgroundTransparency=1,Position=UDim2.new(.5,50,0,114),Size=UDim2.fromOffset(220,226),ZIndex=12},gui)
+round(runtime.flightStyleMenu,18); runtime.glassSurface(runtime.flightStyleMenu,18); stroke(runtime.flightStyleMenu)
+label(runtime.flightStyleMenu,"FLUGSTYLES",11,C.muted,UDim2.fromOffset(14,10),UDim2.fromOffset(190,20))
+runtime.flightStyleButtons={}
+function runtime.refreshFlightStyle()
+    runtime.flightStyleButton.Text=settings.flightStyle
+    for name,b in pairs(runtime.flightStyleButtons) do
+        b.TextColor3=name==settings.flightStyle and C.accent or C.text
+        b.BackgroundColor3=name==settings.flightStyle and C.accent:Lerp(C.panel,.82) or C.card
+    end
+end
+for i,pack in ipairs(runtime.flightStyles) do
+    local b=button(runtime.flightStyleMenu,pack.name,UDim2.fromOffset(10,36+(i-1)*36),UDim2.fromOffset(200,30),function()
+        settings.flightStyle=pack.name; save(); runtime.refreshFlightStyle()
+        runtime.flightStyleMenu.Visible=false
+        if state.fly then runtime.loadFlightStyle() end
+    end)
+    b.Name="FlightStyle_"..i; runtime.flightStyleButtons[pack.name]=b
+end
+runtime.refreshFlightStyle()
+connect(UIS.WindowFocusReleased,function() runtime.flightStyleMenu.Visible=false end)
+connect(UIS.InputBegan,function(input)
+    if not runtime.flightStyleMenu.Visible then return end
+    if input.KeyCode==Enum.KeyCode.Escape then runtime.flightStyleMenu.Visible=false; return end
+    if input.UserInputType~=Enum.UserInputType.MouseButton1 and input.UserInputType~=Enum.UserInputType.Touch then return end
+    local function inside(obj)
+        local pos,size=obj.AbsolutePosition,obj.AbsoluteSize
+        return input.Position.X>=pos.X and input.Position.X<=pos.X+size.X and input.Position.Y>=pos.Y and input.Position.Y<=pos.Y+size.Y
+    end
+    if not inside(runtime.flightStyleMenu) and not inside(runtime.flightStyleButton) then runtime.flightStyleMenu.Visible=false end
+end)
 function runtime.drawRuler(parent,action)
     local function formatValue(value)
         return string.format("%.2f",value):gsub("0+$",""):gsub("%.$","")
@@ -2774,6 +2893,7 @@ connect(Run.PreSimulation,function(dt)
         runtime.flightVelocity=target+(offset+change*step)*decay
         runtime.flightAcceleration=(runtime.flightAcceleration-change*frequency*step)*decay
         if target.Magnitude<.01 and runtime.flightVelocity.Magnitude<.05 and runtime.flightAcceleration.Magnitude<.1 then runtime.flightVelocity=Vector3.zero; runtime.flightAcceleration=Vector3.zero end
+        runtime.updateFlightAnimation(runtime.flightVelocity.Magnitude,state.flyValue*({1,1.5,2,3})[runtime.flightTier or 1])
         flyObjects[1].VectorVelocity=runtime.flightVelocity
         flyObjects[2].CFrame=CFrame.lookAt(Vector3.zero,camera.CFrame.LookVector,camera.CFrame.UpVector)
         if h and h:GetState()~=Enum.HumanoidStateType.Physics then h:ChangeState(Enum.HumanoidStateType.Physics) end
@@ -2802,9 +2922,14 @@ connect(Run.RenderStepped,function(dt)
         runtime.flightInfo.Text="ISB FLUG  ·  "..({"Normal","Schnell","Turbo","Maximum"})[runtime.flightTier].."  ·  "..string.format("%g",state.flyValue*({1,1.5,2,3})[runtime.flightTier]).." studs/s"
         runtime.flightNext.Text=settings.flightTierKey.."  "..runtime.flightTier.."/4"
         local viewport=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.X or 1280
-        runtime.flightHud.Size=UDim2.fromOffset(math.min(360,math.max(220,viewport-24)),48)
-        runtime.flightNext.Position=UDim2.new(1,-88,0,9)
-        runtime.flightInfo.Size=UDim2.new(1,-106,0,34)
+        local width=math.min(540,math.max(260,viewport-24)); local compact=width<500
+        local height=compact and 88 or 48
+        runtime.flightHud.Size=UDim2.fromOffset(width,height)
+        runtime.flightNext.Position=compact and UDim2.fromOffset(14,49) or UDim2.new(1,-284,0,9)
+        runtime.flightStyleButton.Position=UDim2.new(1,-196,0,compact and 49 or 9)
+        runtime.flightInfo.Size=UDim2.new(1,compact and -28 or -302,0,34)
+        runtime.flightInfo.TextSize=12
+        runtime.flightStyleMenu.Position=UDim2.new(.5,width/2-220,0,58+height+8)
     end
     flyTouch.Visible=state.fly and UIS.TouchEnabled
     if not state.fly then touchVertical=0 end

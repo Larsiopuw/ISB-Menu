@@ -1,4 +1,4 @@
-# ISB Menu 2.6.1 · by Larsiopuw
+# ISB Menu 2.6.2 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,14 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Änderungen in 2.6.2
+
+Die Flugleiste bietet Fly, Mysterious, Villain Fly, Superman und Halloween Fly aus der TL-Flugreferenz. Der Standardstyle heißt Fly; der Dropdown-Pfeil wird aus Formen gezeichnet. Frühere gespeicherte TLFly-Auswahlen werden übernommen. Die Auswahl bleibt gespeichert und kann während des Fluges geändert werden. Stufe 1 verwendet die Gleitpose, Stufe 2 die ruhige Flugpose; Stufen 3/4 wechseln abhängig von der tatsächlich erreichten Geschwindigkeit zur Vorwärtspose. Stufe 4 verwendet bei Styles mit zusätzlichem Clip die schnelle Alternativpose. Übergänge blenden weich über. Q und die bisherigen vier Geschwindigkeitsfaktoren bleiben erhalten.
+
+Das Dropdown sitzt außerhalb der geklippten Flugleiste. Auf schmalen Bildschirmen stehen die Bedienelemente in einer zweiten Zeile. Beim Landen, Style-Wechsel, Respawn und Entfernen des Menüs werden eigene Flugtracks freigegeben; überholte Ladeaufträge werden verworfen. Verfügbarkeit und sichtbare Wirkung der TL-Animationsassets im jeweiligen Spiel benötigen einen Live-Test.
+
+Luau kompiliert; 1705 simulierte Prüfungen bestanden, einschließlich Style-Auswahl/Speicherung, maximaler Superman-Pose, Rückwechsel beim Abbremsen, schmaler Flugleiste und Track-Bereinigung.
 
 ## Änderungen in 2.6.1
 
