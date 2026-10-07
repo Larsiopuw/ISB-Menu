@@ -1,4 +1,4 @@
-# ISB Menu 2.5.1 · by Larsiopuw
+# ISB Menu 2.5.2 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,14 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Korrekturen in 2.5.2
+
+Der aktive Voice-Modus besitzt oben links ein eigenes Mikrofon zum Stummschalten und Freigeben. Er übernimmt beim Start den vorhandenen Mute-Zustand und verwendet dieselbe Steuerung wie der Voice-Tab.
+
+ISBQ enthält eine kompakte Spielerauswahl mit Avatar, Suche und Entfernung. Ohne feste Auswahl wird bei jedem Start der nächste lebende, verfügbare Spieler gewählt. „Automatisch · Nächster Spieler“ entfernt eine feste Auswahl. Kopf-/Huckepack-Aktionen übernehmen Position, Ausrichtung, gedämpftes Nachführen und Sitz-Zustandssteuerung aus der Referenz. Die optionale Physik-Verknüpfung wird bei zugänglicher Lese-/Schreib-API gesetzt und beim Stoppen wiederhergestellt. Namenskarten werden mit zunehmender Entfernung kleiner (bis 40 %).
+
+Die Browser-Vorschau zeigt Beispieldaten und führt keine Roblox-Aktionen aus. Neue Mikrofon-/Roleplay-Funktionen wurden mit der simulierten API geprüft; ein Live-Test im Executor steht noch aus.
 
 ## Korrekturen in 2.5.1
 
@@ -31,7 +39,7 @@ Der lokale Voice-Start verlässt Voice, wartet 2,3 Sekunden, fordert den Join an
 - Licht-Preset mit dezenter Farbkorrektur und Bloom; entfernt beim Ausschalten nur die selbst erzeugten Effekte.
 - Einstellungen für Links/Mitte/Rechts, Größe 50–120 %, Benachrichtigungen, Sounds und Öffnen beim Start werden automatisch gespeichert, sofern der Executor Dateizugriff bietet. Auf kleinen Bildschirmen wird die Größe zusätzlich begrenzt.
 
-Roleplay enthält Auf dem Kopf, Huckepack, Huckepack 2, Schulter sitzen, Umarmen und Tragen. Zielspieler auswählen und Aktion starten; Stoppen stellt eigene Charakterwerte und Kollisionen wieder her. Es wird ausschließlich der eigene Charakter lokal an einer relativen Position des Zielspielers gehalten. Die Aktionen verändern keinen fremden Charakter. Replikation, Animationen und Serverkorrekturen hängen vom Spiel und den Asset-Berechtigungen ab. Die Vorschau ist eine Browserdarstellung mit ausdrücklich markierten Beispieldaten.
+Roleplay enthält Auf dem Kopf, Huckepack, Huckepack 2, Schulter sitzen, Umarmen und Tragen. Zielspieler auswählen oder den nächsten Spieler automatisch wählen lassen und Aktion starten; Stoppen stellt eigene Charakterwerte und Kollisionen wieder her. Es wird ausschließlich der eigene Charakter lokal an einer relativen Position des Zielspielers gehalten. Die Aktionen verändern keinen fremden Charakter. Replikation, Animationen und Serverkorrekturen hängen vom Spiel und den Asset-Berechtigungen ab. Die Vorschau ist eine Browserdarstellung mit ausdrücklich markierten Beispieldaten.
 
 ![ISBQ-Roleplay in der Browservorschau](ISB-Schnellaktionen.png)
 
@@ -105,7 +113,7 @@ OwnerNames enthält Larsiopuw; zusätzliche Menü-Admins stehen als numerische U
 
 ## Prüfung und Grenzen
 
-561 Assertions bestehen mit einer simulierten Roblox-API. Menü und beide Loader kompilieren mit Luau. Flugverlauf bei 30/120 Physikschritten, Geräusch-Wiederherstellung, Rollskala, direkte Zahleneingabe, alle vier Aktionskürzel und deren Speicherung wurden simuliert geprüft. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten. **Kein Live-Test in Roblox/Executor durchgeführt.** Bewegung, Voice, Assets und Teleports hängen vom Spiel und Executor ab.
+594 Assertions bestehen mit einer simulierten Roblox-API. Menü und beide Loader kompilieren mit Luau. Flugverlauf bei 30/120 Physikschritten, Geräusch-Wiederherstellung, Rollskala, direkte Zahleneingabe, alle vier Aktionskürzel und deren Speicherung wurden simuliert geprüft. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten. **Kein Live-Test in Roblox/Executor durchgeführt.** Bewegung, Voice, Assets und Teleports hängen vom Spiel und Executor ab.
 
 ScriptBlox nutzt die öffentliche API: Beliebt nach Aufrufen, Neu nach Aktualisierung. RoScripts nutzt öffentliche Trending-/Neu-Seiten und Such-HTML. Kein API-Key. Bei der Anbieterprüfung zu v2.3 lieferte ScriptBlox HTTP 200; der direkte RoScripts-Abruf wurde hier mit HTTP 403 blockiert. Anbieterfehler werden angezeigt; Website-Änderungen können Anpassungen erfordern. Fremder Code läuft erst nach ausdrücklichem Klick.
 

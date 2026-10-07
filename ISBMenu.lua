@@ -1,7 +1,7 @@
--- ISB Menu 2.5.1 | Own-game universal client toolkit
+-- ISB Menu 2.5.2 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.1",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.2",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -202,6 +202,7 @@ local function stopAntiVC()
     antiVC.generation=(antiVC.generation or 0)+1
     antiVC.active=false; antiVC.loading=false
     restoreVoiceConnections()
+    if runtime.removeVoiceMic then runtime.removeVoiceMic() end
 end
 local function captureVoiceConnections(enumerator)
     for _,entry in ipairs({{VoiceInternal,"StateChanged"},{VoiceInternal,"Participants"},{Voice,"StateChanged"},{Voice,"PlayerMicStateChanged"}}) do
@@ -284,6 +285,7 @@ local function toggleAntiVC()
         task.delay(.3,function()
             if not alive or not antiVC.active or antiVC.generation~=generation then return end
             maintainVoiceConnections(true); antiVC.loading=false
+            runtime.buildVoiceMic()
             notify("Voice-Verbindung erneuert und Client-Modus gestartet.","Voice")
             if page=="Voice" then render() end
         end)
@@ -1596,12 +1598,7 @@ local function drawVoice()
     plainCard("Voice-Status",session.voiceStatus,72)
     local f=plainCard("Mikrofon und Verbindung","Steuert den lokalen Voice-Client, sofern die APIs verfügbar sind.",108)
     rowButton(f,"Status prüfen",UDim2.fromOffset(16,73),UDim2.fromOffset(112,28),refreshVoice)
-    rowButton(f,"Mute / Unmute",UDim2.fromOffset(138,73),UDim2.fromOffset(124,28),function()
-        local input=voiceInput()
-        if not input then notify("Kein zugänglicher AudioDeviceInput gefunden.","Mikrofon"); return end
-        input.Muted=not input.Muted
-        notify(input.Muted and "Mikrofon stummgeschaltet." or "Mikrofon freigegeben.","Mikrofon","microphone")
-    end)
+    rowButton(f,"Mute / Unmute",UDim2.fromOffset(138,73),UDim2.fromOffset(124,28),runtime.toggleVoiceMute)
     rowButton(f,"Reconnect",UDim2.fromOffset(272,73),UDim2.fromOffset(108,28),reconnectVoice)
     drawAction({id="antivc",name="Anti-VC Ban",desc=antiVC.loading and "Voice-Verbindung wird erneuert …" or "Lokaler Voice-Modus mit Reconnect",kind="toggle",get=function() return antiVC.active end,fn=toggleAntiVC})
     plainCard("Voice-Verbindung", "Dieser Modus steuert ausschließlich den lokalen Voice-Client. Ein Schutz vor serverseitigen Voice-Sperren ist nicht nachgewiesen.",98)
@@ -1770,6 +1767,60 @@ function runtime.setShader(value)
         table.insert(runtime.shaderEffects,make("BloomEffect",{Name="ISBSoftBloom",Intensity=.14,Size=24,Threshold=1.25},Lighting))
     end
 end
+runtime.voiceMicConnections={}
+function runtime.removeVoiceMic()
+    runtime.voiceMuteSerial=(runtime.voiceMuteSerial or 0)+1
+    for _,connection in ipairs(runtime.voiceMicConnections) do connection:Disconnect() end
+    table.clear(runtime.voiceMicConnections)
+    if runtime.voiceMic then runtime.voiceMic:Destroy(); runtime.voiceMic=nil end
+end
+function runtime.syncVoiceMic()
+    local input=voiceInput()
+    if input and (not runtime.voiceMuteAt or os.clock()-runtime.voiceMuteAt>3) then runtime.voiceMuted=input.Muted==true end
+    if runtime.voiceMic then
+        local muted=runtime.voiceMuted==true
+        runtime.voiceMic:FindFirstChild("MicIcon").Image="rbxasset://textures/ui/VoiceChat/MicLight/"..(muted and "Muted.png" or "Unmuted0.png")
+        runtime.voiceMic.BackgroundColor3=muted and Color3.fromRGB(106,46,51) or C.panel
+        runtime.voiceMic:FindFirstChild("MicHint").Text=muted and "Mikrofon stumm · Einschalten" or "Mikrofon an · Stummschalten"
+    end
+end
+function runtime.applyVoiceMute(muted)
+    local input=voiceInput(); local applied=false
+    if input then applied=pcall(function() input.Muted=muted end) end
+    for _,entry in ipairs({{Voice,"SetSelfMuted"},{Voice,"InternalSetMuted"},{VoiceInternal,"SetSelfMuted"},{VoiceInternal,"PublishPause"}}) do
+        if entry[1] then local ok=pcall(function() entry[1][entry[2]](entry[1],muted) end); applied=ok or applied end
+    end
+    if VoiceInternal then
+        local ok=pcall(function() VoiceInternal:SetMuted(player.UserId,muted) end); applied=ok or applied
+        ok=pcall(function() local speaker=VoiceInternal:GetSpeaker(player.UserId); assert(speaker); speaker:SetMuted(muted) end); applied=ok or applied
+    end
+    return applied
+end
+function runtime.toggleVoiceMute()
+    local input=voiceInput()
+    local current=runtime.voiceMuted
+    if input and (current==nil or not runtime.voiceMuteAt or os.clock()-runtime.voiceMuteAt>3) then current=input.Muted==true end
+    local muted=not (current==true); local applied=runtime.applyVoiceMute(muted)
+    if not applied then notify("Mikrofon-Steuerung ist hier nicht zugänglich.","Mikrofon"); return end
+    runtime.voiceMuted=muted; runtime.voiceMuteAt=os.clock(); runtime.syncVoiceMic()
+    runtime.voiceMuteSerial=(runtime.voiceMuteSerial or 0)+1; local serial=runtime.voiceMuteSerial
+    for _,delay in ipairs({.1,.35}) do task.delay(delay,function()
+        if alive and serial==runtime.voiceMuteSerial then runtime.applyVoiceMute(muted) end
+    end) end
+    notify(muted and "Mikrofon stummgeschaltet." or "Mikrofon freigegeben.","Mikrofon","microphone")
+end
+function runtime.buildVoiceMic()
+    runtime.removeVoiceMic()
+    local input=voiceInput(); runtime.voiceMuted=input and input.Muted==true or false; runtime.voiceMuteAt=nil
+    local mic=make("TextLabel",{Name="ISBVoiceMic",Text="",BackgroundColor3=C.panel,BackgroundTransparency=.08,Position=UDim2.fromOffset(166,12),Size=UDim2.fromOffset(44,44),ZIndex=100},gui)
+    runtime.voiceMic=mic; round(mic,16); stroke(mic)
+    make("ImageLabel",{Name="MicIcon",BackgroundTransparency=1,Position=UDim2.fromOffset(7,7),Size=UDim2.fromOffset(30,30),ZIndex=101},mic)
+    local hint=label(mic,"",11,C.text,UDim2.fromOffset(0,50),UDim2.fromOffset(226,28)); hint.Name="MicHint"; hint.Visible=false; hint.ZIndex=101; hint.BackgroundColor3=C.panel; hint.BackgroundTransparency=.08; round(hint,10)
+    local function register(signal,fn) local connection=signal:Connect(fn); table.insert(runtime.voiceMicConnections,connection); return connection end
+    register(mic.MouseEnter,function() hint.Visible=true end); register(mic.MouseLeave,function() hint.Visible=false end)
+    runtime.bindPress(mic,runtime.toggleVoiceMute,register)
+    runtime.syncVoiceMic()
+end
 runtime.roleplayModes={
     {id="head",name="Auf dem Kopf",part="Head",offset={0,1,0},animation="119898270336796"},
     {id="piggy",name="Huckepack",part="Torso",offset={0,.2,1.1},animation="108744973494490"},
@@ -1783,6 +1834,8 @@ function runtime.stopRoleplay()
     if not owned then return end
     if owned.track then pcall(function() owned.track:Stop(.15); owned.track:Destroy() end) end
     if owned.animation then owned.animation:Destroy() end
+    if owned.repCaptured then pcall(function() sethiddenproperty(owned.root,"PhysicsRepRootPart",owned.repOriginal) end) end
+    if owned.seatedCaptured then pcall(function() owned.h:SetStateEnabled(Enum.HumanoidStateType.Seated,owned.seatedEnabled) end) end
     if owned.h and owned.h.Parent then
         owned.h.PlatformStand=owned.platformStand; owned.h.AutoRotate=owned.autoRotate
         if not owned.platformStand then owned.h:ChangeState(Enum.HumanoidStateType.GettingUp) end
@@ -1798,15 +1851,43 @@ function runtime.roleplayPart(target,mode)
     if mode.part=="Head" then return char:FindFirstChild("Head") end
     return char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart")
 end
+function runtime.nearestRoleplayTarget(mode)
+    local own=root(); if not own then return end
+    local chosen,closest=nil,math.huge
+    for _,other in ipairs(Players:GetPlayers()) do if other~=player and other.Parent then
+        local part=runtime.roleplayPart(other,mode); local h=other.Character and other.Character:FindFirstChildOfClass("Humanoid")
+        if part and h and h.Health>0 then
+            local distance=(own.Position-part.Position).Magnitude
+            if distance<closest or (distance==closest and chosen and other.UserId<chosen.UserId) then chosen=other; closest=distance end
+        end
+    end end
+    return chosen
+end
+function runtime.roleplayFrame(owned,part,dt)
+    local mode=owned.mode
+    if mode.id=="head" or mode.id=="piggy" or mode.id=="piggy2" then
+        local target=mode.id=="head" and (part.Position+Vector3.new(0,1,0)) or (part.Position-part.CFrame.LookVector*1.1+Vector3.new(0,.2,0))
+        owned.followPosition=owned.followPosition and owned.followPosition:Lerp(target,1-math.pow(.02,math.max(dt or 1/60,0)*60)) or target
+        local look=mode.id=="head" and part.Position or owned.followPosition+part.CFrame.LookVector
+        return CFrame.new(owned.followPosition,look)
+    end
+    local offset=mode.offset
+    return part.CFrame*CFrame.new(offset[1],offset[2],offset[3])*CFrame.Angles(0,mode.rotation or 0,0)
+end
 function runtime.startRoleplay(mode)
-    local target=runtime.quickTarget
+    local target=runtime.quickTarget or runtime.nearestRoleplayTarget(mode)
     local part=runtime.roleplayPart(target,mode)
     local h,r=humanoid(),root()
     local targetH=target and target.Character and target.Character:FindFirstChildOfClass("Humanoid")
     if not target or target==player or not target.Parent or not part or not h or not r or h.Health<=0 or not targetH or targetH.Health<=0 then notify("Wähle einen verfügbaren Spieler als Ziel.","Roleplay"); return end
     runtime.stopRoleplay(); runtime.stopEmote()
     if state.fly then state.fly=false; stopFly() end
-    local owned={target=target,mode=mode,h=h,platformStand=h.PlatformStand,autoRotate=h.AutoRotate}
+    local owned={target=target,mode=mode,h=h,root=r,platformStand=h.PlatformStand,autoRotate=h.AutoRotate}
+    pcall(function() owned.seatedEnabled=h:GetStateEnabled(Enum.HumanoidStateType.Seated); owned.seatedCaptured=true; h:SetStateEnabled(Enum.HumanoidStateType.Seated,false) end)
+    if type(gethiddenproperty)=="function" and type(sethiddenproperty)=="function" then
+        local ok,value=pcall(gethiddenproperty,r,"PhysicsRepRootPart")
+        if ok then owned.repCaptured=true; owned.repOriginal=value end
+    end
     runtime.roleplay=owned; h.PlatformStand=true; h.AutoRotate=false
     for _,item in ipairs(runtime.quickActionButtons or {}) do if item.button.Parent then item.button.BackgroundColor3=item.mode==mode and C.accent:Lerp(C.panel,.7) or C.card end end
     local animator=h:FindFirstChildOfClass("Animator")
@@ -1817,6 +1898,7 @@ function runtime.startRoleplay(mode)
         else notify("Position aktiv; die Animation ist in diesem Spiel nicht verfügbar.","Roleplay") end
     end
     if runtime.quickState then runtime.quickState.Text=mode.name.." · "..target.DisplayName end
+    if runtime.quickTargetButton and not runtime.quickTarget then runtime.quickTargetButton.Text="Automatisch · "..target.DisplayName end
 end
 runtime.quickConnections={}
 function runtime.quickConnect(signal,fn)
@@ -1835,7 +1917,8 @@ function runtime.buildQuickPanel()
     runtime.quickScale=make("UIScale",{Scale=statusScale.Scale},runtime.quickPanel)
     local heading=label(runtime.quickPanel,"ISB / ROLEPLAY",14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-62,0,24)); heading.Font=Enum.Font.BuilderSansBold
     runtime.quickButton(runtime.quickPanel,"×",UDim2.new(1,-42,0,12),UDim2.fromOffset(28,26),function() runtime.quickPanel.Visible=false end)
-    local targetButton=runtime.quickButton(runtime.quickPanel,runtime.quickTarget and runtime.quickTarget.DisplayName or "Spieler auswählen",UDim2.fromOffset(14,48),UDim2.new(1,-28,0,32),function() runtime.quickTargets.Visible=not runtime.quickTargets.Visible end)
+    local targetButton=runtime.quickButton(runtime.quickPanel,runtime.quickTarget and runtime.quickTarget.DisplayName or "Automatisch · Nächster Spieler",UDim2.fromOffset(14,48),UDim2.new(1,-28,0,32),function() runtime.quickTargets.Visible=not runtime.quickTargets.Visible end)
+    runtime.quickTargetButton=targetButton
     runtime.quickActionButtons={}
     for i,mode in ipairs(runtime.roleplayModes) do
         local b=runtime.quickButton(runtime.quickPanel,mode.name,UDim2.new(((i-1)%2)*.5,14-((i-1)%2)*5,0,92+math.floor((i-1)/2)*64),UDim2.new(.5,-23,0,54),function() runtime.startRoleplay(mode) end)
@@ -1845,14 +1928,34 @@ function runtime.buildQuickPanel()
     runtime.quickState=label(runtime.quickPanel,runtime.roleplay and (runtime.roleplay.mode.name.." · "..runtime.roleplay.target.DisplayName) or "Bereit · Aktion auswählen",11,C.muted,UDim2.fromOffset(14,286),UDim2.new(1,-28,0,20))
     runtime.quickButton(runtime.quickPanel,"Stoppen",UDim2.new(1,-100,0,310),UDim2.fromOffset(86,26),runtime.stopRoleplay)
     label(runtime.quickPanel,"Lokale Aktion",11,C.muted,UDim2.fromOffset(14,310),UDim2.new(1,-130,0,26))
-    runtime.quickTargets=make("ScrollingFrame",{Name="RoleplayTargets",Visible=false,BackgroundColor3=C.bg,Position=UDim2.fromOffset(14,86),Size=UDim2.new(1,-28,0,218),CanvasSize=UDim2.new(),AutomaticCanvasSize=Enum.AutomaticSize.Y,ScrollBarThickness=3,ZIndex=10,ClipsDescendants=true},runtime.quickPanel); round(runtime.quickTargets,12)
-    make("UIListLayout",{Padding=UDim.new(0,4),SortOrder=Enum.SortOrder.LayoutOrder},runtime.quickTargets)
-    local roster=Players:GetPlayers(); table.sort(roster,function(a,b) return a.DisplayName:lower()<b.DisplayName:lower() end)
+    runtime.quickTargets=make("Frame",{Name="RoleplayTargets",Visible=false,BackgroundColor3=C.bg,Position=UDim2.fromOffset(14,86),Size=UDim2.new(1,-28,0,218),ZIndex=10,ClipsDescendants=true},runtime.quickPanel); round(runtime.quickTargets,14); stroke(runtime.quickTargets)
+    local query=make("TextBox",{Name="RoleplayTargetSearch",PlaceholderText="Spieler suchen …",Text="",ClearTextOnFocus=false,Font=Enum.Font.BuilderSansMedium,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.card,Position=UDim2.fromOffset(8,8),Size=UDim2.new(1,-16,0,32),ZIndex=11},runtime.quickTargets); round(query,10)
+    local auto=runtime.quickButton(runtime.quickTargets,"Automatisch · Nächster Spieler",UDim2.fromOffset(8,46),UDim2.new(1,-16,0,32),function()
+        runtime.stopRoleplay(); runtime.quickTarget=nil; targetButton.Text="Automatisch · Nächster Spieler"; runtime.quickTargets.Visible=false
+    end); auto.ZIndex=11
+    local list=make("ScrollingFrame",{Name="RoleplayRoster",BackgroundTransparency=1,Position=UDim2.fromOffset(8,84),Size=UDim2.new(1,-16,0,128),CanvasSize=UDim2.new(),AutomaticCanvasSize=Enum.AutomaticSize.Y,ScrollBarThickness=3,ZIndex=11,ClipsDescendants=true},runtime.quickTargets)
+    make("UIListLayout",{Padding=UDim.new(0,5),SortOrder=Enum.SortOrder.LayoutOrder},list)
+    local roster=Players:GetPlayers(); local own=root()
+    local function distance(other) local r=other.Character and other.Character:FindFirstChild("HumanoidRootPart"); return own and r and (own.Position-r.Position).Magnitude or math.huge end
+    table.sort(roster,function(a,b) local da,db=distance(a),distance(b); return da==db and a.UserId<b.UserId or da<db end)
+    local rows={}
     for _,other in ipairs(roster) do if other~=player then
-        local b=runtime.quickButton(runtime.quickTargets,other.DisplayName.."  @"..other.Name,UDim2.new(),UDim2.new(1,-8,0,36),function()
+        local b=runtime.quickButton(list,"",UDim2.new(),UDim2.new(1,-6,0,48),function()
             runtime.stopRoleplay(); runtime.quickTarget=other; targetButton.Text=other.DisplayName; runtime.quickTargets.Visible=false
-        end); b.ZIndex=11
+        end); b.Name="RoleplayTarget_"..other.UserId; b.ZIndex=12
+        local avatar=make("ImageLabel",{Name="TargetAvatar",Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",BackgroundTransparency=1,Position=UDim2.fromOffset(8,7),Size=UDim2.fromOffset(34,34),ZIndex=13},b); round(avatar,17)
+        local title=label(b,other.DisplayName,12,C.text,UDim2.fromOffset(50,5),UDim2.new(1,-58,0,20)); title.Font=Enum.Font.BuilderSansBold; title.TextTruncate=Enum.TextTruncate.AtEnd; title.ZIndex=13
+        local d=distance(other); local info=label(b,"@"..other.Name.." · "..(d<math.huge and math.floor(d).." studs" or "Kein Charakter"),11,C.muted,UDim2.fromOffset(50,25),UDim2.new(1,-58,0,17)); info.TextTruncate=Enum.TextTruncate.AtEnd; info.ZIndex=13
+        table.insert(rows,{button=b,key=(other.DisplayName.." "..other.Name):lower()})
     end end
+    local empty=label(runtime.quickTargets,"Keine passenden Spieler",11,C.muted,UDim2.fromOffset(12,94),UDim2.new(1,-24,0,24)); empty.ZIndex=13
+    local function filter()
+        local count=0; local term=query.Text:lower()
+        for _,row in ipairs(rows) do row.button.Visible=term=="" or row.key:find(term,1,true)~=nil; if row.button.Visible then count+=1 end end
+        empty.Visible=count==0
+        local height=math.min(128,math.max(36,count*53-5)); list.Size=UDim2.new(1,-16,0,height); runtime.quickTargets.Size=UDim2.new(1,-28,0,90+height)
+    end
+    runtime.quickConnect(query:GetPropertyChangedSignal("Text"),filter); filter()
     runtime.updateStatusLayout()
 end
 function runtime.toggleQuickPanel()
@@ -2234,9 +2337,13 @@ connect(Run.PreSimulation,function(dt)
         if not owned.target.Parent or not part or not r or humanoid()~=owned.h or owned.h.Health<=0 or not targetH or targetH.Health<=0 then runtime.stopRoleplay()
         else
             for _,obj in ipairs(player.Character:GetDescendants()) do if obj:IsA("BasePart") then if collisions[obj]==nil then collisions[obj]=obj.CanCollide end; obj.CanCollide=false end end
-            local offset=owned.mode.offset
-            r.CFrame=part.CFrame*CFrame.new(offset[1],offset[2],offset[3])*CFrame.Angles(0,owned.mode.rotation or 0,0)
-            r.AssemblyLinearVelocity=Vector3.zero; owned.h.PlatformStand=true; owned.h.AutoRotate=false
+            if owned.repCaptured then
+                local rep=owned.mode.id=="head" and part or owned.target.Character:FindFirstChild("HumanoidRootPart")
+                if rep then pcall(sethiddenproperty,r,"PhysicsRepRootPart",rep) end
+            end
+            r.CFrame=runtime.roleplayFrame(owned,part,dt)
+            r.AssemblyLinearVelocity=Vector3.zero; r.AssemblyAngularVelocity=Vector3.zero; owned.h.PlatformStand=true; owned.h.AutoRotate=false
+            pcall(function() if owned.h:GetState()==Enum.HumanoidStateType.Seated then owned.h:ChangeState(Enum.HumanoidStateType.Physics) end end)
         end
     end
     if runtime.antiVoid then
@@ -2342,6 +2449,8 @@ connect(Run.RenderStepped,function(dt)
         frames=0; fpsTime=0
     end
     if antiVC.active and not antiVC.loading then
+        runtime.voiceMicSync=(runtime.voiceMicSync or 0)+dt
+        if runtime.voiceMicSync>=.1 then runtime.voiceMicSync=0; runtime.syncVoiceMic() end
         runtime.voiceMaintenance=runtime.voiceMaintenance+dt
         if runtime.voiceMaintenance>=3 then runtime.voiceMaintenance=0; maintainVoiceConnections() end
     end
@@ -2368,7 +2477,8 @@ connect(Run.RenderStepped,function(dt)
                 if not tags[other] then
                     local tag=make("BillboardGui",{Name="ISBNametag",Adornee=targetRoot,AlwaysOnTop=true,
                         Size=UDim2.fromOffset(190,56),StudsOffset=Vector3.new(0,3.5,0)},gui)
-                    local shell=make("Frame",{Name="NameCard",Size=UDim2.fromScale(1,1),BackgroundColor3=C.panel,BackgroundTransparency=.12},tag); round(shell,14); stroke(shell)
+                    local shell=make("Frame",{Name="NameCard",Size=UDim2.fromOffset(190,56),BackgroundColor3=C.panel,BackgroundTransparency=.12},tag); round(shell,14); stroke(shell)
+                    make("UIScale",{Name="DistanceScale",Scale=1},shell)
                     local badge=make("ImageLabel",{Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",Name="Badge",BackgroundColor3=color,Position=UDim2.fromOffset(10,13),Size=UDim2.fromOffset(28,28)},shell); round(badge,14)
                     local name=label(shell,other.DisplayName,13,C.text,UDim2.fromOffset(46,7),UDim2.new(1,-56,0,22)); name.Name="PlayerName"; name.Font=Enum.Font.BuilderSansBold; name.TextTruncate=Enum.TextTruncate.AtEnd
                     local info=label(shell,"",10,C.muted,UDim2.fromOffset(46,30),UDim2.new(1,-56,0,17)); info.Name="PlayerInfo"
@@ -2376,6 +2486,8 @@ connect(Run.RenderStepped,function(dt)
                 end
                 local distance=ownRoot and math.floor((ownRoot.Position-targetRoot.Position).Magnitude) or 0
                 local shell=tags[other]:FindFirstChild("NameCard")
+                local scale=1-.6*math.clamp((distance-15)/145,0,1)
+                shell:FindFirstChild("DistanceScale").Scale=scale; tags[other].Size=UDim2.fromOffset(190*scale,56*scale)
                 shell:FindFirstChild("PlayerName").Text=other.DisplayName
                 shell:FindFirstChild("PlayerInfo").Text=distance.." studs"..(staff and " · Admin" or (friend and " · Freund" or ""))
                 shell:FindFirstChild("Badge").BackgroundColor3=color
