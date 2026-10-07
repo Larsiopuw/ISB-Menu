@@ -1,7 +1,7 @@
--- ISB Menu 2.6.0 | Own-game universal client toolkit
+-- ISB Menu 2.6.1 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.0",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.1",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -591,9 +591,9 @@ end
 local function stroke(obj)
     local target=obj
     if obj:IsA("CanvasGroup") then
-        target=make("Frame",{Name="GlassEdge",BackgroundTransparency=1,Size=UDim2.new(1,-2,1,-2),Position=UDim2.fromOffset(1,1),ZIndex=0},obj)
+        target=make("Frame",{Name="GlassEdge",BackgroundTransparency=1,Size=UDim2.new(1,-4,1,-4),Position=UDim2.fromOffset(2,2),ZIndex=0},obj)
         local corner=obj:FindFirstChildOfClass("UICorner")
-        make("UICorner",{CornerRadius=corner and corner.CornerRadius or UDim.new(0,18)},target)
+        make("UICorner",{CornerRadius=corner and UDim.new(corner.CornerRadius.Scale,math.max(0,corner.CornerRadius.Offset-2)) or UDim.new(0,16)},target)
     end
     make("UIStroke", {Color = C.line, Thickness = 1, Transparency = 0.45}, target)
 end
@@ -606,11 +606,11 @@ end
 -- Quiet content surfaces match the preview without changing hit geometry.
 function runtime.contentSurface(group,radius)
     group.BackgroundTransparency=1
-    local surface=make("Frame",{Name="ContentSurface",Active=false,BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Size=UDim2.fromScale(1,1),ZIndex=0},group)
-    round(surface,radius or 17)
+    local surface=make("Frame",{Name="ContentSurface",Active=false,BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Position=UDim2.fromOffset(2,2),Size=UDim2.new(1,-4,1,-4),ZIndex=0},group)
+    round(surface,(radius or 17)-2)
     make("UIGradient",{Rotation=145,Color=ColorSequence.new(Color3.fromRGB(48,57,67),Color3.fromRGB(37,43,51))},surface)
-    local edge=make("Frame",{Name="ContentEdge",Active=false,BackgroundTransparency=1,Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,1,-2),ZIndex=0},group)
-    round(edge,(radius or 17)-1)
+    local edge=make("Frame",{Name="ContentEdge",Active=false,BackgroundTransparency=1,Position=UDim2.fromOffset(2,2),Size=UDim2.new(1,-4,1,-4),ZIndex=0},group)
+    round(edge,(radius or 17)-2)
     make("UIStroke",{Color=Color3.fromRGB(165,190,220),Thickness=1,Transparency=.91},edge)
 end
 runtime.tweens=setmetatable({},{__mode="k"})
@@ -638,7 +638,9 @@ function runtime.bindPress(obj,callback,register)
     local face=make(obj.ClassName,{Name="ButtonFace",Active=false,Selectable=false,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromScale(1,1),ZIndex=obj.ZIndex or 1},obj)
     local faceScale=make("UIScale",{Name="ButtonFaceScale",Scale=1},face)
     round(face,10)
-    local controlEdge=make("UIStroke",{Name="ControlEdge",ApplyStrokeMode=Enum.ApplyStrokeMode.Border,Color=Color3.fromRGB(176,197,227),Thickness=1,Transparency=.92},face)
+    local controlOutline=make("Frame",{Name="ControlOutline",Active=false,BackgroundTransparency=1,Position=UDim2.fromOffset(2,2),Size=UDim2.new(1,-4,1,-4),ZIndex=obj.ZIndex or 1},face)
+    round(controlOutline,8)
+    local controlEdge=make("UIStroke",{Name="ControlEdge",ApplyStrokeMode=Enum.ApplyStrokeMode.Border,Color=Color3.fromRGB(176,197,227),Thickness=1,Transparency=.92},controlOutline)
     register(obj:GetPropertyChangedSignal("BackgroundTransparency"),function() controlEdge.Transparency=obj.BackgroundTransparency>=.95 and 1 or .92 end)
     controlEdge.Transparency=obj.BackgroundTransparency>=.95 and 1 or .92
     local properties={"BackgroundColor3","BackgroundTransparency","BorderSizePixel"}
@@ -656,14 +658,18 @@ function runtime.bindPress(obj,callback,register)
     local parentCorner=obj:FindFirstChildOfClass("UICorner")
     if parentCorner then
         face:FindFirstChildOfClass("UICorner").CornerRadius=parentCorner.CornerRadius
-        register(parentCorner:GetPropertyChangedSignal("CornerRadius"),function() face:FindFirstChildOfClass("UICorner").CornerRadius=parentCorner.CornerRadius end)
+        round(controlOutline,math.max(0,parentCorner.CornerRadius.Offset-2))
+        register(parentCorner:GetPropertyChangedSignal("CornerRadius"),function()
+            face:FindFirstChildOfClass("UICorner").CornerRadius=parentCorner.CornerRadius
+            round(controlOutline,math.max(0,parentCorner.CornerRadius.Offset-2))
+        end)
     end
     -- Animate decoration and contents; the interactive rectangle stays still.
     local glow=make("Frame",{Name="ButtonMotion",Active=false,Selectable=false,BackgroundColor3=C.accent,BackgroundTransparency=1,
         AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.new(1,-8,1,-8),ZIndex=obj.ZIndex or 1},obj)
     round(glow,10)
     -- The outline belongs to the face and sits a full pixel inside it.
-    glow.Parent=face; glow.Size=UDim2.new(1,-2,1,-2); glow.ZIndex=(obj.ZIndex or 1)+1
+    glow.Parent=face; glow.Size=UDim2.new(1,-4,1,-4); glow.ZIndex=(obj.ZIndex or 1)+1
     local edge=make("UIStroke",{Color=C.accent,Thickness=1,Transparency=1},glow)
     local function contents(child)
         if child~=face and child~=glow and child:IsA("GuiObject") and child.Name~="MicHint" then child.Parent=face end
@@ -680,7 +686,7 @@ function runtime.bindPress(obj,callback,register)
         local corner=obj:FindFirstChildOfClass("UICorner")
         if corner then
             face:FindFirstChildOfClass("UICorner").CornerRadius=corner.CornerRadius
-            glow:FindFirstChildOfClass("UICorner").CornerRadius=UDim.new(corner.CornerRadius.Scale,math.max(0,corner.CornerRadius.Offset-1))
+            glow:FindFirstChildOfClass("UICorner").CornerRadius=UDim.new(corner.CornerRadius.Scale,math.max(0,corner.CornerRadius.Offset-2))
         end
         local navigation=obj.Name:sub(1,3)=="Nav"
         local height=obj.AbsoluteSize.Y
@@ -1049,7 +1055,7 @@ local content = make("ScrollingFrame", {BackgroundTransparency = 1, BorderSizePi
     ScrollBarThickness = 3, ScrollBarImageColor3 = C.accent, CanvasSize = UDim2.new(),
     AutomaticCanvasSize = Enum.AutomaticSize.Y}, window)
 local layout = make("UIListLayout", {Padding = UDim.new(0,10), SortOrder = Enum.SortOrder.LayoutOrder}, content)
-make("UIPadding", {PaddingBottom = UDim.new(0,12), PaddingRight = UDim.new(0,6)}, content)
+make("UIPadding", {PaddingTop=UDim.new(0,4),PaddingLeft=UDim.new(0,4),PaddingBottom = UDim.new(0,12), PaddingRight = UDim.new(0,10)}, content)
 local notificationStack=make("Frame",{Name="Notifications",BackgroundTransparency=1,AnchorPoint=Vector2.new(1,1),
     Position=UDim2.new(1,-12,1,-12),Size=UDim2.new(0,300,1,-24),ZIndex=20},gui)
 make("UIListLayout",{Padding=UDim.new(0,8),VerticalAlignment=Enum.VerticalAlignment.Bottom,SortOrder=Enum.SortOrder.LayoutOrder},notificationStack)
@@ -2430,11 +2436,11 @@ local function drawPlayers()
             if isFriend or isStaff then
                 local tint=runtime.markerColor(isFriend,isStaff)
                 f.Name=isStaff and "StaffPlayerCard" or "FriendPlayerCard"
-                f.BackgroundColor3=C.card:Lerp(tint,.12)
-                local glow=make("Frame",{Name="RelationshipGlow",BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Size=UDim2.fromScale(1,1),ZIndex=0},f)
-                round(glow,12)
+                f:FindFirstChild("ContentSurface"):Destroy(); f:FindFirstChild("ContentEdge"):Destroy()
+                local glow=make("Frame",{Name="RelationshipGlow",BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Position=UDim2.fromOffset(2,2),Size=UDim2.new(1,-4,1,-4),ZIndex=0},f)
+                round(glow,15)
                 make("UIGradient",{Rotation=0,Color=ColorSequence.new(C.card:Lerp(tint,.25),C.card:Lerp(tint,.04))},glow)
-                local edge=make("Frame",{Name="RelationshipEdge",BackgroundTransparency=1,Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,1,-2),ZIndex=0},f); round(edge,11)
+                local edge=make("Frame",{Name="RelationshipEdge",BackgroundTransparency=1,Position=UDim2.fromOffset(2,2),Size=UDim2.new(1,-4,1,-4),ZIndex=0},f); round(edge,15)
                 make("UIStroke",{Color=tint,Thickness=1,Transparency=.5},edge)
                 local badge=label(f,isStaff and "ADMIN" or "FREUND",10,tint,UDim2.new(1,-98,0,14),UDim2.fromOffset(82,20))
                 badge.Name="RelationshipBadge"; badge.TextXAlignment=Enum.TextXAlignment.Right; badge.Font=Enum.Font.BuilderSansBold
@@ -3055,10 +3061,13 @@ do
     indicator.Visible=false
     for i,obj in ipairs(ordered) do
         local position=obj.Position
+        -- CanvasGroup clips its render target even when ClipsDescendants is false.
+        -- Reserve space for the full hover lift and scale during the reveal.
+        local revealPosition=position+UDim2.fromOffset(-8,-8)
         local layer=make("CanvasGroup",{Name="WelcomeReveal_"..i,BackgroundTransparency=1,GroupTransparency=1,
-            Position=position+UDim2.fromOffset(0,8),Size=obj.Size,ClipsDescendants=false,ZIndex=obj.ZIndex or 1},dock)
-        table.insert(stages,{obj=obj,layer=layer,position=position,active=obj.Active})
-        obj.Parent=layer; obj.Position=UDim2.new(); obj.Active=false
+            Position=revealPosition+UDim2.fromOffset(0,8),Size=obj.Size+UDim2.fromOffset(16,16),ClipsDescendants=false,ZIndex=obj.ZIndex or 1},dock)
+        table.insert(stages,{obj=obj,layer=layer,position=position,revealPosition=revealPosition,active=obj.Active})
+        obj.Parent=layer; obj.Position=UDim2.fromOffset(8,8); obj.Active=false
     end
     function runtime.finishWelcome(cancel)
         if not runtime.welcomeActive then return end
@@ -3079,7 +3088,7 @@ do
     end)
     for i,stage in ipairs(stages) do
         task.delay(settings.reducedMotion and 0 or (3.02+(i-1)*.15),function()
-            if alive and runtime.welcomeActive and dockVisible then animate(stage.layer,{GroupTransparency=0,Position=stage.position}) end
+            if alive and runtime.welcomeActive and dockVisible then animate(stage.layer,{GroupTransparency=0,Position=stage.revealPosition}) end
         end)
     end
     task.delay(settings.reducedMotion and 0 or (3.02+(#stages-1)*.15+.32),function()

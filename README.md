@@ -1,4 +1,4 @@
-# ISB Menu 2.6.0 · by Larsiopuw
+# ISB Menu 2.6.1 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,12 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Änderungen in 2.6.1
+
+Button-Konturen liegen innerhalb der bewegten Fläche mit zwei Pixeln Abstand. Scrollinhalte haben Sicherheitsabstände oben und links. Freund- und Admin-Flächen sowie ihre Konturen übernehmen denselben Radius und Abstand wie die Karten; doppelte Standardflächen entfallen. Die Renderflächen der gestaffelten Begrüßung reservieren Platz für Hover-Vergrößerung und Anhebung.
+
+Luau kompiliert; 1362 simulierte Lifecycle-/Interaktionsprüfungen bestanden, einschließlich Hover-Grenzen während der Begrüßung, innerer Konturen und gemeinsamer Radien von Beziehungskarten. Die optische Prüfung im Spiel bleibt gesondert zu bestätigen.
 
 ## Änderungen in 2.6.0
 
