@@ -1,7 +1,7 @@
--- ISB Menu 2.5.6 | Own-game universal client toolkit
+-- ISB Menu 2.5.7 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.6",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.7",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -683,7 +683,7 @@ function runtime.bindPress(obj,callback,register)
             animate(obj,{TextSize=fontBase*(enabled and (hovered and not down and 1.08 or 1) or 1)})
         end
         for _,child in ipairs(face:GetChildren()) do
-            if child:IsA("ImageLabel") and child.Name~="ScriptThumbnail" then
+            if (child:IsA("ImageLabel") or child.Name=="ButtonGlyph") and child.Name~="ScriptThumbnail" then
                 local iconScale=iconScales[child]
                 if not iconScale then iconScale=make("UIScale",{Name="ButtonIconMotion",Scale=1},child); iconScales[child]=iconScale end
                 animate(iconScale,{Scale=enabled and (down and .94 or (hovered and 1.12 or 1)) or 1})
@@ -2150,8 +2150,9 @@ function runtime.drawPlayerDetails(other)
         f.Parent=detailsGrid; f.Size=UDim2.new(.5,-5,0,70); f.Position=UDim2.new((index-1)%2*.5,(index-1)%2*5,0,math.floor((index-1)/2)*76)
         for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-56,0,24); child.TextWrapped=false; child.TextTruncate=Enum.TextTruncate.AtEnd end end
         local copy=rowButton(f,"",UDim2.new(1,-42,0,23),UDim2.fromOffset(30,28),function() copyText(entry[2]) end); copy.Name="Copy_"..entry[1]
-        for _,offset in ipairs({Vector2.new(9,7),Vector2.new(13,11)}) do
-            local glyph=make("Frame",{BackgroundColor3=C.line,Position=UDim2.fromOffset(offset.X,offset.Y),Size=UDim2.fromOffset(9,11)},copy)
+        local icon=make("Frame",{Name="ButtonGlyph",BackgroundTransparency=1,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(18,20)},copy)
+        for _,offset in ipairs({Vector2.new(3,3),Vector2.new(7,7)}) do
+            local glyph=make("Frame",{BackgroundColor3=C.line,Position=UDim2.fromOffset(offset.X,offset.Y),Size=UDim2.fromOffset(9,11)},icon)
             round(glyph,2); make("UIStroke",{Color=C.text,Thickness=1.3},glyph)
         end
     end
