@@ -1,8 +1,8 @@
-# ISB Menu 2.3.1 · by Larsiopuw
+# ISB Menu 2.4 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
-![Designvorschau mit Beispieldaten](ISB-Vorschau.png)
+![Rollskala in der Designvorschau mit Beispieldaten](ISB-Charakter.png)
 
 ## Starten
 
@@ -18,17 +18,25 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Larsiopuw/ISB-Menu/ma
 | M | Hauptpanel öffnen / schließen |
 | K | Festes Dock einfahren / ausfahren |
 | T | Mittige Skript-Schnellsuche |
+| F | Fliegen an / aus |
+| Z | Noclip an / aus |
+| E | Highlights / ESP an / aus |
+| V | Konfigurierte Laufgeschwindigkeit an / aus |
 | Escape | Schnellsuche oder Tastenaufnahme abbrechen |
 
 Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden abgewiesen; beim Schreiben greifen die Kürzel nicht. Fenster und Dock bleiben fest positioniert. Erneutes Ausführen ersetzt die vorherige Instanz.
 
-## Mauszeiger-Fix in 2.3.1
+## Änderungen in 2.4
 
-Im Menübereich wird genau ein direkter, nicht animierter Zeiger außerhalb aller CanvasGroups gezeichnet. Die native Mausdarstellung wird dort vorübergehend ausgeblendet, um automatische Hover-Symbolwechsel zu umgehen. Das verwendete Pfeilbild gehört zum installierten Roblox-Client; kein zusätzlicher Download oder Executor-Dateizugriff nötig.
+- Neue Rollskala für Speed, Jump, Flight, FOV und Musiklautstärke. Teilstriche und Zahlen bewegen sich unter einer festen Mittelmarkierung; kein verschiebbarer Punkt und keine Fülllinie. Nach links ziehen erhöht den Wert, nach rechts verringert ihn. Der gesamte sichtbare Skalenbereich ist der Griff. Während des Ziehens pausiert das Scrollen des Panels.
+- Die Zahl ist ein editierbares Feld. Eingaben oberhalb des voreingestellten Skalenbereichs sind möglich; Komma und Dezimalpunkt werden akzeptiert. Beim nächsten Ziehen kehrt der Regler in den voreingestellten Bereich zurück.
+- Manuelle Bereiche: Speed/Jump/Flight 0–10.000, FOV 1–120 Grad, Lautstärke 0–1.000 Prozent. Ungültige oder nicht endliche Eingaben werden abgewiesen. Skala: Speed 8–120, Jump 20–150, Flight 5–150, FOV 40–110, Lautstärke 0–100.
+- Flugbewegung mit kontinuierlicher, kritisch gedämpfter Beschleunigung und Bremsung vor dem Physikschritt. Gleiche Zielgeschwindigkeit bei unterschiedlichen Physikraten; weichere Übergänge und höhere Orientierungsresponsivität.
+- Lauf-/Schrittgeräusche des eigenen Charakters werden während des Fluges gezielt stummgeschaltet; ursprüngliche Lautstärken werden beim Ausschalten, Respawn und Beenden wiederhergestellt. Auch neu angelegte Schrittgeräusche werden berücksichtigt. Andere Musik bleibt unverändert.
+- F/Z/E/V schalten die Funktionen um. Alle sieben Belegungen sind in Einstellungen → Tasten änderbar und werden gespeichert. Doppelte Belegungen werden abgewiesen; Textfelder und bereits verarbeitete Eingaben lösen keine Aktionen aus.
+- Ersatzzeiger aus 2.3.1 vollständig entfernt. Das Menü zeichnet keinen eigenen Mauszeiger und ändert weder MouseIcon noch MouseIconEnabled. Interaktive Text-/Bildflächen ersetzen native GuiButtons, um deren Handzeiger-Wechsel zu umgehen. Klick, Touch, Hover und Tastaturauswahl bleiben bedienbar; Fokusverlust verwirft einen begonnenen Klick.
 
-Außerhalb des Menüs, bei Fokusverlust, im Roblox-Pausenmenü, bei Kamerasperre und beim Beenden wird die vorherige native Mausdarstellung wiederhergestellt. Bereits versteckte Spielzeiger bleiben versteckt. Bei Touch/Gamepad und solange das Pfeilbild nicht geladen ist, greift der Ersatz nicht ein. Die Mausposition wird einmal pro Bild nach den regulären Render-Callbacks übernommen; es gibt keine Zeiger-Tweens und keine erzeugten Zeigerkopien.
-
-Das ist ein gezielter Workaround für das gemeldete Flackern. Die konkrete Ursache und das Ergebnis auf deinem Client sind ohne Live-Test nicht bestätigt. Grundlage: [Roblox UserInputService](https://create.roblox.com/docs/reference/engine/classes/UserInputService).
+Das gemeldete Mausflackern ist ohne Live-Client nicht reproduziert. Die überarbeitete Eingabesteuerung ist geprüft; eine vollständige Behebung auf dem betroffenen PC ist noch nicht bestätigt. Spiel- oder Executor-eigene Mausgrafiken werden nicht verändert.
 
 ## Änderungen in 2.3
 
@@ -65,9 +73,9 @@ OwnerNames enthält Larsiopuw; zusätzliche Menü-Admins stehen als numerische U
 
 ## Prüfung und Grenzen
 
-248 Assertions bestehen mit einer simulierten Roblox-API. Menü und beide Loader kompilieren mit Luau. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten. **Kein Live-Test in Roblox/Executor durchgeführt.** Bewegung, Voice, Assets und Teleports hängen vom Spiel und Executor ab.
+440 Assertions bestehen mit einer simulierten Roblox-API. Menü und beide Loader kompilieren mit Luau. Flugverlauf bei 30/120 Physikschritten, Geräusch-Wiederherstellung, Rollskala, direkte Zahleneingabe, alle vier Aktionskürzel und deren Speicherung wurden simuliert geprüft. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten. **Kein Live-Test in Roblox/Executor durchgeführt.** Bewegung, Voice, Assets und Teleports hängen vom Spiel und Executor ab.
 
-ScriptBlox nutzt die öffentliche API: Beliebt nach Aufrufen, Neu nach Aktualisierung. RoScripts nutzt öffentliche Trending-/Neu-Seiten und Such-HTML. Kein API-Key. ScriptBlox lieferte bei der Prüfung HTTP 200; der direkte RoScripts-Abruf wurde hier mit HTTP 403 blockiert. Anbieterfehler werden angezeigt; Website-Änderungen können Anpassungen erfordern. Fremder Code läuft erst nach ausdrücklichem Klick.
+ScriptBlox nutzt die öffentliche API: Beliebt nach Aufrufen, Neu nach Aktualisierung. RoScripts nutzt öffentliche Trending-/Neu-Seiten und Such-HTML. Kein API-Key. Bei der Anbieterprüfung zu v2.3 lieferte ScriptBlox HTTP 200; der direkte RoScripts-Abruf wurde hier mit HTTP 403 blockiert. Anbieterfehler werden angezeigt; Website-Änderungen können Anpassungen erfordern. Fremder Code läuft erst nach ausdrücklichem Klick.
 
 Vorschaubilder benötigen Dateizugriff und getcustomasset/getsynasset; PNG/JPEG werden unterstützt. Andernfalls bleibt eine gestaltete Ersatzfläche. Audio benötigt passende Asset-Freigaben. Heroicons unter beiliegender MIT-Lizenz; Interface-Klänge selbst synthetisiert.
 

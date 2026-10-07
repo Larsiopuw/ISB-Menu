@@ -1,7 +1,7 @@
--- ISB Menu 2.3.1 | Own-game universal client toolkit
+-- ISB Menu 2.4 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.3.1",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.4.0",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -93,7 +93,7 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(170,181,198),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {favorites = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
+local settings = {favorites = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V", sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -109,7 +109,7 @@ if type(readfile) == "function" then
         settings.lowEffects=data.lowEffects==true
         if data.provider=="RoScripts" then settings.provider=data.provider end
         if data.discovery=="Neu" or data.discovery=="Favoriten" then settings.discovery=data.discovery end
-        settings.volume=math.clamp(tonumber(data.volume) or 35,0,100)
+        settings.volume=math.clamp(tonumber(data.volume) or 35,0,1000)
         if type(data.values)=="table" then settings.values=data.values end
         if type(data.scriptFavorites)=="table" then
             local count=0
@@ -119,7 +119,7 @@ if type(readfile) == "function" then
         end
         settings.fpsCap=tonumber(data.fpsCap) or 60
         settings.sounds=data.sounds~=false
-        for _,field in ipairs({"dockKey","searchKey"}) do
+        for _,field in ipairs({"dockKey","searchKey","flyKey","noclipKey","espKey","speedKey"}) do
             if type(data[field])=="string" then
                 local valid,key=pcall(function() return Enum.KeyCode[data[field]] end)
                 if valid and key and key~=Enum.KeyCode.Unknown then settings[field]=data[field] end
@@ -143,12 +143,23 @@ if settings.searchKey==settings.key or settings.searchKey==settings.dockKey then
     end
 end
 local alive, connections, actions = true, {}, {}
+do
+    local used={}
+    for _,field in ipairs({"key","dockKey","searchKey","flyKey","noclipKey","espKey","speedKey"}) do
+        if used[settings[field]] then
+            for _,key in ipairs({"F","Z","E","V","K","T","M","G","H","B","N","J","L","U","Y","I","O","P","C","X","R"}) do
+                if not used[key] then settings[field]=key; break end
+            end
+        end
+        used[settings[field]]=true
+    end
+end
 local state = {fly = false, noclip = false, infiniteJump = false, esp = false, names = false,
     speed = false, jump = false, speedValue = 24, jumpValue = 65, flyValue = 45,
     fullbright = false, shadows = false, fov = false, fovValue = 80}
 local originals, collisions, highlights, tags = {}, {}, {}, {}
 local flyObjects, flyHumanoid, flyAutoRotate = {}, nil, nil
-local runtime={flightVelocity=Vector3.zero,gameStaff={},
+local runtime={flightVelocity=Vector3.zero,flightAcceleration=Vector3.zero,gameStaff={},
     role="Member", saveRevision=0,lastSaved=nil,saveError=nil, imageCache={},performanceOwned={},voiceMaintenance=0,tweens={}}
 local lightingOriginal, cameraOriginal, spectating = nil, {}, nil
 local spectateOriginal={}
@@ -487,7 +498,7 @@ save=function(immediate)
     task.delay(.3,write)
     return true
 end
-for key,range in pairs({speedValue={8,120},jumpValue={20,150},flyValue={5,150},fovValue={40,110}}) do
+for key,range in pairs({speedValue={0,10000},jumpValue={0,10000},flyValue={0,10000},fovValue={1,120}}) do
     local value=tonumber(settings.values[key])
     if value and value==value then state[key]=math.clamp(value,range[1],range[2]) end
 end
@@ -584,18 +595,34 @@ local function label(parent, text, size, color, pos, dims)
         TextSize = size or 14, TextColor3 = color or C.text, TextXAlignment = Enum.TextXAlignment.Left,
         Position = pos or UDim2.new(), Size = dims or UDim2.new(1,0,0,24)}, parent)
 end
+pcall(function() runtime.guiService=game:GetService("GuiService") end)
+-- Plain interactive labels avoid Roblox's automatic GuiButton hand-cursor swaps.
+function runtime.bindPress(obj,callback,register)
+    obj.Active=true; obj.Selectable=true
+    local pressed
+    register(obj.InputBegan,function(input)
+        if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then pressed=input end
+        if (input.KeyCode==Enum.KeyCode.Return or input.KeyCode==Enum.KeyCode.Space or input.KeyCode==Enum.KeyCode.ButtonA)
+            and runtime.guiService and runtime.guiService.SelectedObject==obj then callback() end
+    end)
+    register(obj.InputEnded,function(input)
+        if pressed and (input==pressed or input.UserInputType==Enum.UserInputType.MouseButton1) then pressed=nil; callback() end
+    end)
+    register(obj.MouseLeave,function() pressed=nil end)
+    register(UIS.WindowFocusReleased,function() pressed=nil end)
+end
 local function button(parent, text, pos, dims, fn)
-    local b = make("TextButton", {Text = text, Font = Enum.Font.BuilderSansMedium, TextSize = 13,
-        TextColor3 = C.text, BackgroundColor3 = C.card, AutoButtonColor = false,
+    local b = make("TextLabel", {Text = text, Font = Enum.Font.BuilderSansMedium, TextSize = 13,
+        TextColor3 = C.text, BackgroundColor3 = C.card,
         Position = pos or UDim2.new(), Size = dims or UDim2.fromOffset(100,32)}, parent)
     round(b, 8)
     connect(b.MouseEnter, function() animate(b, {BackgroundColor3 = C.line}) end)
     connect(b.MouseLeave, function() animate(b, {BackgroundColor3 = C.card}) end)
-    connect(b.Activated, function()
+    runtime.bindPress(b, function()
         playUISound("tap")
         local ok, err = pcall(fn)
         if not ok then warn("ISB Menu: " .. tostring(err)); if notify then notify("Aktion konnte nicht ausgeführt werden.") end end
-    end)
+    end,connect)
     return b
 end
 local function humanoid()
@@ -624,12 +651,29 @@ local function applyMovement()
         else h.JumpHeight = state.jumpValue * state.jumpValue / (2 * math.max(workspace.Gravity, 1)) end
     end
 end
+runtime.flightSounds={}; runtime.flightConnections={}
+function runtime.muteFlightSound(obj)
+    if not (obj:IsA("Sound") or obj:IsA("AudioPlayer")) then return end
+    local name=obj.Name:lower()
+    local footsteps=name=="running" or name=="walking" or name=="walk" or name=="sprinting"
+        or name:find("footstep",1,true) or (obj:IsA("Sound") and tostring(obj.SoundId):lower():find("footstep",1,true))
+    if not footsteps or runtime.flightSounds[obj]~=nil then return end
+    runtime.flightSounds[obj]=obj.Volume
+    obj.Volume=0
+    table.insert(runtime.flightConnections,obj:GetPropertyChangedSignal("Volume"):Connect(function()
+        if state.fly and obj.Parent and obj.Volume~=0 then obj.Volume=0 end
+    end))
+end
 local function stopFly()
+    for _,con in ipairs(runtime.flightConnections) do con:Disconnect() end
+    table.clear(runtime.flightConnections)
+    for obj,volume in pairs(runtime.flightSounds) do if obj.Parent then obj.Volume=volume end end
+    table.clear(runtime.flightSounds)
     for _,obj in ipairs(flyObjects) do obj:Destroy() end
     table.clear(flyObjects)
-    if flyHumanoid and flyHumanoid.Parent then flyHumanoid.AutoRotate = flyAutoRotate; flyHumanoid.PlatformStand=runtime.flyPlatformStand end
+    if flyHumanoid and flyHumanoid.Parent then flyHumanoid.AutoRotate = flyAutoRotate; flyHumanoid.PlatformStand=runtime.flyPlatformStand; if not runtime.flyPlatformStand and flyHumanoid.Health>0 and flyHumanoid:GetState()==Enum.HumanoidStateType.Physics then flyHumanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end end
     if runtime.flyRoot and runtime.flyRoot.Parent then runtime.flyRoot.AssemblyLinearVelocity=Vector3.zero end
-    flyHumanoid, flyAutoRotate, runtime.flyRoot = nil, nil,nil; runtime.flightVelocity=Vector3.zero
+    flyHumanoid, flyAutoRotate, runtime.flyRoot = nil, nil,nil; runtime.flightVelocity=Vector3.zero; runtime.flightAcceleration=Vector3.zero
 end
 local function startFly()
     stopFly()
@@ -637,12 +681,15 @@ local function startFly()
     if not r or not h or h.Health <= 0 then return end
     flyHumanoid, flyAutoRotate = h, h.AutoRotate
     runtime.flyPlatformStand,runtime.flyRoot=h.PlatformStand,r
-    h.AutoRotate = false; h.PlatformStand=true; runtime.flightVelocity=Vector3.zero
+    h.AutoRotate = false; h.PlatformStand=true; h:ChangeState(Enum.HumanoidStateType.Physics)
+    runtime.flightVelocity=r.AssemblyLinearVelocity or Vector3.zero; runtime.flightAcceleration=Vector3.zero
+    for _,obj in ipairs(player.Character:GetDescendants()) do runtime.muteFlightSound(obj) end
+    table.insert(runtime.flightConnections,player.Character.DescendantAdded:Connect(runtime.muteFlightSound))
     local attachment = make("Attachment", {Name = "ISBFlyAttachment"}, r)
     local velocity = make("LinearVelocity", {Name = "ISBFlyVelocity", Attachment0 = attachment,
         RelativeTo = Enum.ActuatorRelativeTo.World, MaxForce = math.huge, VectorVelocity = Vector3.zero}, r)
     local orientation = make("AlignOrientation", {Name = "ISBFlyOrientation", Attachment0 = attachment,
-        Mode = Enum.OrientationAlignmentMode.OneAttachment, MaxTorque = math.huge, Responsiveness = 16}, r)
+        Mode = Enum.OrientationAlignmentMode.OneAttachment, MaxTorque = math.huge, MaxAngularVelocity=math.huge, Responsiveness = 35}, r)
     flyObjects = {velocity, orientation, attachment}
 end
 local function restoreCollisions()
@@ -805,9 +852,9 @@ for i,name in ipairs(navNames) do
     connect(b.MouseLeave,function() animate(b,{BackgroundColor3=page==name and C.card or C.panel}) end)
     navButtons[name] = b
 end
-local profile=make("ImageButton",{Name="Profile",AutoButtonColor=false,BackgroundColor3=C.card,Image="",Position=UDim2.new(1,-58,0,8),Size=UDim2.fromOffset(40,40)},dock)
+local profile=make("ImageLabel",{Name="Profile",BackgroundColor3=C.card,Image="",Position=UDim2.new(1,-58,0,8),Size=UDim2.fromOffset(40,40)},dock)
 round(profile,20)
-connect(profile.Activated,function() selectPage("Profil") end)
+runtime.bindPress(profile,function() selectPage("Profil") end,connect)
 task.spawn(function()
     local ok,url=pcall(function() return Players:GetUserThumbnailAsync(player.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100) end)
     if alive and ok then profile.Image=url end
@@ -958,15 +1005,15 @@ local function rowConnect(signal, fn)
     local con = signal:Connect(fn); table.insert(rowConnections, con); return con
 end
 local function rowButton(parent, text, pos, dims, fn)
-    local b = make("TextButton", {Text = text, Font = Enum.Font.BuilderSansMedium, TextSize = 12,
-        TextColor3 = C.text, BackgroundColor3 = C.line, AutoButtonColor = true,
+    local b = make("TextLabel", {Text = text, Font = Enum.Font.BuilderSansMedium, TextSize = 12,
+        TextColor3 = C.text, BackgroundColor3 = C.line,
         Position = pos, Size = dims}, parent)
     round(b,8)
-    rowConnect(b.Activated, function()
+    runtime.bindPress(b, function()
         playUISound("tap")
         local ok, err = pcall(fn)
         if not ok then warn("ISB Menu: " .. tostring(err)); notify("Aktion fehlgeschlagen.") end
-    end)
+    end,rowConnect)
     return b
 end
 local function card(text, desc, height)
@@ -1076,72 +1123,69 @@ for i,caption in ipairs({"↑","↓"}) do
         if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then touchVertical=0 end
     end)
 end
--- One unsmoothed cursor outside CanvasGroups prevents native hover-icon swaps.
--- The built-in Roblox texture works without executor filesystem/asset APIs.
-runtime.cursor=make("ImageLabel",{Name="ISBCursor",BackgroundTransparency=1,
-    Image="rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png",
-    Size=UDim2.fromOffset(64,64),AnchorPoint=Vector2.new(.5,.5),
-    ZIndex=1000,Visible=false,Active=false,Selectable=false},gui)
-runtime.cursorTargets={window,dock,quickSearch,statusBar,widget,flyTouch}
-runtime.cursorFocused=true
-runtime.cursorBinding="ISBMenuCursor"
-pcall(function() runtime.cursorGuiService=game:GetService("GuiService") end)
-task.spawn(function()
-    pcall(function() game:GetService("ContentProvider"):PreloadAsync({runtime.cursor}) end)
-end)
-function runtime.releaseCursor()
-    runtime.cursor.Visible=false
-    if runtime.cursorOwned then
-        UIS.MouseIconEnabled=runtime.cursorOriginal
-        runtime.cursorOwned=false; runtime.cursorOriginal=nil
+function runtime.drawRuler(parent,action)
+    local valueBox=make("TextBox",{Name="NumericValue_"..action.id,Text=string.format("%g",action.get()),ClearTextOnFocus=false,
+        Font=Enum.Font.BuilderSansMedium,TextSize=16,TextColor3=C.accent,BackgroundColor3=C.bg,
+        Position=UDim2.new(1,-141,0,10),Size=UDim2.fromOffset(92,32)},parent)
+    round(valueBox,10)
+    local viewport=make("Frame",{Name="RollingRuler",Active=true,BackgroundTransparency=1,ClipsDescendants=true,
+        Position=UDim2.fromOffset(16,57),Size=UDim2.new(1,-32,0,45)},parent)
+    local needle=make("Frame",{Name="RulerNeedle",BackgroundColor3=C.accent,AnchorPoint=Vector2.new(.5,0),
+        Position=UDim2.fromScale(.5,0),Size=UDim2.fromOffset(2,23),ZIndex=3},viewport)
+    round(needle,1)
+    local marks={}
+    for i=0,math.floor((action.max-action.min)/action.step) do
+        local value=action.min+action.step*i
+        local major=value%(action.id=="fovvalue" and 5 or 10)==0
+        local tick=make("Frame",{Name="RulerTick",BackgroundColor3=C.muted,BackgroundTransparency=major and .2 or .62,
+            Size=UDim2.fromOffset(1,major and 18 or 10),AnchorPoint=Vector2.new(.5,0)},viewport)
+        local caption
+        if value%(action.id=="fovvalue" and 10 or 20)==0 or value==action.min or value==action.max then caption=label(viewport,string.format("%g",math.floor(value*10+.5)/10),9,C.muted,UDim2.new(),UDim2.fromOffset(50,14));caption.TextXAlignment=Enum.TextXAlignment.Center end
+        table.insert(marks,{value=value,tick=tick,caption=caption})
     end
-end
-function runtime.cursorHit(obj,point)
-    if not obj.Parent or not obj.Visible then return false end
-    if obj:IsA("CanvasGroup") and obj.GroupTransparency>=.99 then return false end
-    local position,size=obj.AbsolutePosition,obj.AbsoluteSize
-    return point.X>=position.X and point.Y>=position.Y
-        and point.X<position.X+size.X and point.Y<position.Y+size.Y
-end
-function runtime.updateCursor()
-    if not alive or not runtime.cursorFocused or not UIS.MouseEnabled
-        or UIS.PreferredInput~=Enum.PreferredInput.KeyboardAndMouse
-        or UIS.MouseBehavior~=Enum.MouseBehavior.Default
-        or (runtime.cursorGuiService and runtime.cursorGuiService.MenuIsOpen)
-        or not runtime.cursor.IsLoaded then runtime.releaseCursor(); return end
-    local point=UIS:GetMouseLocation()
-    local camera=workspace.CurrentCamera
-    if not camera or point.X<0 or point.Y<0 or point.X>=camera.ViewportSize.X
-        or point.Y>=camera.ViewportSize.Y then runtime.releaseCursor(); return end
-    local inside=activeSlider~=nil
-    for _,target in ipairs(runtime.cursorTargets) do
-        if runtime.cursorHit(target,point) then inside=true; break end
+    for side=0,1 do
+        local fade=make("Frame",{Name="RulerEdge",BackgroundColor3=C.card,ZIndex=2,
+            Position=UDim2.new(side,side==1 and -32 or 0,0,0),Size=UDim2.fromOffset(32,45)},viewport)
+        make("UIGradient",{Rotation=side==0 and 0 or 180,Transparency=NumberSequence.new(0,1)},fade)
     end
-    if not inside then
-        for _,notice in ipairs(notices) do
-            if runtime.cursorHit(notice,point) then inside=true; break end
+    local hint=label(parent,"",9,C.muted,UDim2.fromOffset(16,105),UDim2.new(1,-32,0,15))
+    local function paint(value)
+        valueBox.Text=string.format("%g",value)
+        local selected=math.clamp(value,action.min,action.max)
+        for _,mark in ipairs(marks) do
+            local x=.5+(mark.value-selected)/(action.max-action.min)
+            mark.tick.Position=UDim2.new(x,0,0,4)
+            if mark.caption then mark.caption.Position=UDim2.new(x,-25,0,27) end
         end
+        hint.Text=(value~=selected and "Manueller Wert · " or "Skala ziehen · ")..action.min.."–"..action.max.." · Zahl antippen zum Eingeben"
     end
-    if not inside then runtime.releaseCursor(); return end
-    if not runtime.cursorOwned then
-        -- Respect a game that deliberately hides its cursor.
-        if not UIS.MouseIconEnabled then return end
-        runtime.cursorOriginal=UIS.MouseIconEnabled; runtime.cursorOwned=true
+    local function apply(value)
+        action.fn(value); save(); paint(action.get())
     end
-    runtime.cursor.Position=UDim2.fromOffset(point.X,point.Y)
-    if UIS.MouseIconEnabled then UIS.MouseIconEnabled=false end
-    runtime.cursor.Visible=true
+    paint(action.get())
+    rowConnect(viewport.InputBegan,function(input)
+        if input.UserInputType~=Enum.UserInputType.MouseButton1 and input.UserInputType~=Enum.UserInputType.Touch then return end
+        content.ScrollingEnabled=false
+        local startX=input.Position.X
+        local startValue=math.clamp(action.get(),action.min,action.max)
+        activeSlider={input=input,update=function(x)
+            local value=startValue-(x-startX)/math.max(viewport.AbsoluteSize.X,1)*(action.max-action.min)
+            value=math.clamp(math.floor(value/action.step+.5)*action.step,action.min,action.max)
+            apply(value)
+        end}
+    end)
+    rowConnect(valueBox.FocusLost,function()
+        local value=tonumber((valueBox.Text:gsub(",",".")))
+        local maximum=action.id=="volume" and 1000 or (action.id=="fovvalue" and 120 or 10000)
+        local minimum=action.id=="fovvalue" and 1 or 0
+        if not value or value~=value or value<minimum or value>maximum then
+            paint(action.get()); notify("Bitte eine Zahl zwischen "..minimum.." und "..maximum.." eingeben.",action.name); return
+        end
+        apply(math.floor(value*100+.5)/100)
+    end)
 end
-connect(UIS.WindowFocusReleased,function()
-    runtime.cursorFocused=false; activeSlider=nil; runtime.releaseCursor()
-end)
-connect(UIS.WindowFocused,function() runtime.cursorFocused=true end)
-runtime.cursorBound=pcall(function()
-    Run:BindToRenderStep(runtime.cursorBinding,Enum.RenderPriority.Last.Value+1,runtime.updateCursor)
-end)
-if not runtime.cursorBound then connect(Run.RenderStepped,runtime.updateCursor) end
 local function drawAction(action)
-    local f = card(action.name,action.desc,action.kind == "slider" and 96 or 58)
+    local f = card(action.name,action.desc,action.kind == "slider" and 126 or 58)
     local children=f:GetChildren()
     for _,child in ipairs(children) do
         if child:IsA("TextLabel") then
@@ -1175,35 +1219,7 @@ local function drawAction(action)
     elseif action.kind == "button" then
         rowButton(f,"Start",UDim2.new(1,-112,0,13),UDim2.fromOffset(70,32),action.fn)
     else
-        local valueLabel = label(f,tostring(action.get()),14,C.accent,UDim2.new(1,-115,0,18),UDim2.fromOffset(60,24))
-        valueLabel.TextXAlignment=Enum.TextXAlignment.Right
-        local track = make("TextButton", {Text="",AutoButtonColor=false,BackgroundColor3=C.line,
-            Position=UDim2.fromOffset(16,77),Size=UDim2.new(1,-32,0,4)},f)
-        round(track,3)
-        for i=0,40 do
-            make("Frame",{BorderSizePixel=0,BackgroundColor3=C.muted,BackgroundTransparency=0.65,
-                AnchorPoint=Vector2.new(0.5,1),Position=UDim2.new(i/40,0,0,-4),
-                Size=UDim2.fromOffset(1,i%5==0 and 13 or 8)},track)
-        end
-        local fill = make("Frame",{BorderSizePixel=0,BackgroundColor3=C.accent,
-            Size=UDim2.new((action.get()-action.min)/(action.max-action.min),0,1,0)},track)
-        round(fill,3)
-        local knob = make("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),AnchorPoint=Vector2.new(0.5,0.5),
-            Position=UDim2.fromScale(1,0.5),Size=UDim2.fromOffset(14,14)},fill)
-        round(knob,7)
-        local hit = make("TextButton",{Text="",BackgroundTransparency=1,
-            Position=UDim2.new(0,0,0,-10),Size=UDim2.new(1,0,0,26)},track)
-        local function update(x)
-            local ratio=math.clamp((x-track.AbsolutePosition.X)/math.max(track.AbsoluteSize.X,1),0,1)
-            local value=math.clamp(math.floor((action.min+ratio*(action.max-action.min))/action.step+0.5)*action.step,action.min,action.max)
-            action.fn(value); save(); valueLabel.Text=tostring(value)
-            fill.Size=UDim2.new((value-action.min)/(action.max-action.min),0,1,0)
-        end
-        rowConnect(hit.InputBegan,function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                activeSlider={update=update,input=input}; update(input.Position.X)
-            end
-        end)
+        runtime.drawRuler(f,action)
     end
 end
 
@@ -1221,7 +1237,7 @@ local function findAction(id)
     for _,action in ipairs(actions) do if action.id==id then return action end end
 end
 local function clearRows()
-    activeSlider=nil
+    activeSlider=nil; content.ScrollingEnabled=true
     for _,con in ipairs(rowConnections) do con:Disconnect() end
     table.clear(rowConnections)
     for _,child in ipairs(content:GetChildren()) do if child:IsA("GuiObject") then child:Destroy() end end
@@ -1697,7 +1713,7 @@ render = function()
         rowButton(queue,"Weiter",UDim2.fromOffset(114,74),UDim2.fromOffset(88,28),function() playQueue(queueIndex+1) end)
         rowButton(queue,"Leeren",UDim2.fromOffset(212,74),UDim2.fromOffset(88,28),function() sound:Stop(); table.clear(musicQueue); queueIndex=0; render() end)
         drawAction({id="volume",name="Lautstärke",desc="Nur die Musik von ISB Menu",kind="slider",
-            min=0,max=100,step=5,get=function() return math.floor(sound.Volume*100+0.5) end,fn=function(v) sound.Volume=v/100; settings.volume=v; save() end})
+            min=0,max=100,step=5,get=function() return math.floor(sound.Volume*10000+0.5)/100 end,fn=function(v) sound.Volume=v/100; settings.volume=v; save() end})
         local clockCard=card("Timer und Stoppuhr","Eine kompakte Aktivitätsanzeige bleibt oberhalb des Spiels sichtbar.",150)
         local minutes=make("TextBox",{Text="5",PlaceholderText="Minuten",ClearTextOnFocus=false,
             Font=Enum.Font.BuilderSans,TextSize=13,TextColor3=C.text,BackgroundColor3=C.panel,
@@ -1747,7 +1763,7 @@ render = function()
             end
             plainCard("Live-Messung",tostring(session.fps).." FPS  ·  "..tostring(session.ping or "—").." ms\nDie Statusleiste bleibt oben rechts sichtbar.",88)
         elseif settingsSection=="Tasten" then
-            for _,entry in ipairs({{"key","Menü öffnen / schließen"},{"dockKey","Dock einfahren / ausfahren"},{"searchKey","Skript-Schnellsuche"}}) do
+            for _,entry in ipairs({{"key","Menü öffnen / schließen"},{"dockKey","Dock einfahren / ausfahren"},{"searchKey","Skript-Schnellsuche"},{"flyKey","Fliegen an / aus"},{"noclipKey","Noclip an / aus"},{"espKey","Highlights / ESP an / aus"},{"speedKey","Laufgeschwindigkeit an / aus"}}) do
                 local field=entry[1]
                 local f=plainCard(entry[2],"Anklicken, Taste drücken. Escape bricht ab.",78)
                 local b
@@ -1799,7 +1815,7 @@ connect(UIS.InputBegan,function(input,processed)
         local field=captureKey==true and "key" or captureKey
         captureKey=false
         if input.KeyCode~=Enum.KeyCode.Escape and input.KeyCode~=Enum.KeyCode.Unknown then
-            for _,other in ipairs({"key","dockKey","searchKey"}) do
+            for _,other in ipairs({"key","dockKey","searchKey","flyKey","noclipKey","espKey","speedKey"}) do
                 if other~=field and settings[other]==input.KeyCode.Name then notify("Diese Taste wird bereits verwendet.","Tastenkürzel"); render(); return end
             end
             settings[field]=input.KeyCode.Name
@@ -1812,14 +1828,25 @@ connect(UIS.InputBegan,function(input,processed)
     if processed or UIS:GetFocusedTextBox() then return end
     if input.KeyCode==CONFIG.ToggleKey then setOpen(not opened)
     elseif input.KeyCode==Enum.KeyCode[settings.dockKey] then setDockVisible(not dockVisible)
-    elseif input.KeyCode==Enum.KeyCode[settings.searchKey] then setQuickSearch(not quickSearchOpen) end
+    elseif input.KeyCode==Enum.KeyCode[settings.searchKey] then setQuickSearch(not quickSearchOpen)
+    else
+        for _,entry in ipairs({{"flyKey","fly"},{"noclipKey","noclip"},{"espKey","esp"},{"speedKey","speed"}}) do
+            if input.KeyCode==Enum.KeyCode[settings[entry[1]]] then
+                local action=findAction(entry[2]); local ok=pcall(action.fn)
+                if ok then playUISound("tap"); render(); notify(action.name..(action.get() and " aktiviert" or " deaktiviert"),"Tastenkürzel")
+                else notify("Aktion konnte nicht ausgeführt werden.","Tastenkürzel") end
+                break
+            end
+        end
+    end
 end)
 connect(UIS.InputChanged,function(input)
     if activeSlider and (input.UserInputType==Enum.UserInputType.MouseMovement or input==activeSlider.input) then activeSlider.update(input.Position.X) end
 end)
 connect(UIS.InputEnded,function(input)
-    if input.UserInputType==Enum.UserInputType.MouseButton1 or (activeSlider and input==activeSlider.input) then activeSlider=nil end
+    if input.UserInputType==Enum.UserInputType.MouseButton1 or (activeSlider and input==activeSlider.input) then activeSlider=nil; content.ScrollingEnabled=true end
 end)
+connect(UIS.WindowFocusReleased,function() activeSlider=nil; content.ScrollingEnabled=true end)
 connect(Run.Stepped,function()
     if state.noclip and player.Character then
         for _,part in ipairs(player.Character:GetDescendants()) do
@@ -1828,6 +1855,37 @@ connect(Run.Stepped,function()
                 part.CanCollide=false
             end
         end
+    end
+end)
+connect(Run.PreSimulation,function(dt)
+    local camera=workspace.CurrentCamera
+    if state.fly and camera and flyObjects[1] and flyObjects[1].Parent then
+        local h=humanoid()
+        local direction=h and h.MoveDirection or Vector3.zero
+        local up=touchVertical
+        if not UIS:GetFocusedTextBox() then
+            if not UIS.TouchEnabled then
+                local forward=(UIS:IsKeyDown(Enum.KeyCode.W) and 1 or 0)-(UIS:IsKeyDown(Enum.KeyCode.S) and 1 or 0)
+                local sideways=(UIS:IsKeyDown(Enum.KeyCode.D) and 1 or 0)-(UIS:IsKeyDown(Enum.KeyCode.A) and 1 or 0)
+                direction=camera.CFrame.LookVector*forward+camera.CFrame.RightVector*sideways
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then up=up+1 end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then up=up-1 end
+        else direction=Vector3.zero; up=0 end
+        local target=direction+Vector3.new(0,up,0)
+        if target.Magnitude>1 then target=target.Unit end
+        target=target*state.flyValue
+        local step=math.clamp(dt,0,.25)
+        local frequency=target.Magnitude>.01 and 8 or 10
+        local offset=runtime.flightVelocity-target
+        local change=runtime.flightAcceleration+offset*frequency
+        local decay=math.exp(-frequency*step)
+        runtime.flightVelocity=target+(offset+change*step)*decay
+        runtime.flightAcceleration=(runtime.flightAcceleration-change*frequency*step)*decay
+        if target.Magnitude<.01 and runtime.flightVelocity.Magnitude<.05 and runtime.flightAcceleration.Magnitude<.1 then runtime.flightVelocity=Vector3.zero; runtime.flightAcceleration=Vector3.zero end
+        flyObjects[1].VectorVelocity=runtime.flightVelocity
+        flyObjects[2].CFrame=CFrame.lookAt(Vector3.zero,camera.CFrame.LookVector,camera.CFrame.UpVector)
+        if h and h:GetState()~=Enum.HumanoidStateType.Physics then h:ChangeState(Enum.HumanoidStateType.Physics) end
     end
 end)
 local visualTimer, fpsTime, frames = 0,0,0
@@ -1870,28 +1928,6 @@ connect(Run.RenderStepped,function(dt)
             if not spectateOriginal[camera] then spectateOriginal[camera]={subject=camera.CameraSubject,kind=camera.CameraType} end
             camera.CameraSubject=h
         end
-    end
-    if state.fly and camera and flyObjects[1] and flyObjects[1].Parent then
-        local h=humanoid()
-        local direction=h and h.MoveDirection or Vector3.zero
-        local up=touchVertical
-        if not UIS:GetFocusedTextBox() then
-            if not UIS.TouchEnabled then
-                local forward=(UIS:IsKeyDown(Enum.KeyCode.W) and 1 or 0)-(UIS:IsKeyDown(Enum.KeyCode.S) and 1 or 0)
-                local sideways=(UIS:IsKeyDown(Enum.KeyCode.D) and 1 or 0)-(UIS:IsKeyDown(Enum.KeyCode.A) and 1 or 0)
-                direction=camera.CFrame.LookVector*forward+camera.CFrame.RightVector*sideways
-            end
-            if UIS:IsKeyDown(Enum.KeyCode.Space) then up=up+1 end
-            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then up=up-1 end
-        else direction=Vector3.zero; up=0 end
-        local target=direction+Vector3.new(0,up,0)
-        if target.Magnitude>1 then target=target.Unit end
-        target=target*state.flyValue
-        runtime.flightVelocity=runtime.flightVelocity+(target-runtime.flightVelocity)*(1-math.exp(-9*math.min(dt,.1)))
-        if target.Magnitude<.01 and runtime.flightVelocity.Magnitude<.05 then runtime.flightVelocity=Vector3.zero end
-        flyObjects[1].VectorVelocity=runtime.flightVelocity
-        flyObjects[2].CFrame=CFrame.lookAt(Vector3.zero,camera.CFrame.LookVector,camera.CFrame.UpVector)
-        if h then h.PlatformStand=true end
     end
     frames=frames+1; fpsTime=fpsTime+dt; visualTimer=visualTimer+dt
     if fpsTime>=1 then
@@ -1964,8 +2000,6 @@ local api = {}
 api.Destroy = function()
     if not alive then return end
     alive=false
-    if runtime.cursorBound then pcall(function() Run:UnbindFromRenderStep(runtime.cursorBinding) end) end
-    runtime.releaseCursor()
     save(true)
     settings.lowEffects=false; features.applyPerformance()
     if runtime.performanceOwned.fps~=nil and type(setfpscap)=="function" then pcall(setfpscap,runtime.performanceOwned.fps) end
