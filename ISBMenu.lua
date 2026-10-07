@@ -1,7 +1,7 @@
--- ISB Menu 2.4.2 | Own-game universal client toolkit
+-- ISB Menu 2.4.3 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.4.2",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.4.3",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -759,10 +759,27 @@ round(statusBar,22); runtime.glassSurface(statusBar,22); stroke(statusBar)
 local statusScale=make("UIScale",{Scale=1},statusBar)
 runtime.statusIcon=imageIcon(statusBar,"shield-check",18,UDim2.fromOffset(15,13),C.accent)
 local metrics=label(statusBar,"ISB  /  -- Spieler  ·  -- ms  ·  -- FPS",11,C.text,UDim2.fromOffset(43,11),UDim2.fromOffset(250,22))
-make("Frame",{Name="ExecutorDivider",BackgroundColor3=C.muted,BackgroundTransparency=.7,Position=UDim2.new(1,-116,0,14),Size=UDim2.fromOffset(1,16)},statusBar)
-runtime.statusExecutor=label(statusBar,session.executor,11,C.text,UDim2.new(1,-109,0,11),UDim2.fromOffset(95,22))
+runtime.statusDivider=make("Frame",{Name="ExecutorDivider",BackgroundColor3=C.muted,BackgroundTransparency=.7,Position=UDim2.fromOffset(280,14),Size=UDim2.fromOffset(1,16)},statusBar)
+runtime.statusExecutor=label(statusBar,session.executor,11,C.text,UDim2.fromOffset(290,11),UDim2.fromOffset(60,22))
 runtime.statusExecutor.Name="ExecutorName"; runtime.statusExecutor.TextXAlignment=Enum.TextXAlignment.Right; runtime.statusExecutor.TextTruncate=Enum.TextTruncate.AtEnd
+runtime.textService=optionalService("TextService")
+function runtime.updateStatusLayout()
+    local function width(text,font)
+        local ok,size=pcall(function() return runtime.textService:GetTextSize(text,11,font,Vector2.new(1000,22)) end)
+        return math.ceil(ok and size.X or #text*5.5)
+    end
+    local metricWidth=width(metrics.Text,metrics.Font)
+    local executorWidth=math.min(150,width(session.executor,runtime.statusExecutor.Font))
+    metrics.Size=UDim2.fromOffset(metricWidth,22)
+    runtime.statusDivider.Position=UDim2.fromOffset(43+metricWidth+10,14)
+    runtime.statusExecutor.Position=UDim2.fromOffset(43+metricWidth+20,11)
+    runtime.statusExecutor.Size=UDim2.fromOffset(executorWidth,22)
+    statusBar.Size=UDim2.fromOffset(43+metricWidth+20+executorWidth+14,44)
+    local camera=workspace.CurrentCamera
+    if camera then statusScale.Scale=math.min(1,math.max(.1,(camera.ViewportSize.X-12)/statusBar.Size.X.Offset)) end
+end
 metrics.Font=Enum.Font.BuilderSansMedium
+runtime.updateStatusLayout()
 button(header, "–", UDim2.new(1,-83,0,12), UDim2.fromOffset(28,28), function() setOpen(false) end)
 button(header, "×", UDim2.new(1,-47,0,12), UDim2.fromOffset(28,28), function() setOpen(false) end)
 local launcher = button(gui, "ISB", UDim2.new(0,12,0.5,-22), UDim2.fromOffset(44,44), function() setOpen(not opened) end)
@@ -917,7 +934,7 @@ local function fit()
     local camera = workspace.CurrentCamera
     if not camera then return end
     local size = camera.ViewportSize
-    statusScale.Scale=math.min(1,math.max(.1,(size.X-24)/414))
+    statusScale.Scale=math.min(1,math.max(.1,(size.X-12)/statusBar.Size.X.Offset))
     scale.Scale = math.min(1, math.max(0.1, (size.X-24)/600), math.max(0.1, (size.Y-(runtime.dockClearance or 18)-82)/552))
     quickBaseScale=math.min(1,math.max(.1,(size.X-24)/520),math.max(.1,(size.Y-24)/108))
     if quickScale then quickScale.Scale=quickBaseScale end
@@ -1115,14 +1132,14 @@ addAction("esp", "Darstellung", "Spielermarkierungen", "Lokale Highlights für a
 addAction("names", "Darstellung", "Namensanzeigen", "Name und Entfernung über dem Charakter", "toggle", function() state.names=not state.names end, function() return state.names end)
 addAction("bright", "Darstellung", "Helle Umgebung", "Lokales Tageslicht mit wiederherstellbaren Werten", "toggle", function() state.fullbright=not state.fullbright; applyLighting() end, function() return state.fullbright end)
 addAction("shadows", "Darstellung", "Schatten deaktivieren", "Lokale Beleuchtung vereinfachen", "toggle", function() state.shadows=not state.shadows; applyLighting() end, function() return state.shadows end)
-addAction("fov", "Darstellung", "Sichtfeld aktiv", "Kamerawinkel individuell anpassen", "toggle", function()
+addAction("fov", "Bewegung", "Sichtfeld aktiv", "Kamerawinkel individuell anpassen", "toggle", function()
     state.fov=not state.fov
     if not state.fov then
         for camera,value in pairs(cameraOriginal) do if camera.Parent then camera.FieldOfView=value end end
         table.clear(cameraOriginal)
     end
 end, function() return state.fov end)
-addAction("fovvalue", "Darstellung", "Sichtfeld", "Kamerawinkel in Grad", "slider", function(v) state.fovValue=v end, function() return state.fovValue end, 40,110,1)
+addAction("fovvalue", "Bewegung", "Sichtfeld", "Kamerawinkel in Grad", "slider", function(v) state.fovValue=v end, function() return state.fovValue end, 40,110,1)
 addAction("unspectate", "Spieler", "Eigene Kamera", "Beobachtung beenden", "button", restoreCamera)
 
 local sound = make("Sound", {Name="ISBMenuMusic", Volume=settings.volume/100, Looped=false}, SoundService)
@@ -1307,19 +1324,24 @@ function runtime.drawSessionCard(includeJoin)
     local link="https://www.roblox.com/games/"..tostring(game.PlaceId)
     local job=tostring(game.JobId or "")
     local kind=(game.PrivateServerId and game.PrivateServerId~="") and "Privater Server" or "Öffentlicher Server"
-    local f=plainCard("Diese Sitzung",session.placeName,includeJoin and 258 or 224)
-    label(f,"Place-ID: "..tostring(game.PlaceId),11,C.text,UDim2.fromOffset(16,76),UDim2.new(.5,-20,0,20))
-    label(f,"Universe-ID: "..tostring(game.GameId or "—"),11,C.text,UDim2.new(.5,0,0,76),UDim2.new(.5,-16,0,20))
-    label(f,kind.."  ·  "..#Players:GetPlayers().." / "..tostring(Players.MaxPlayers or "—").." Spieler",11,C.muted,UDim2.fromOffset(16,102),UDim2.new(1,-32,0,20))
-    local id=label(f,"Job-ID: "..(job~="" and job or "Nicht verfügbar"),10,C.muted,UDim2.fromOffset(16,128),UDim2.new(1,-32,0,20)); id.TextTruncate=Enum.TextTruncate.AtEnd
-    local url=label(f,link,11,C.accent,UDim2.fromOffset(16,155),UDim2.new(1,-32,0,20)); url.TextTruncate=Enum.TextTruncate.AtEnd
-    rowButton(f,"Spiellink kopieren",UDim2.fromOffset(16,188),UDim2.fromOffset(150,26),function() copyText(link) end)
-    rowButton(f,"Server-ID kopieren",UDim2.fromOffset(176,188),UDim2.fromOffset(150,26),function() copyText(job~="" and job or "Nicht verfügbar") end)
-    if includeJoin then
-        rowButton(f,"Join-Script kopieren",UDim2.fromOffset(16,222),UDim2.fromOffset(168,26),function()
-            copyText(string.format('game:GetService("TeleportService"):TeleportToPlaceInstance(%s, %q, game:GetService("Players").LocalPlayer)\n-- by Larsiopuw',tostring(game.PlaceId),job))
-        end)
+    local f=make("Frame",{Name="SessionCard",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,includeJoin and 306 or 270)},content); round(f,18)
+    local thumbnail=make("ImageLabel",{Name="GameIcon",BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,16),Size=UDim2.fromOffset(52,52),Image="rbxthumb://type=GameIcon&id="..tostring(game.GameId).."&w=150&h=150"},f); round(thumbnail,13)
+    label(f,"Diese Sitzung",10,C.muted,UDim2.fromOffset(82,14),UDim2.new(1,-98,0,18))
+    local name=label(f,session.placeName,16,C.text,UDim2.fromOffset(82,34),UDim2.new(1,-98,0,28)); name.Font=Enum.Font.BuilderSansBold; name.TextTruncate=Enum.TextTruncate.AtEnd
+    local function copyField(title,value,pos,dims)
+        local tile=rowButton(f,"",pos,dims,function() copyText(value) end); tile.BackgroundColor3=C.panel; round(tile,12)
+        label(tile,title,10,C.muted,UDim2.fromOffset(12,6),UDim2.new(1,-44,0,16))
+        imageIcon(tile,"clipboard-document",14,UDim2.new(1,-26,0,10),C.muted)
+        local text=label(tile,value,12,C.text,UDim2.fromOffset(12,23),UDim2.new(1,-24,0,22)); text.TextTruncate=Enum.TextTruncate.AtEnd
     end
+    copyField("Place-ID",tostring(game.PlaceId),UDim2.fromOffset(16,82),UDim2.new(.5,-22,0,54))
+    copyField("Universe-ID",tostring(game.GameId or "—"),UDim2.new(.5,6,0,82),UDim2.new(.5,-22,0,54))
+    copyField("Server-ID",job~="" and job or "Nicht verfügbar",UDim2.fromOffset(16,146),UDim2.new(1,-32,0,54))
+    label(f,kind.."  ·  "..#Players:GetPlayers().." / "..tostring(Players.MaxPlayers or "—").." Spieler",11,C.muted,UDim2.fromOffset(16,208),UDim2.new(1,-32,0,20))
+    rowButton(f,"Spiellink kopieren",UDim2.fromOffset(16,236),UDim2.fromOffset(150,26),function() copyText(link) end)
+    if includeJoin then rowButton(f,"Join-Script kopieren",UDim2.fromOffset(16,272),UDim2.fromOffset(168,26),function()
+        copyText(string.format('game:GetService("TeleportService"):TeleportToPlaceInstance(%s, %q, game:GetService("Players").LocalPlayer)\n-- by Larsiopuw',tostring(game.PlaceId),job))
+    end) end
 end
 local features={}
 function features.applyPerformance()
@@ -1343,7 +1365,7 @@ connect(workspace.DescendantAdded,function(obj)
         runtime.performanceOwned[obj]=obj.Enabled; obj.Enabled=false
     end
 end)
-function features.detectGameStaff(other)
+function features.detectGameStaff(other,joined)
     task.spawn(function()
         local detected=table.find(CONFIG.StaffUserIds,other.UserId)~=nil
         pcall(function()
@@ -1368,8 +1390,9 @@ function features.detectGameStaff(other)
             end
         end)
         if not alive or not other.Parent then return end
+        local previous=runtime.gameStaff[other]
         runtime.gameStaff[other]=detected
-        if detected and other~=player then notify(other.DisplayName.." gehört zur Spiel-Leitung.","Spiel-Admin","shield-check") end
+        if detected and not previous and other~=player then notify(other.DisplayName..(joined and " ist dem Server beigetreten." or " gehört zur Spiel-Leitung."),joined and "Admin beigetreten" or "Spiel-Admin","shield-check") end
     end)
 end
 function features.drawProfile()
@@ -1479,6 +1502,14 @@ local function drawCharacter()
         if enable then local control=findAction(enable); if not control.get() then control.fn() end end
     end
     drawAction(action)
+    if tuning=="fovvalue" then
+        local reset=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
+        rowButton(reset,"Sichtfeld zurücksetzen",UDim2.new(),UDim2.fromOffset(184,28),function()
+            local control=findAction("fov"); if control.get() then control.fn() end
+            state.fovValue=workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70
+            save(); render()
+        end)
+    end
     local footer=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
     rowButton(footer,"Rejoin",UDim2.fromOffset(0,0),UDim2.fromOffset(110,32),rejoin)
     rowButton(footer,"Serverhop",UDim2.fromOffset(120,0),UDim2.fromOffset(110,32),serverHop)
@@ -1879,15 +1910,25 @@ connect(UIS.JumpRequest,function()
     local h=humanoid()
     if state.infiniteJump and not UIS:GetFocusedTextBox() and h and h.Health>0 then h:ChangeState(Enum.HumanoidStateType.Jumping) end
 end)
+function runtime.keyName(code)
+    local name=code.Name
+    if #name==1 and name:match("%u") then
+        local ok,text=pcall(function() return UIS:GetStringForKeyCode(code) end)
+        if ok and type(text)=="string" and #text==1 and text:upper():match("%u") then return text:upper() end
+        if name=="Y" then return "Z" elseif name=="Z" then return "Y" end
+    end
+    return name
+end
 connect(UIS.InputBegan,function(input,processed)
+    local pressed=runtime.keyName(input.KeyCode)
     if captureKey and input.UserInputType==Enum.UserInputType.Keyboard then
         local field=captureKey==true and "key" or captureKey
         captureKey=false
         if input.KeyCode~=Enum.KeyCode.Escape and input.KeyCode~=Enum.KeyCode.Unknown then
             for _,other in ipairs({"key","dockKey","searchKey","flyKey","noclipKey","espKey","speedKey"}) do
-                if other~=field and settings[other]==input.KeyCode.Name then notify("Diese Taste wird bereits verwendet.","Tastenkürzel"); render(); return end
+                if other~=field and settings[other]==pressed then notify("Diese Taste wird bereits verwendet.","Tastenkürzel"); render(); return end
             end
-            settings[field]=input.KeyCode.Name
+            settings[field]=pressed
             if field=="key" then CONFIG.ToggleKey=input.KeyCode end
             save()
         end
@@ -1895,12 +1936,12 @@ connect(UIS.InputBegan,function(input,processed)
     end
     if input.KeyCode==Enum.KeyCode.Escape and quickSearchOpen then setQuickSearch(false); return end
     if processed or UIS:GetFocusedTextBox() then return end
-    if input.KeyCode==CONFIG.ToggleKey then setOpen(not opened)
-    elseif input.KeyCode==Enum.KeyCode[settings.dockKey] then setDockVisible(not dockVisible)
-    elseif input.KeyCode==Enum.KeyCode[settings.searchKey] then setQuickSearch(not quickSearchOpen)
+    if pressed==settings.key then setOpen(not opened)
+    elseif pressed==settings.dockKey then setDockVisible(not dockVisible)
+    elseif pressed==settings.searchKey then setQuickSearch(not quickSearchOpen)
     else
         for _,entry in ipairs({{"flyKey","fly"},{"noclipKey","noclip"},{"espKey","esp"},{"speedKey","speed"}}) do
-            if input.KeyCode==Enum.KeyCode[settings[entry[1]]] then
+            if pressed==settings[entry[1]] then
                 local action=findAction(entry[2]); local ok=pcall(action.fn)
                 if ok then playUISound("tap"); render(); notify(action.name..(action.get() and " aktiviert" or " deaktiviert"),"Tastenkürzel")
                 else notify("Aktion konnte nicht ausgeführt werden.","Tastenkürzel") end
@@ -2005,7 +2046,8 @@ connect(Run.RenderStepped,function(dt)
         dockClock.Text=os.date("%H:%M")
         local ok,ping=pcall(function() return player:GetNetworkPing()*1000 end)
         session.fps=math.floor(frames/fpsTime+0.5); session.ping=ok and math.floor(ping+0.5) or nil
-        metrics.Text=string.format("%d / %s  Spieler    ·    %s ms    ·    %d FPS",#Players:GetPlayers(),tostring(Players.MaxPlayers or "—"),session.ping and tostring(session.ping) or "--",session.fps)
+        metrics.Text=string.format("%d / %s Spieler  ·  %s ms  ·  %d FPS",#Players:GetPlayers(),tostring(Players.MaxPlayers or "—"),session.ping and tostring(session.ping) or "--",session.fps)
+        runtime.updateStatusLayout()
         if page=="Start" then updateDashboard() end
         frames=0; fpsTime=0
     end
@@ -2035,13 +2077,19 @@ connect(Run.RenderStepped,function(dt)
             if state.names and targetRoot then
                 if not tags[other] then
                     local tag=make("BillboardGui",{Name="ISBNametag",Adornee=targetRoot,AlwaysOnTop=true,
-                        Size=UDim2.fromOffset(220,38),StudsOffset=Vector3.new(0,3.5,0)},gui)
-                    local text=label(tag,"",12,C.text,UDim2.new(),UDim2.fromScale(1,1))
-                    text.TextXAlignment=Enum.TextXAlignment.Center; text.TextStrokeTransparency=0.35
+                        Size=UDim2.fromOffset(190,56),StudsOffset=Vector3.new(0,3.5,0)},gui)
+                    local shell=make("Frame",{Name="NameCard",Size=UDim2.fromScale(1,1),BackgroundColor3=C.panel,BackgroundTransparency=.12},tag); round(shell,14); stroke(shell)
+                    local badge=make("Frame",{Name="Badge",BackgroundColor3=color,Position=UDim2.fromOffset(10,13),Size=UDim2.fromOffset(28,28)},shell); round(badge,14)
+                    imageIcon(badge,"user",15,UDim2.fromOffset(6,6),C.text)
+                    local name=label(shell,other.DisplayName,13,C.text,UDim2.fromOffset(46,7),UDim2.new(1,-56,0,22)); name.Name="PlayerName"; name.Font=Enum.Font.BuilderSansBold; name.TextTruncate=Enum.TextTruncate.AtEnd
+                    local info=label(shell,"",10,C.muted,UDim2.fromOffset(46,30),UDim2.new(1,-56,0,17)); info.Name="PlayerInfo"
                     tags[other]=tag
                 end
                 local distance=ownRoot and math.floor((ownRoot.Position-targetRoot.Position).Magnitude) or 0
-                tags[other]:FindFirstChildOfClass("TextLabel").Text=other.DisplayName .. "  ·  " .. distance .. " studs"
+                local shell=tags[other]:FindFirstChild("NameCard")
+                shell:FindFirstChild("PlayerName").Text=other.DisplayName
+                shell:FindFirstChild("PlayerInfo").Text=distance.." studs"..(staff and " · Admin" or (friend and " · Freund" or ""))
+                shell:FindFirstChild("Badge").BackgroundColor3=color
             end
         end
     end
@@ -2059,8 +2107,10 @@ connect(player.CharacterAdded,function(char)
     end)
 end)
 refreshPlayers=function() if page=="Spieler" or page=="Start" then render() end end
-connect(Players.PlayerAdded,function(other) features.detectGameStaff(other); refreshPlayers() end)
+connect(Players.PlayerAdded,function(other) features.detectGameStaff(other,true); refreshPlayers() end)
 connect(Players.PlayerRemoving,function(other)
+    if session.friends[other.UserId] then notify(other.DisplayName.." hat den Server verlassen.","Freund verlassen","users") end
+    if runtime.gameStaff[other] then notify(other.DisplayName.." hat den Server verlassen.","Admin verlassen","shield-check") end
     runtime.gameStaff[other]=nil
     if highlights[other] then highlights[other]:Destroy(); highlights[other]=nil end
     if tags[other] then tags[other]:Destroy(); tags[other]=nil end
@@ -2125,7 +2175,7 @@ task.spawn(function()
 end)
 connect(Players.PlayerAdded,function(other)
     if session.friends[other.UserId] then notify(other.DisplayName.." ist dem Server beigetreten.","Freund beigetreten","user-plus") end
-    if table.find(CONFIG.StaffUserIds,other.UserId) then notify(other.DisplayName.." steht in deiner konfigurierten Staff-Liste.","Staff im Server","shield-check") end
+
 end)
 for _,other in ipairs(Players:GetPlayers()) do features.detectGameStaff(other) end
 task.spawn(function()
