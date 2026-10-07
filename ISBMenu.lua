@@ -1,7 +1,7 @@
--- ISB Menu 2.4.1 | Own-game universal client toolkit
+-- ISB Menu 2.4.2 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.4.1",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.4.2",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -172,7 +172,7 @@ local playUISound=function() end
 local dockVisible,quickSearchOpen=true,false
 local quickScale,quickBaseScale=nil,1
 local startedAt=os.clock()
-local session={executor="Nicht erkannt",executorVersion="",placeName="Place "..tostring(game.PlaceId),friends={},friendTotal=nil,
+local session={executor="Nicht erkannt",executorVersion="",placeName="Spielname nicht verfügbar",friends={},friendTotal=nil,
     onlineFriends=nil,voiceStatus="Nicht geprüft",voiceChecking=false,logs={},fps=0,ping=nil}
 local servers={data={},cursor=nil,nextCursor=nil,history={},sort="Asc",loading=false,error=nil,loaded=false,generation=0}
 local scriptCatalog={}
@@ -878,8 +878,8 @@ local content = make("ScrollingFrame", {BackgroundTransparency = 1, BorderSizePi
     AutomaticCanvasSize = Enum.AutomaticSize.Y}, window)
 local layout = make("UIListLayout", {Padding = UDim.new(0,10), SortOrder = Enum.SortOrder.LayoutOrder}, content)
 make("UIPadding", {PaddingBottom = UDim.new(0,12), PaddingRight = UDim.new(0,6)}, content)
-local notificationStack=make("Frame",{BackgroundTransparency=1,AnchorPoint=Vector2.new(1,1),
-    Position=UDim2.new(1,-18,1,-92),Size=UDim2.new(0,300,1,-130),ZIndex=20},gui)
+local notificationStack=make("Frame",{Name="Notifications",BackgroundTransparency=1,AnchorPoint=Vector2.new(1,1),
+    Position=UDim2.new(1,-12,1,-12),Size=UDim2.new(0,300,1,-24),ZIndex=20},gui)
 make("UIListLayout",{Padding=UDim.new(0,8),VerticalAlignment=Enum.VerticalAlignment.Bottom,SortOrder=Enum.SortOrder.LayoutOrder},notificationStack)
 local notices={}
 notify = function(message,heading,iconName)
@@ -918,12 +918,63 @@ local function fit()
     if not camera then return end
     local size = camera.ViewportSize
     statusScale.Scale=math.min(1,math.max(.1,(size.X-24)/414))
-    scale.Scale = math.min(1, math.max(0.1, (size.X-24)/600), math.max(0.1, (size.Y-100)/552))
+    scale.Scale = math.min(1, math.max(0.1, (size.X-24)/600), math.max(0.1, (size.Y-(runtime.dockClearance or 18)-82)/552))
     quickBaseScale=math.min(1,math.max(.1,(size.X-24)/520),math.max(.1,(size.Y-24)/108))
     if quickScale then quickScale.Scale=quickBaseScale end
-    host.Position = UDim2.new(0.5,0,1,-18)
+    local position=UDim2.new(.5,0,1,-(runtime.dockClearance or 18))
+    if runtime.dockFitReady then animate(host,{Position=position}) else host.Position=position; runtime.dockFitReady=true end
+    notificationStack.Size=UDim2.new(0,math.min(300,math.max(120,size.X-24)),1,-24)
 end
 fit()
+runtime.inventoryRoots={playerGui}
+do
+    local core=optionalService("CoreGui")
+    if core then table.insert(runtime.inventoryRoots,core) end
+end
+function runtime.updateInventoryClearance()
+    local camera=workspace.CurrentCamera
+    if not camera then return end
+    local viewport=camera.ViewportSize
+    local clearance,order=18,90
+    local half=300*scale.Scale
+    for _,source in ipairs(runtime.inventoryRoots) do
+        local ok,objects=pcall(function() return source:GetDescendants() end)
+        if ok then
+            for _,obj in ipairs(objects) do
+                if source==playerGui and obj:IsA("ScreenGui") and obj~=gui and obj.Enabled~=false then
+                    order=math.max(order,math.min(2147483646,(obj.DisplayOrder or 0)+1))
+                end
+                if obj:IsA("GuiObject") then
+                    local valid,top=pcall(function()
+                        local visible,named=true,false
+                        local ancestor=obj
+                        while ancestor and ancestor~=source do
+                            if ancestor==gui then return nil end
+                            if ancestor:IsA("GuiObject") and (not ancestor.Visible or (ancestor:IsA("CanvasGroup") and ancestor.GroupTransparency>=.99)) then visible=false; break end
+                            if ancestor:IsA("ScreenGui") and not ancestor.Enabled then visible=false; break end
+                            local name=ancestor.Name:lower()
+                            if name:find("hotbar",1,true) or name:find("backpack",1,true) or name:find("inventory",1,true) or name:find("quickbar",1,true) or name:find("toolbelt",1,true) then named=true end
+                            ancestor=ancestor.Parent
+                        end
+                        if not visible or not named then return nil end
+                        local absolute,size=obj.AbsolutePosition,obj.AbsoluteSize
+                        local origin=gui.AbsolutePosition
+                        local position=Vector2.new(absolute.X-origin.X,absolute.Y-origin.Y)
+                        if size.X<120 or size.Y<20 or size.Y>math.min(220,viewport.Y*.3) then return nil end
+                        if position.Y<viewport.Y*.65 or position.Y>=viewport.Y or position.Y+size.Y<=0 then return nil end
+                        if position.X+size.X<viewport.X*.5-half or position.X>viewport.X*.5+half then return nil end
+                        return position.Y
+                    end)
+                    if valid and top then clearance=math.max(clearance,viewport.Y-top+12) end
+                end
+            end
+        end
+    end
+    gui.DisplayOrder=order
+    if runtime.dockClearance~=clearance then runtime.dockClearance=clearance; fit() end
+end
+runtime.inventoryTimer=0
+runtime.updateInventoryClearance()
 local openRevision=0
 setOpen=function(value)
     if value~=opened then playUISound(value and "open" or "close") end
@@ -1252,6 +1303,24 @@ local function plainCard(name,description,height)
     for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-32,0,child.Text==name and 24 or 36) end end
     return f
 end
+function runtime.drawSessionCard(includeJoin)
+    local link="https://www.roblox.com/games/"..tostring(game.PlaceId)
+    local job=tostring(game.JobId or "")
+    local kind=(game.PrivateServerId and game.PrivateServerId~="") and "Privater Server" or "Öffentlicher Server"
+    local f=plainCard("Diese Sitzung",session.placeName,includeJoin and 258 or 224)
+    label(f,"Place-ID: "..tostring(game.PlaceId),11,C.text,UDim2.fromOffset(16,76),UDim2.new(.5,-20,0,20))
+    label(f,"Universe-ID: "..tostring(game.GameId or "—"),11,C.text,UDim2.new(.5,0,0,76),UDim2.new(.5,-16,0,20))
+    label(f,kind.."  ·  "..#Players:GetPlayers().." / "..tostring(Players.MaxPlayers or "—").." Spieler",11,C.muted,UDim2.fromOffset(16,102),UDim2.new(1,-32,0,20))
+    local id=label(f,"Job-ID: "..(job~="" and job or "Nicht verfügbar"),10,C.muted,UDim2.fromOffset(16,128),UDim2.new(1,-32,0,20)); id.TextTruncate=Enum.TextTruncate.AtEnd
+    local url=label(f,link,11,C.accent,UDim2.fromOffset(16,155),UDim2.new(1,-32,0,20)); url.TextTruncate=Enum.TextTruncate.AtEnd
+    rowButton(f,"Spiellink kopieren",UDim2.fromOffset(16,188),UDim2.fromOffset(150,26),function() copyText(link) end)
+    rowButton(f,"Server-ID kopieren",UDim2.fromOffset(176,188),UDim2.fromOffset(150,26),function() copyText(job~="" and job or "Nicht verfügbar") end)
+    if includeJoin then
+        rowButton(f,"Join-Script kopieren",UDim2.fromOffset(16,222),UDim2.fromOffset(168,26),function()
+            copyText(string.format('game:GetService("TeleportService"):TeleportToPlaceInstance(%s, %q, game:GetService("Players").LocalPlayer)\n-- by Larsiopuw',tostring(game.PlaceId),job))
+        end)
+    end
+end
 local features={}
 function features.applyPerformance()
     local function pause(obj)
@@ -1321,7 +1390,7 @@ function features.drawProfile()
         label(tile,entry[1],10,C.muted,UDim2.fromOffset(15,10),UDim2.new(1,-30,0,18))
         local value=label(tile,entry[2],12,C.text,UDim2.fromOffset(15,34),UDim2.new(1,-30,0,31)); value.TextWrapped=true; value.Font=Enum.Font.BuilderSansMedium
     end
-    plainCard("Diese Sitzung",session.placeName.."\nPlace "..tostring(game.PlaceId).."  ·  Universe "..tostring(game.GameId),94)
+    runtime.drawSessionCard(false)
     local tools=plainCard("Sitzungswerkzeuge","Deine Daten und gespeicherten Einstellungen exportieren.",110)
     rowButton(tools,"Profil kopieren",UDim2.fromOffset(16,72),UDim2.fromOffset(120,28),function() copyText(player.Name.." / "..player.UserId.." / "..runtime.role) end)
     rowButton(tools,"Sitzung kopieren",UDim2.fromOffset(146,72),UDim2.fromOffset(126,28),function() copyText("Place "..game.PlaceId.." / Job "..game.JobId) end)
@@ -1455,10 +1524,7 @@ local function drawServers()
         if servers.loading or not servers.nextCursor then return end
         table.insert(servers.history,servers.cursor or false); fetchServers(servers.nextCursor)
     end)
-    local details=plainCard("Diese Sitzung",string.format("Place %s  ·  Universe %s\nJob-ID: %s",tostring(game.PlaceId),tostring(game.GameId or "—"),tostring(game.JobId or "—")),104)
-    rowButton(details,"Join-Script kopieren",UDim2.fromOffset(16,74),UDim2.fromOffset(168,26),function()
-        copyText(string.format('game:GetService("TeleportService"):TeleportToPlaceInstance(%s, %q, game:GetService("Players").LocalPlayer)\n-- by Larsiopuw',tostring(game.PlaceId),tostring(game.JobId or "")))
-    end)
+    runtime.drawSessionCard(true)
 end
 local function drawVoice()
     plainCard("Voice-Status",session.voiceStatus,72)
@@ -1932,6 +1998,8 @@ connect(Run.RenderStepped,function(dt)
             camera.CameraSubject=h
         end
     end
+    runtime.inventoryTimer=runtime.inventoryTimer+dt
+    if runtime.inventoryTimer>=.5 then runtime.inventoryTimer=0; runtime.updateInventoryClearance() end
     frames=frames+1; fpsTime=fpsTime+dt; visualTimer=visualTimer+dt
     if fpsTime>=1 then
         dockClock.Text=os.date("%H:%M")
@@ -2032,8 +2100,11 @@ end
 api.Notify=notify
 env.ISBMenu=api
 task.spawn(function()
-    if MarketplaceService then
-        local ok,info=pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId,Enum.InfoType.Asset) end)
+    if Marketplace then
+        local ok,info=pcall(function()
+            if type(Marketplace.GetProductInfoAsync)=="function" then return Marketplace:GetProductInfoAsync(game.PlaceId,Enum.InfoType.Asset) end
+            return Marketplace:GetProductInfo(game.PlaceId,Enum.InfoType.Asset)
+        end)
         if alive and ok and type(info)=="table" then session.placeName=tostring(info.Name or session.placeName) end
     end
     local ok,friends=pcall(function() return Players:GetFriendsAsync(player.UserId) end)
@@ -2050,7 +2121,7 @@ task.spawn(function()
     end
     local good,online=pcall(function() return player:GetFriendsOnlineAsync(200) end)
     if alive and good and type(online)=="table" then session.onlineFriends=#online end
-    if alive and page=="Start" then render() end
+    if alive and (page=="Start" or page=="Profil" or page=="Server") then render() end
 end)
 connect(Players.PlayerAdded,function(other)
     if session.friends[other.UserId] then notify(other.DisplayName.." ist dem Server beigetreten.","Freund beigetreten","user-plus") end
