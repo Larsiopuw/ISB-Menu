@@ -1,4 +1,4 @@
-# ISB Menu 2.5.7 · by Larsiopuw
+# ISB Menu 2.5.8 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -10,11 +10,17 @@ Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das D
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
 
-## Korrekturen in 2.5.7
+## Änderungen in 2.5.8
 
-Gezeichnete Kopier-Icons in den Spielerdetails besitzen jetzt eine gemeinsame zentrierte Gruppe für beide Blätter und dieselbe zusätzliche Hover-/Druckanimation wie Bild-Icons. Kopieren bleibt am selben Button. 1267 simulierte Assertions bestehen, einschließlich Icon-Vergrößerung, mittigem Pivot, Rücksetzung und tatsächlichem Kopierwert.
+Die obere Aktivitätskapsel wurde nach dem Live-Test auf Benutzerwunsch vollständig entfernt. Musik, Timer und Stoppuhr liegen im normalen Musikmenü. Beide Uhren laufen unabhängig weiter; jede hat Pause/Weiter und Zurücksetzen. Helligkeit lässt sich in Darstellung einstellen. Die Begrüßung „Hey, <Anzeigename>.“ blendet am Dock ein und geht danach in die Navigation über; reduzierte Bewegung wird berücksichtigt.
 
-Der Benutzer bestätigt die Hoverbewegung und vollständigen Ecken an den übrigen Stellen im laufenden Spiel. Die Fassung mit dem ergänzten Kopier-Icon-Fix ist geladen; dessen zusätzliche Benutzerbestätigung steht noch aus.
+Gezeichnete Kopier-Icons vergrößern sich deutlich um 32 Prozent innerhalb der gemeinsamen bewegten Fläche. Dezente Hover- und Benachrichtigungstöne sind gebündelt, gedrosselt und über Interface-Sounds abschaltbar. Freund-/Admin-Beitritt und Verlassen haben eigene Töne.
+
+Speed und Jump werden zusätzlich bei Eigenschaftsänderungen sowie in Heartbeat und RenderStepped erneut angewendet. Eigene Verbindungen werden beim Wechsel des Humanoids und beim Entfernen des Menüs getrennt. Roleplay verknüpft den eigenen PhysicsRepRootPart nicht mehr mit einem fremden Avatar. Wirkung gegen die konkreten Spiel-Resets und Sichtbarkeit auf einem anderen Client sind noch nicht durch den Benutzer bestätigt.
+
+Die fest codierte Regionsmeldung wurde ersetzt: vom Spiel gemeldete Serverregion hat Vorrang, andernfalls wird ein verfügbarer öffentlicher Verbindungsendpunkt gezielt per HTTPS geolokalisiert und als „Verbindung“ bezeichnet. Es wird niemals ersatzweise die Spieler-IP abgefragt. Im aktuellen Live-Client liefert die zugängliche LogHistory keinen Serverendpunkt; dort bleibt die ehrliche Meldung „Server meldet keine Region“. Roblox-Netzwerkvermittlung erlaubt keine garantierte Aussage über die physische Serverregion.
+
+1185 simulierte Assertions bestehen; sie prüfen insbesondere Kopieren, Bewegung nach Spiel-Overrides, getrennte Uhren und das vollständige Entfernen der oberen Kapsel. Der Live-Loader meldet erfolgreichen Start; die abschließende Benutzerbestätigung für Kopier-Hover, Speed und fremde Avataransicht steht aus.
 
 ## Korrekturen in 2.5.6
 
