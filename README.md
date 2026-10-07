@@ -1,4 +1,4 @@
-# ISB Menu 2.5.0 · by Larsiopuw
+# ISB Menu 2.5.1 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -10,20 +10,30 @@ Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das D
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
 
-## Neu in 2.5
+## Korrekturen in 2.5.1
 
-- Lesbarere Schrift, stärkere Statuswerte und kompakte ISB-/ISBQ-Schaltflächen. ISB schaltet das Dock, ISBQ öffnet Schnellaktionen mit den ausgerüsteten Avatar-Emotes.
+Kopierfelder verwenden gezeichnete Kopier-Icons statt eines nicht unterstützten Zeichens. Die Namenskarten zeigen das Avatarbild des jeweiligen Spielers. Beobachten wird am gleichen Knopf mit „Beenden“ ausgeschaltet; beim Verlassen wird die Kamera weiterhin wiederhergestellt. Die Skalierung liegt in einer abgerundeten Karte und hat „Standard · 100 %“ als Reset.
+
+Rollenerkennung berücksichtigt neben Owner/Admin/Developer/Moderator auch CoOwner, Co-Owner, Manager/Management, Helper, Supporter und Support-Team. Teamzuweisung ist dafür nicht notwendig. Fan-/Not-/Former-/Ex-Bezeichnungen werden ausgeschlossen. Öffentliche Gruppenrollen sind Hinweise auf Staff, kein Beweis für tatsächliche Spielberechtigungen.
+
+Outfits werden auf selbst gespeicherte vollständige Avatare gefiltert; gekaufte Pakete, Animationen und Köpfe werden nicht als gespeicherte Charaktere angezeigt. Der Abruf wurde anonym beim Benutzer aus dem Screenshot mit HTTP 200 und neun passenden Einträgen geprüft. Filter: [Roblox Avatar API](https://create.roblox.com/docs/cloud/reference/domains/avatar).
+
+Der lokale Voice-Start verlässt Voice, wartet 2,3 Sekunden, fordert den Join an und wendet nach weiteren 0,3 Sekunden die Verbindungssteuerung an; die achte Verbindung wird aktiviert und ausgelöst. Abbruch verhindert verspätete Join-/Ready-Aufrufe. Ausschalten und Beenden stellen die erfassten Verbindungszustände wieder her. Kein Nachweis eines Schutzes vor serverseitigen Voice-Sperren.
+
+## Funktionen ab 2.5
+
+- Lesbarere Schrift, stärkere Statuswerte und kompakte ISB-/ISBQ-Schaltflächen. ISB schaltet das Dock; ISBQ öffnet ein eigenes Roleplay-Panel direkt unter der oberen Statusleiste, mit passender Breite und unabhängig vom Hauptfenster.
 - Spielersuche durchsucht ausschließlich Spieler. Freunde stehen vor erkanntem Staff, danach folgen die übrigen Spieler; Aktualisierungen erhalten die Scrollposition. Die genaue öffentliche Gruppenrolle erscheint in der Liste.
-- Details: Avatar, Benutzer-ID, Accountalter, Team, Gesundheit, Beziehung, Gruppenrolle und Profil-Link. „Freund anfragen“ öffnet den Roblox-Dialog. Namenshistorie (erste zehn Einträge) und öffentliche Outfits (erste zwanzig) werden erst auf Klick geladen und zwischengespeichert. Fehler und leere Ergebnisse werden ausgewiesen.
+- Details: Avatar, Benutzer-ID, Accountalter, Team, Gesundheit, Beziehung, Gruppenrolle und Profil-Link. „Freund anfragen“ öffnet den Roblox-Dialog. Namenshistorie (erste zehn Einträge) und gespeicherte Avatar-Outfits (erste zwanzig; isEditable=true und outfitType=Avatar) werden erst auf Klick geladen und zwischengespeichert. Fehler und leere Ergebnisse werden ausgewiesen.
 - Speed und Jump werden bei aktivierter Funktion vor jedem Physikschritt lokal erneut angewendet. Getrennte Werte; JumpPower/JumpHeight werden unterstützt. Mehrfachsprung setzt zusätzlich einen Aufwärtsimpuls. Serverkorrekturen können weiterhin eingreifen.
 - Q schaltet beim Fliegen vier Stufen: Normal 1×, Schnell 1,5×, Turbo 2× und Maximum 3× des eingestellten Flugtempos. Eine kompakte Anzeige zeigt Tempo und Stufe; deren Taste ist ebenfalls umbelegbar. Beim Schreiben greifen die Kürzel nicht.
 - Anti-Void merkt sich bei Bodenkontakt die letzte sichere Position und korrigiert lokal vor Erreichen der Fallgrenze. Keine Garantie gegen serverseitigen Tod oder spezielle Spielmechaniken.
 - Licht-Preset mit dezenter Farbkorrektur und Bloom; entfernt beim Ausschalten nur die selbst erzeugten Effekte.
 - Einstellungen für Links/Mitte/Rechts, Größe 50–120 %, Benachrichtigungen, Sounds und Öffnen beim Start werden automatisch gespeichert, sofern der Executor Dateizugriff bietet. Auf kleinen Bildschirmen wird die Größe zusätzlich begrenzt.
 
-Roleplay verwendet ausgerüstete Avatar-Emotes. Carry/Hug und ähnliche gemeinsame Aktionen benötigen die Unterstützung des jeweiligen Spiels. Die Vorschau ist eine Browserdarstellung mit ausdrücklich markierten Beispieldaten.
+Roleplay enthält Auf dem Kopf, Huckepack, Huckepack 2, Schulter sitzen, Umarmen und Tragen. Zielspieler auswählen und Aktion starten; Stoppen stellt eigene Charakterwerte und Kollisionen wieder her. Es wird ausschließlich der eigene Charakter lokal an einer relativen Position des Zielspielers gehalten. Die Aktionen verändern keinen fremden Charakter. Replikation, Animationen und Serverkorrekturen hängen vom Spiel und den Asset-Berechtigungen ab. Die Vorschau ist eine Browserdarstellung mit ausdrücklich markierten Beispieldaten.
 
-![ISBQ und Flugstufen in der Browservorschau](ISB-Schnellaktionen.png)
+![ISBQ-Roleplay in der Browservorschau](ISB-Schnellaktionen.png)
 
 ## Starten
 
@@ -95,7 +105,7 @@ OwnerNames enthält Larsiopuw; zusätzliche Menü-Admins stehen als numerische U
 
 ## Prüfung und Grenzen
 
-525 Assertions bestehen mit einer simulierten Roblox-API. Menü und beide Loader kompilieren mit Luau. Flugverlauf bei 30/120 Physikschritten, Geräusch-Wiederherstellung, Rollskala, direkte Zahleneingabe, alle vier Aktionskürzel und deren Speicherung wurden simuliert geprüft. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten. **Kein Live-Test in Roblox/Executor durchgeführt.** Bewegung, Voice, Assets und Teleports hängen vom Spiel und Executor ab.
+561 Assertions bestehen mit einer simulierten Roblox-API. Menü und beide Loader kompilieren mit Luau. Flugverlauf bei 30/120 Physikschritten, Geräusch-Wiederherstellung, Rollskala, direkte Zahleneingabe, alle vier Aktionskürzel und deren Speicherung wurden simuliert geprüft. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten. **Kein Live-Test in Roblox/Executor durchgeführt.** Bewegung, Voice, Assets und Teleports hängen vom Spiel und Executor ab.
 
 ScriptBlox nutzt die öffentliche API: Beliebt nach Aufrufen, Neu nach Aktualisierung. RoScripts nutzt öffentliche Trending-/Neu-Seiten und Such-HTML. Kein API-Key. Bei der Anbieterprüfung zu v2.3 lieferte ScriptBlox HTTP 200; der direkte RoScripts-Abruf wurde hier mit HTTP 403 blockiert. Anbieterfehler werden angezeigt; Website-Änderungen können Anpassungen erfordern. Fremder Code läuft erst nach ausdrücklichem Klick.
 

@@ -1,7 +1,7 @@
--- ISB Menu 2.5 | Own-game universal client toolkit
+-- ISB Menu 2.5.1 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.0",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.1",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -199,11 +199,9 @@ local function restoreVoiceConnections()
     table.clear(antiVC.originalConnections)
 end
 local function stopAntiVC()
-    antiVC.active=false
-    -- A pending reconnect restores captured signal states after it completes.
-    if not antiVC.loading then
-        restoreVoiceConnections()
-    end
+    antiVC.generation=(antiVC.generation or 0)+1
+    antiVC.active=false; antiVC.loading=false
+    restoreVoiceConnections()
 end
 local function captureVoiceConnections(enumerator)
     for _,entry in ipairs({{VoiceInternal,"StateChanged"},{VoiceInternal,"Participants"},{Voice,"StateChanged"},{Voice,"PlayerMicStateChanged"}}) do
@@ -252,7 +250,7 @@ local function requestJSON(url,headers)
     assert(type(decoded)=="table","Ungültige JSON-Antwort")
     return decoded
 end
-local function maintainVoiceConnections()
+local function maintainVoiceConnections(fireReady)
     local enumerator=type(getconnections)=="function" and getconnections or (type(get_signal_cons)=="function" and get_signal_cons)
     if not enumerator then return end
     captureVoiceConnections(enumerator)
@@ -261,8 +259,8 @@ local function maintainVoiceConnections()
             local service=entry[1]; if not service then return end
             local signal=entry[2]=="Participants" and service:GetPropertyChangedSignal("Participants") or service[entry[2]]
             local items=enumerator(signal)
-            for i,connection in ipairs(items) do
-                if i==8 then connection:Enable() else connection:Disable() end
+            for i,connection in pairs(items) do
+                pcall(function() if i==8 then connection:Enable(); if fireReady then connection:Fire() end else connection:Disable() end end)
             end
         end)
     end
@@ -274,14 +272,21 @@ local function toggleAntiVC()
         notify("Die benötigten Voice-Funktionen sind hier nicht verfügbar.","Voice"); return
     end
     antiVC.active=true; antiVC.loading=true
-    local ok,message=pcall(function() maintainVoiceConnections(); Voice:leaveVoice() end)
-    if not ok then antiVC.loading=false; stopAntiVC(); notify(tostring(message):sub(1,140),"Voice"); return end
+    antiVC.generation=(antiVC.generation or 0)+1; local generation=antiVC.generation
+    local enumerator=type(getconnections)=="function" and getconnections or get_signal_cons
+    captureVoiceConnections(enumerator)
+    local ok,message=pcall(function() Voice:leaveVoice() end)
+    if not ok then stopAntiVC(); notify(tostring(message):sub(1,140),"Voice"); return end
     task.delay(2.3,function()
-        antiVC.loading=false
-        if not alive or not antiVC.active then restoreVoiceConnections(); return end
+        if not alive or not antiVC.active or antiVC.generation~=generation then return end
         local joined=pcall(function() Voice:joinVoice() end)
-        if not joined then stopAntiVC() end
-        if alive then notify(joined and "Voice-Verbindung angefordert." or "Voice-Verbindung nicht verfügbar.","Voice"); if page=="Voice" then render() end end
+        if not joined then stopAntiVC(); if alive then notify("Voice-Verbindung nicht verfügbar.","Voice"); if page=="Voice" then render() end end; return end
+        task.delay(.3,function()
+            if not alive or not antiVC.active or antiVC.generation~=generation then return end
+            maintainVoiceConnections(true); antiVC.loading=false
+            notify("Voice-Verbindung erneuert und Client-Modus gestartet.","Voice")
+            if page=="Voice" then render() end
+        end)
     end)
 end
 
@@ -679,6 +684,7 @@ local function stopFly()
     flyHumanoid, flyAutoRotate, runtime.flyRoot = nil, nil,nil; runtime.flightVelocity=Vector3.zero; runtime.flightAcceleration=Vector3.zero
 end
 local function startFly()
+    if runtime.stopRoleplay then runtime.stopRoleplay() end
     stopFly()
     local r, h = root(), humanoid()
     if not r or not h or h.Health <= 0 then return end
@@ -762,7 +768,7 @@ round(statusBar,22); runtime.glassSurface(statusBar,22); stroke(statusBar)
 local statusScale=make("UIScale",{Scale=1},statusBar)
 runtime.statusToggle=button(statusBar,"ISB",UDim2.fromOffset(8,9),UDim2.fromOffset(32,26),function() setDockVisible(not dockVisible) end)
 runtime.statusToggle.Name="StatusDockToggle"
-runtime.statusQuick=button(statusBar,"ISBQ",UDim2.fromOffset(44,9),UDim2.fromOffset(42,26),function() if page=="Schnellaktionen" then setOpen(not opened) else page="Schnellaktionen"; query=""; render(); setOpen(true) end end)
+runtime.statusQuick=button(statusBar,"ISBQ",UDim2.fromOffset(44,9),UDim2.fromOffset(42,26),function() runtime.toggleQuickPanel() end)
 local metrics=label(statusBar,"ISB  /  -- Spieler  ·  -- ms  ·  -- FPS",11,C.text,UDim2.fromOffset(98,11),UDim2.fromOffset(250,22))
 runtime.statusDivider=make("Frame",{Name="ExecutorDivider",BackgroundColor3=C.muted,BackgroundTransparency=.7,Position=UDim2.fromOffset(280,14),Size=UDim2.fromOffset(1,16)},statusBar)
 runtime.statusExecutor=label(statusBar,session.executor,11,C.text,UDim2.fromOffset(290,11),UDim2.fromOffset(60,22))
@@ -782,6 +788,11 @@ function runtime.updateStatusLayout()
     statusBar.Size=UDim2.fromOffset(98+metricWidth+20+executorWidth+14,44)
     local camera=workspace.CurrentCamera
     if camera then statusScale.Scale=math.min(1,math.max(.1,(camera.ViewportSize.X-12)/statusBar.Size.X.Offset)) end
+    if runtime.quickPanel then
+        runtime.quickPanel.Size=UDim2.fromOffset(statusBar.Size.X.Offset,348)
+        runtime.quickPanel.Position=UDim2.new(1,-6,0,6+44*statusScale.Scale+8)
+        runtime.quickScale.Scale=statusScale.Scale
+    end
 end
 metrics.Name="Metrics"; metrics.Font=Enum.Font.BuilderSansBold; metrics.TextSize=12
 runtime.statusExecutor.Font=Enum.Font.BuilderSansBold; runtime.statusExecutor.TextSize=12
@@ -1216,6 +1227,7 @@ function runtime.drawRuler(parent,action)
     round(valueBox,10)
     local viewport=make("Frame",{Name="RollingRuler",Active=true,BackgroundTransparency=1,ClipsDescendants=true,
         Position=UDim2.fromOffset(16,57),Size=UDim2.new(1,-32,0,45)},parent)
+    round(viewport,12)
     local needle=make("Frame",{Name="RulerNeedle",BackgroundColor3=C.accent,AnchorPoint=Vector2.new(.5,0),
         Position=UDim2.fromScale(.5,0),Size=UDim2.fromOffset(2,23),ZIndex=3},viewport)
     round(needle,1)
@@ -1397,10 +1409,10 @@ function features.detectGameStaff(other,joined)
             table.sort(roles,function(a,b) return (a.Rank or 0)>(b.Rank or 0) end)
             if roles[1] and type(roles[1].Name)=="string" then roleLabel=roles[1].Name end
             for _,role in ipairs(roles) do
-                local name=string.lower(tostring(role.Name or "")):gsub("[^%w]"," ")
+                local name=tostring(role.Name or ""):gsub("(%l)(%u)","%1 %2"):lower():gsub("[^%w]"," ")
                 local padded=" "..name.." "
-                if not padded:find(" not ",1,true) and not padded:find(" fan ",1,true) then
-                    for _,term in ipairs({"admin","administrator","owner","developer","dev","moderator","staff","besitzer","entwickler"}) do
+                if not padded:find(" not ",1,true) and not padded:find(" fan ",1,true) and not padded:find(" former ",1,true) and not padded:find(" ex ",1,true) then
+                    for _,term in ipairs({"admin","administrator","owner","coowner","co owner","developer","dev","moderator","mod","staff","manager","management","helper","support","supporter","support staff","support team","besitzer","mitbesitzer","entwickler","leitung","helfer"}) do
                         if padded:find(" "..term.." ",1,true) then detected=true; break end
                     end
                 end
@@ -1758,35 +1770,110 @@ function runtime.setShader(value)
         table.insert(runtime.shaderEffects,make("BloomEffect",{Name="ISBSoftBloom",Intensity=.14,Size=24,Threshold=1.25},Lighting))
     end
 end
-function runtime.drawQuickActions()
-    plainCard("ISB Schnellaktionen","Sitzung, Bewegung und die Emotes deines Avatars.",78)
-    local grid=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,148)},content)
-    for i,item in ipairs({{"Fliegen","fly"},{"Noclip","noclip"},{"Highlights","esp"},{"Anti-Void","antivoid"},{"Licht-Preset","shader"},{"Schnellsuche","search"}}) do
-        rowButton(grid,item[1],UDim2.new(((i-1)%3)/3,0,0,math.floor((i-1)/3)*68),UDim2.new(1/3,-10,0,58),function()
-            if item[2]=="search" then setQuickSearch(true) else local action=findAction(item[2]); action.fn(); render() end
-        end)
+runtime.roleplayModes={
+    {id="head",name="Auf dem Kopf",part="Head",offset={0,1,0},animation="119898270336796"},
+    {id="piggy",name="Huckepack",part="Torso",offset={0,.2,1.1},animation="108744973494490"},
+    {id="piggy2",name="Huckepack 2",part="Torso",offset={0,.2,1.1},animation="112201741232797"},
+    {id="shoulder",name="Schulter sitzen",part="Torso",offset={1.8,2.2,0},animation="119898270336796"},
+    {id="hug",name="Umarmen",part="Torso",offset={0,.05,-1.35},rotation=math.pi,animation="93667149408515"},
+    {id="carry",name="Tragen",part="Torso",offset={.5,-.5,-1.2},animation="95469914338674"},
+}
+function runtime.stopRoleplay()
+    local owned=runtime.roleplay; runtime.roleplay=nil
+    if not owned then return end
+    if owned.track then pcall(function() owned.track:Stop(.15); owned.track:Destroy() end) end
+    if owned.animation then owned.animation:Destroy() end
+    if owned.h and owned.h.Parent then
+        owned.h.PlatformStand=owned.platformStand; owned.h.AutoRotate=owned.autoRotate
+        if not owned.platformStand then owned.h:ChangeState(Enum.HumanoidStateType.GettingUp) end
     end
-    local emotes=plainCard("Roleplay / Emotes","Die verfügbaren Emotes deines aktuellen Avatars.",120)
-    local h=humanoid(); local ok,description=pcall(function() return h:GetAppliedDescription() end)
-    local good,list=pcall(function() return description:GetEmotes() end)
-    local names={}; if ok and good and type(list)=="table" then for name in pairs(list) do if type(name)=="string" then table.insert(names,name) end end end
-    table.sort(names)
-    for i=1,math.min(8,#names) do
-        local name=names[i]; rowButton(emotes,name,UDim2.new(((i-1)%4)/4,8,0,68+math.floor((i-1)/4)*34),UDim2.new(.25,-16,0,28),function() runtime.playEmote(name) end)
+    local r=root(); if r then r.AssemblyLinearVelocity=Vector3.zero end
+    if not state.noclip then restoreCollisions() end
+    for _,item in ipairs(runtime.quickActionButtons or {}) do if item.button.Parent then item.button.BackgroundColor3=C.card end end
+    if runtime.quickState then runtime.quickState.Text="Bereit · Aktion auswählen" end
+end
+function runtime.roleplayPart(target,mode)
+    local char=target and target.Character
+    if not char then return end
+    if mode.part=="Head" then return char:FindFirstChild("Head") end
+    return char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart")
+end
+function runtime.startRoleplay(mode)
+    local target=runtime.quickTarget
+    local part=runtime.roleplayPart(target,mode)
+    local h,r=humanoid(),root()
+    local targetH=target and target.Character and target.Character:FindFirstChildOfClass("Humanoid")
+    if not target or target==player or not target.Parent or not part or not h or not r or h.Health<=0 or not targetH or targetH.Health<=0 then notify("Wähle einen verfügbaren Spieler als Ziel.","Roleplay"); return end
+    runtime.stopRoleplay(); runtime.stopEmote()
+    if state.fly then state.fly=false; stopFly() end
+    local owned={target=target,mode=mode,h=h,platformStand=h.PlatformStand,autoRotate=h.AutoRotate}
+    runtime.roleplay=owned; h.PlatformStand=true; h.AutoRotate=false
+    for _,item in ipairs(runtime.quickActionButtons or {}) do if item.button.Parent then item.button.BackgroundColor3=item.mode==mode and C.accent:Lerp(C.panel,.7) or C.card end end
+    local animator=h:FindFirstChildOfClass("Animator")
+    if animator then
+        owned.animation=make("Animation",{Name="ISBRoleplayAnimation",AnimationId="rbxassetid://"..mode.animation})
+        local ok,track=pcall(function() return animator:LoadAnimation(owned.animation) end)
+        if ok and track then owned.track=track; track.Looped=true; track.Priority=Enum.AnimationPriority.Action; pcall(function() track:Play(.15) end)
+        else notify("Position aktiv; die Animation ist in diesem Spiel nicht verfügbar.","Roleplay") end
     end
-    if #names==0 then label(emotes,"Keine zugänglichen Emotes im Avatar.",12,C.muted,UDim2.fromOffset(16,66),UDim2.new(1,-32,0,22)) else emotes.Size=UDim2.new(1,0,0,#names>4 and 140 or 108) end
-    local footer=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-    rowButton(footer,"Emote stoppen",UDim2.new(),UDim2.fromOffset(130,28),runtime.stopEmote)
-    rowButton(footer,"Rejoin",UDim2.fromOffset(142,0),UDim2.fromOffset(100,28),rejoin)
+    if runtime.quickState then runtime.quickState.Text=mode.name.." · "..target.DisplayName end
+end
+runtime.quickConnections={}
+function runtime.quickConnect(signal,fn)
+    local connection=signal:Connect(fn); table.insert(runtime.quickConnections,connection); return connection
+end
+function runtime.quickButton(parent,text,pos,size,fn)
+    local b=make("TextLabel",{Text=text,Font=Enum.Font.BuilderSansBold,TextSize=12,TextColor3=C.text,BackgroundColor3=C.card,Position=pos,Size=size},parent); round(b,12)
+    runtime.bindPress(b,function() playUISound("tap"); fn() end,runtime.quickConnect)
+    return b
+end
+function runtime.buildQuickPanel()
+    for _,connection in ipairs(runtime.quickConnections) do connection:Disconnect() end; table.clear(runtime.quickConnections)
+    if runtime.quickPanel then runtime.quickPanel:Destroy() end
+    runtime.quickPanel=make("CanvasGroup",{Name="ISBQuickPanel",Visible=false,BackgroundColor3=C.panel,BackgroundTransparency=.08,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-6,0,58),Size=UDim2.fromOffset(statusBar.Size.X.Offset,348),ClipsDescendants=true},gui)
+    round(runtime.quickPanel,18); runtime.glassSurface(runtime.quickPanel,18); stroke(runtime.quickPanel)
+    runtime.quickScale=make("UIScale",{Scale=statusScale.Scale},runtime.quickPanel)
+    local heading=label(runtime.quickPanel,"ISB / ROLEPLAY",14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-62,0,24)); heading.Font=Enum.Font.BuilderSansBold
+    runtime.quickButton(runtime.quickPanel,"×",UDim2.new(1,-42,0,12),UDim2.fromOffset(28,26),function() runtime.quickPanel.Visible=false end)
+    local targetButton=runtime.quickButton(runtime.quickPanel,runtime.quickTarget and runtime.quickTarget.DisplayName or "Spieler auswählen",UDim2.fromOffset(14,48),UDim2.new(1,-28,0,32),function() runtime.quickTargets.Visible=not runtime.quickTargets.Visible end)
+    runtime.quickActionButtons={}
+    for i,mode in ipairs(runtime.roleplayModes) do
+        local b=runtime.quickButton(runtime.quickPanel,mode.name,UDim2.new(((i-1)%2)*.5,14-((i-1)%2)*5,0,92+math.floor((i-1)/2)*64),UDim2.new(.5,-23,0,54),function() runtime.startRoleplay(mode) end)
+        b.Name="Roleplay_"..mode.id; table.insert(runtime.quickActionButtons,{button=b,mode=mode})
+        b.BackgroundColor3=runtime.roleplay and runtime.roleplay.mode==mode and C.accent:Lerp(C.panel,.7) or C.card
+    end
+    runtime.quickState=label(runtime.quickPanel,runtime.roleplay and (runtime.roleplay.mode.name.." · "..runtime.roleplay.target.DisplayName) or "Bereit · Aktion auswählen",11,C.muted,UDim2.fromOffset(14,286),UDim2.new(1,-28,0,20))
+    runtime.quickButton(runtime.quickPanel,"Stoppen",UDim2.new(1,-100,0,310),UDim2.fromOffset(86,26),runtime.stopRoleplay)
+    label(runtime.quickPanel,"Lokale Aktion",11,C.muted,UDim2.fromOffset(14,310),UDim2.new(1,-130,0,26))
+    runtime.quickTargets=make("ScrollingFrame",{Name="RoleplayTargets",Visible=false,BackgroundColor3=C.bg,Position=UDim2.fromOffset(14,86),Size=UDim2.new(1,-28,0,218),CanvasSize=UDim2.new(),AutomaticCanvasSize=Enum.AutomaticSize.Y,ScrollBarThickness=3,ZIndex=10,ClipsDescendants=true},runtime.quickPanel); round(runtime.quickTargets,12)
+    make("UIListLayout",{Padding=UDim.new(0,4),SortOrder=Enum.SortOrder.LayoutOrder},runtime.quickTargets)
+    local roster=Players:GetPlayers(); table.sort(roster,function(a,b) return a.DisplayName:lower()<b.DisplayName:lower() end)
+    for _,other in ipairs(roster) do if other~=player then
+        local b=runtime.quickButton(runtime.quickTargets,other.DisplayName.."  @"..other.Name,UDim2.new(),UDim2.new(1,-8,0,36),function()
+            runtime.stopRoleplay(); runtime.quickTarget=other; targetButton.Text=other.DisplayName; runtime.quickTargets.Visible=false
+        end); b.ZIndex=11
+    end end
+    runtime.updateStatusLayout()
+end
+function runtime.toggleQuickPanel()
+    local show=not (runtime.quickPanel and runtime.quickPanel.Visible)
+    if show then runtime.buildQuickPanel() end
+    if runtime.quickPanel then runtime.quickPanel.Visible=show; playUISound(show and "open" or "close") end
 end
 function runtime.profileRequest(other,kind)
     local cache=runtime.profileData[other.UserId] or {}; runtime.profileData[other.UserId]=cache
     if cache[kind] then return end
     cache[kind]={loading=true}; render()
     task.spawn(function()
-        local url=kind=="history" and ("https://users.roblox.com/v1/users/"..other.UserId.."/username-history?limit=10&sortOrder=Desc") or ("https://avatar.roblox.com/v2/avatar/users/"..other.UserId.."/outfits?itemsPerPage=20&page=1&isEditable=false")
+        local url=kind=="history" and ("https://users.roblox.com/v1/users/"..other.UserId.."/username-history?limit=10&sortOrder=Desc") or ("https://avatar.roblox.com/v2/avatar/users/"..other.UserId.."/outfits?itemsPerPage=20&page=1&isEditable=true&outfitType=Avatar")
         local ok,data=pcall(requestJSON,url)
-        cache[kind]=ok and type(data.data)=="table" and {data=data.data} or {error="Daten sind derzeit nicht öffentlich abrufbar."}
+        if ok and type(data.data)=="table" then
+            local entries={}
+            for _,entry in ipairs(data.data) do
+                if kind=="history" or (entry.isEditable==true and entry.outfitType=="Avatar") then table.insert(entries,entry) end
+            end
+            cache[kind]={data=entries}
+        else cache[kind]={error=kind=="outfits" and "Gespeicherte Avatar-Outfits sind für diesen Spieler derzeit nicht öffentlich abrufbar." or "Daten sind derzeit nicht öffentlich abrufbar."} end
         if alive and runtime.selectedPlayer==other then render() end
     end)
 end
@@ -1801,8 +1888,12 @@ function runtime.drawPlayerDetails(other)
     for index,entry in ipairs({{"Benutzer-ID",tostring(other.UserId)},{"Accountalter",tostring(other.AccountAge or "—").." Tage"},{"Team",team},{"Gesundheit",h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verfügbar"},{"Beziehung",session.friends[other.UserId] and "Freund" or "Spieler"},{"Gruppenrolle",runtime.groupRoles[other] or "Nicht verfügbar"}}) do
         local f=plainCard(entry[1],entry[2],70)
         f.Parent=detailsGrid; f.Size=UDim2.new(.5,-5,0,70); f.Position=UDim2.new((index-1)%2*.5,(index-1)%2*5,0,math.floor((index-1)/2)*76)
-        for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-56,0,24); child.TextWrapped=false end end
-        rowButton(f,"⧉",UDim2.new(1,-42,0,23),UDim2.fromOffset(30,28),function() copyText(entry[2]) end)
+        for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-56,0,24); child.TextWrapped=false; child.TextTruncate=Enum.TextTruncate.AtEnd end end
+        local copy=rowButton(f,"",UDim2.new(1,-42,0,23),UDim2.fromOffset(30,28),function() copyText(entry[2]) end); copy.Name="Copy_"..entry[1]
+        for _,offset in ipairs({Vector2.new(9,7),Vector2.new(13,11)}) do
+            local glyph=make("Frame",{BackgroundColor3=C.line,Position=UDim2.fromOffset(offset.X,offset.Y),Size=UDim2.fromOffset(9,11)},copy)
+            round(glyph,2); make("UIStroke",{Color=C.text,Thickness=1.3},glyph)
+        end
     end
     local controls=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     rowButton(controls,session.friends[other.UserId] and "Bereits befreundet" or "Freund anfragen",UDim2.new(),UDim2.fromOffset(154,28),function()
@@ -1820,9 +1911,9 @@ function runtime.drawPlayerDetails(other)
         elseif result.error then plainCard("Nicht verfügbar",result.error,76)
         elseif #result.data==0 then plainCard("Keine Einträge","Roblox liefert für diesen Spieler keine Einträge.",76)
         else for i,entry in ipairs(result.data) do if i>20 then break end
-            local f=plainCard(tostring(entry.name or "Ohne Namen"),runtime.profileTab=="outfits" and "Öffentliches Outfit" or "Früherer Benutzername",88)
+            local f=plainCard(tostring(entry.name or "Ohne Namen"),runtime.profileTab=="outfits" and "Gespeicherter Charakter" or "Früherer Benutzername",88)
             if runtime.profileTab=="outfits" and tonumber(entry.id) then
-                make("ImageLabel",{Image="rbxthumb://type=Outfit&id="..entry.id.."&w=150&h=150",BackgroundTransparency=1,Position=UDim2.new(1,-76,0,12),Size=UDim2.fromOffset(58,58)},f)
+                make("ImageLabel",{Image="rbxthumb://type=Outfit&id="..string.format("%.0f",tonumber(entry.id)).."&w=150&h=150",BackgroundTransparency=1,Position=UDim2.new(1,-76,0,12),Size=UDim2.fromOffset(58,58)},f)
             end
         end end
     end
@@ -1854,7 +1945,8 @@ local function drawPlayers()
                 if alive and avatar.Parent and ok then avatar.Image=url end
             end)
             rowButton(f,"Details",UDim2.new(1,-114,0,68),UDim2.fromOffset(98,26),function() runtime.selectedPlayer=other; runtime.profileTab=nil; render() end)
-            rowButton(f,"Beobachten",UDim2.fromOffset(16,68),UDim2.fromOffset(112,26),function()
+            rowButton(f,spectating==other and "Beenden" or "Beobachten",UDim2.fromOffset(16,68),UDim2.fromOffset(112,26),function()
+                if spectating==other then restoreCamera(); render(); return end
                 local h=other.Character and other.Character:FindFirstChildOfClass("Humanoid")
                 if h and workspace.CurrentCamera then
                     local camera=workspace.CurrentCamera
@@ -1862,7 +1954,7 @@ local function drawPlayers()
                         spectateOriginal[camera]={subject=camera.CameraSubject,kind=camera.CameraType}
                     end
                     spectating=other; workspace.CurrentCamera.CameraSubject=h; workspace.CurrentCamera.CameraType=Enum.CameraType.Custom
-                    notify("Beobachtung: " .. other.DisplayName)
+                    notify("Beobachtung: " .. other.DisplayName); render()
                 else notify("Charakter ist noch nicht verfügbar.") end
             end)
             rowButton(f,"Zum Spieler",UDim2.fromOffset(138,68),UDim2.fromOffset(112,26),function()
@@ -1887,7 +1979,7 @@ render = function()
     pageTitle.Text=page == "Start" and "ISB Menu" or page
     subtitle.Text=descriptions[page] or "Eigene Erweiterungen"
     local remote=page=="Skripte" and not scriptSearch.localMode
-    local searchable=page~="Start" and page~="Musik" and page~="Einstellungen" and page~="Voice" and page~="Profil" and page~="Schnellaktionen"
+    local searchable=not (page=="Spieler" and runtime.selectedPlayer) and page~="Start" and page~="Musik" and page~="Einstellungen" and page~="Voice" and page~="Profil" and page~="Schnellaktionen"
     search.Visible=searchable
     search.PlaceholderText=page=="Spieler" and "Spieler suchen …" or (remote and "Skripte suchen …" or "Funktionen suchen …")
     content.Position=UDim2.fromOffset(18,searchable and 104 or 60)
@@ -1911,8 +2003,7 @@ render = function()
     if runtime.statusIcon then runtime.statusIcon.ImageColor3=C.accent end
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
-    if page=="Schnellaktionen" then runtime.drawQuickActions()
-    elseif page == "Start" then
+    if page == "Start" then
         drawDashboard(); updateDashboard()
     elseif page=="Bewegung" and query=="" then
         drawCharacter()
@@ -2018,7 +2109,9 @@ render = function()
         end
         local placement=plainCard("Position","Dock und Fenster gemeinsam ausrichten.",108)
         for i,item in ipairs({{"Links","Left"},{"Mitte","Center"},{"Rechts","Right"}}) do rowButton(placement,item[1],UDim2.fromOffset(16+(i-1)*116,68),UDim2.fromOffset(106,28),function() settings.alignment=item[2]; runtime.updateInventoryClearance(); fit(); save(); render() end) end
-        runtime.drawRuler(content,{id="uiscale",name="Menügröße",desc="Größe in Prozent",kind="slider",min=50,max=120,step=5,get=function() return settings.uiScale end,fn=function(v) settings.uiScale=math.clamp(v,50,120); fit(); save() end})
+        local sizeCard=plainCard("Menügröße","Größe in Prozent",162)
+        runtime.drawRuler(sizeCard,{id="uiscale",name="Menügröße",desc="Größe in Prozent",kind="slider",min=50,max=120,step=5,get=function() return settings.uiScale end,fn=function(v) settings.uiScale=math.clamp(v,50,120); fit(); save() end})
+        rowButton(sizeCard,"Standard · 100 %",UDim2.new(1,-164,0,130),UDim2.fromOffset(148,26),function() settings.uiScale=100; fit(); save(); render() end)
         drawAction({id="notifications",name="Benachrichtigungen",desc="Hinweise unten rechts anzeigen",kind="toggle",get=function() return settings.notifications end,fn=function() settings.notifications=not settings.notifications; save() end})
         drawAction({id="autoopen",name="Beim Start öffnen",desc="Fenster beim nächsten Start automatisch öffnen",kind="toggle",get=function() return settings.autoOpen end,fn=function() settings.autoOpen=not settings.autoOpen; save() end})
         drawAction({id="uisounds",name="Interface-Sounds",desc="Dezente Klänge bei Öffnen, Schließen und Klicks",kind="toggle",get=function() return settings.sounds end,fn=function() settings.sounds=not settings.sounds; save() end})
@@ -2099,6 +2192,7 @@ connect(UIS.InputBegan,function(input,processed)
         render(); return
     end
     if input.KeyCode==Enum.KeyCode.Escape and quickSearchOpen then setQuickSearch(false); return end
+    if input.KeyCode==Enum.KeyCode.Escape and runtime.quickPanel and runtime.quickPanel.Visible then runtime.quickPanel.Visible=false; return end
     if processed or UIS:GetFocusedTextBox() then return end
     if pressed==settings.key then setOpen(not opened)
     elseif pressed==settings.dockKey then setDockVisible(not dockVisible)
@@ -2134,6 +2228,17 @@ connect(Run.Stepped,function()
 end)
 connect(Run.PreSimulation,function(dt)
     applyMovement()
+    if runtime.roleplay then
+        local owned=runtime.roleplay; local r=root(); local part=runtime.roleplayPart(owned.target,owned.mode)
+        local targetH=owned.target.Character and owned.target.Character:FindFirstChildOfClass("Humanoid")
+        if not owned.target.Parent or not part or not r or humanoid()~=owned.h or owned.h.Health<=0 or not targetH or targetH.Health<=0 then runtime.stopRoleplay()
+        else
+            for _,obj in ipairs(player.Character:GetDescendants()) do if obj:IsA("BasePart") then if collisions[obj]==nil then collisions[obj]=obj.CanCollide end; obj.CanCollide=false end end
+            local offset=owned.mode.offset
+            r.CFrame=part.CFrame*CFrame.new(offset[1],offset[2],offset[3])*CFrame.Angles(0,owned.mode.rotation or 0,0)
+            r.AssemblyLinearVelocity=Vector3.zero; owned.h.PlatformStand=true; owned.h.AutoRotate=false
+        end
+    end
     if runtime.antiVoid then
         local r,h=root(),humanoid()
         if r and h and h.Health>0 and not state.fly then
@@ -2236,7 +2341,7 @@ connect(Run.RenderStepped,function(dt)
         if page=="Start" then updateDashboard() end
         frames=0; fpsTime=0
     end
-    if antiVC.active then
+    if antiVC.active and not antiVC.loading then
         runtime.voiceMaintenance=runtime.voiceMaintenance+dt
         if runtime.voiceMaintenance>=3 then runtime.voiceMaintenance=0; maintainVoiceConnections() end
     end
@@ -2264,8 +2369,7 @@ connect(Run.RenderStepped,function(dt)
                     local tag=make("BillboardGui",{Name="ISBNametag",Adornee=targetRoot,AlwaysOnTop=true,
                         Size=UDim2.fromOffset(190,56),StudsOffset=Vector3.new(0,3.5,0)},gui)
                     local shell=make("Frame",{Name="NameCard",Size=UDim2.fromScale(1,1),BackgroundColor3=C.panel,BackgroundTransparency=.12},tag); round(shell,14); stroke(shell)
-                    local badge=make("Frame",{Name="Badge",BackgroundColor3=color,Position=UDim2.fromOffset(10,13),Size=UDim2.fromOffset(28,28)},shell); round(badge,14)
-                    imageIcon(badge,"user",15,UDim2.fromOffset(6,6),C.text)
+                    local badge=make("ImageLabel",{Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",Name="Badge",BackgroundColor3=color,Position=UDim2.fromOffset(10,13),Size=UDim2.fromOffset(28,28)},shell); round(badge,14)
                     local name=label(shell,other.DisplayName,13,C.text,UDim2.fromOffset(46,7),UDim2.new(1,-56,0,22)); name.Name="PlayerName"; name.Font=Enum.Font.BuilderSansBold; name.TextTruncate=Enum.TextTruncate.AtEnd
                     local info=label(shell,"",10,C.muted,UDim2.fromOffset(46,30),UDim2.new(1,-56,0,17)); info.Name="PlayerInfo"
                     tags[other]=tag
@@ -2280,7 +2384,7 @@ connect(Run.RenderStepped,function(dt)
     end
 end)
 connect(player.CharacterRemoving,function()
-    runtime.safeGround=nil; runtime.stopEmote()
+    runtime.safeGround=nil; runtime.stopEmote(); runtime.stopRoleplay()
     stopFly(); restoreCollisions()
     table.clear(originals)
 end)
@@ -2295,6 +2399,8 @@ end)
 refreshPlayers=function() if page=="Spieler" or page=="Start" then render() end end
 connect(Players.PlayerAdded,function(other) features.detectGameStaff(other,true); refreshPlayers() end)
 connect(Players.PlayerRemoving,function(other)
+    if runtime.roleplay and runtime.roleplay.target==other then runtime.stopRoleplay() end
+    if runtime.quickTarget==other then runtime.quickTarget=nil; if runtime.quickPanel and runtime.quickPanel.Visible then runtime.buildQuickPanel(); runtime.quickPanel.Visible=true end end
     if session.friends[other.UserId] then notify(other.DisplayName.." hat den Server verlassen.","Freund verlassen","users") end
     if runtime.gameStaff[other] then notify(other.DisplayName.." hat den Server verlassen.","Admin verlassen","shield-check") end
     runtime.gameStaff[other]=nil; runtime.groupRoles[other]=nil
@@ -2308,7 +2414,8 @@ local api = {}
 api.Destroy = function()
     if not alive then return end
     alive=false
-    runtime.stopEmote(); runtime.setShader(false)
+    runtime.stopEmote(); runtime.stopRoleplay(); runtime.setShader(false)
+    for _,connection in ipairs(runtime.quickConnections) do connection:Disconnect() end; table.clear(runtime.quickConnections)
     save(true)
     settings.lowEffects=false; features.applyPerformance()
     if runtime.performanceOwned.fps~=nil and type(setfpscap)=="function" then pcall(setfpscap,runtime.performanceOwned.fps) end
