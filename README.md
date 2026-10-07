@@ -1,4 +1,4 @@
-# ISB Menu 2.4.3 · by Larsiopuw
+# ISB Menu 2.5.0 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,21 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Neu in 2.5
+
+- Lesbarere Schrift, stärkere Statuswerte und kompakte ISB-/ISBQ-Schaltflächen. ISB schaltet das Dock, ISBQ öffnet Schnellaktionen mit den ausgerüsteten Avatar-Emotes.
+- Spielersuche durchsucht ausschließlich Spieler. Freunde stehen vor erkanntem Staff, danach folgen die übrigen Spieler; Aktualisierungen erhalten die Scrollposition. Die genaue öffentliche Gruppenrolle erscheint in der Liste.
+- Details: Avatar, Benutzer-ID, Accountalter, Team, Gesundheit, Beziehung, Gruppenrolle und Profil-Link. „Freund anfragen“ öffnet den Roblox-Dialog. Namenshistorie (erste zehn Einträge) und öffentliche Outfits (erste zwanzig) werden erst auf Klick geladen und zwischengespeichert. Fehler und leere Ergebnisse werden ausgewiesen.
+- Speed und Jump werden bei aktivierter Funktion vor jedem Physikschritt lokal erneut angewendet. Getrennte Werte; JumpPower/JumpHeight werden unterstützt. Mehrfachsprung setzt zusätzlich einen Aufwärtsimpuls. Serverkorrekturen können weiterhin eingreifen.
+- Q schaltet beim Fliegen vier Stufen: Normal 1×, Schnell 1,5×, Turbo 2× und Maximum 3× des eingestellten Flugtempos. Eine kompakte Anzeige zeigt Tempo und Stufe; deren Taste ist ebenfalls umbelegbar. Beim Schreiben greifen die Kürzel nicht.
+- Anti-Void merkt sich bei Bodenkontakt die letzte sichere Position und korrigiert lokal vor Erreichen der Fallgrenze. Keine Garantie gegen serverseitigen Tod oder spezielle Spielmechaniken.
+- Licht-Preset mit dezenter Farbkorrektur und Bloom; entfernt beim Ausschalten nur die selbst erzeugten Effekte.
+- Einstellungen für Links/Mitte/Rechts, Größe 50–120 %, Benachrichtigungen, Sounds und Öffnen beim Start werden automatisch gespeichert, sofern der Executor Dateizugriff bietet. Auf kleinen Bildschirmen wird die Größe zusätzlich begrenzt.
+
+Roleplay verwendet ausgerüstete Avatar-Emotes. Carry/Hug und ähnliche gemeinsame Aktionen benötigen die Unterstützung des jeweiligen Spiels. Die Vorschau ist eine Browserdarstellung mit ausdrücklich markierten Beispieldaten.
+
+![ISBQ und Flugstufen in der Browservorschau](ISB-Schnellaktionen.png)
 
 ## Starten
 
@@ -28,9 +43,10 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Larsiopuw/ISB-Menu/ma
 | Z | Noclip an / aus |
 | E | Highlights / ESP an / aus |
 | V | Konfigurierte Laufgeschwindigkeit an / aus |
+| Q | Während des Fliegens nächste Geschwindigkeitsstufe |
 | Escape | Schnellsuche oder Tastenaufnahme abbrechen |
 
-Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden abgewiesen; beim Schreiben greifen die Kürzel nicht. Fenster und Dock bleiben fest positioniert. Erneutes Ausführen ersetzt die vorherige Instanz.
+Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden abgewiesen; beim Schreiben greifen die Kürzel nicht. Fenster und Dock bleiben an der in Allgemein gewählten Position verankert. Erneutes Ausführen ersetzt die vorherige Instanz.
 
 ## Änderungen in 2.4
 
@@ -79,7 +95,7 @@ OwnerNames enthält Larsiopuw; zusätzliche Menü-Admins stehen als numerische U
 
 ## Prüfung und Grenzen
 
-476 Assertions bestehen mit einer simulierten Roblox-API. Menü und beide Loader kompilieren mit Luau. Flugverlauf bei 30/120 Physikschritten, Geräusch-Wiederherstellung, Rollskala, direkte Zahleneingabe, alle vier Aktionskürzel und deren Speicherung wurden simuliert geprüft. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten. **Kein Live-Test in Roblox/Executor durchgeführt.** Bewegung, Voice, Assets und Teleports hängen vom Spiel und Executor ab.
+524 Assertions bestehen mit einer simulierten Roblox-API. Menü und beide Loader kompilieren mit Luau. Flugverlauf bei 30/120 Physikschritten, Geräusch-Wiederherstellung, Rollskala, direkte Zahleneingabe, alle vier Aktionskürzel und deren Speicherung wurden simuliert geprüft. Die HTML-Vorschau wurde im Browser bedient und visuell geprüft; sie zeigt Beispieldaten. **Kein Live-Test in Roblox/Executor durchgeführt.** Bewegung, Voice, Assets und Teleports hängen vom Spiel und Executor ab.
 
 ScriptBlox nutzt die öffentliche API: Beliebt nach Aufrufen, Neu nach Aktualisierung. RoScripts nutzt öffentliche Trending-/Neu-Seiten und Such-HTML. Kein API-Key. Bei der Anbieterprüfung zu v2.3 lieferte ScriptBlox HTTP 200; der direkte RoScripts-Abruf wurde hier mit HTTP 403 blockiert. Anbieterfehler werden angezeigt; Website-Änderungen können Anpassungen erfordern. Fremder Code läuft erst nach ausdrücklichem Klick.
 

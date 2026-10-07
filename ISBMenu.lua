@@ -1,7 +1,7 @@
--- ISB Menu 2.4.3 | Own-game universal client toolkit
+-- ISB Menu 2.5 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.4.3",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.5.0",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -90,10 +90,10 @@ end
 local C = {
     bg = Color3.fromRGB(15,19,25), panel = Color3.fromRGB(27,33,42),
     card = Color3.fromRGB(38,45,56), line = Color3.fromRGB(71,81,97),
-    text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(170,181,198),
+    text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {favorites = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V", sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
+local settings = {favorites = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -119,7 +119,10 @@ if type(readfile) == "function" then
         end
         settings.fpsCap=tonumber(data.fpsCap) or 60
         settings.sounds=data.sounds~=false
-        for _,field in ipairs({"dockKey","searchKey","flyKey","noclipKey","espKey","speedKey"}) do
+        settings.notifications=data.notifications~=false; settings.autoOpen=data.autoOpen~=false
+        if data.alignment=="Left" or data.alignment=="Right" then settings.alignment=data.alignment end
+        settings.uiScale=math.clamp(tonumber(data.uiScale) or 100,50,120)
+        for _,field in ipairs({"dockKey","searchKey","flyKey","noclipKey","espKey","speedKey","flightTierKey"}) do
             if type(data[field])=="string" then
                 local valid,key=pcall(function() return Enum.KeyCode[data[field]] end)
                 if valid and key and key~=Enum.KeyCode.Unknown then settings[field]=data[field] end
@@ -145,7 +148,7 @@ end
 local alive, connections, actions = true, {}, {}
 do
     local used={}
-    for _,field in ipairs({"key","dockKey","searchKey","flyKey","noclipKey","espKey","speedKey"}) do
+    for _,field in ipairs({"key","dockKey","searchKey","flyKey","noclipKey","espKey","speedKey","flightTierKey"}) do
         if used[settings[field]] then
             for _,key in ipairs({"F","Z","E","V","K","T","M","G","H","B","N","J","L","U","Y","I","O","P","C","X","R"}) do
                 if not used[key] then settings[field]=key; break end
@@ -159,13 +162,13 @@ local state = {fly = false, noclip = false, infiniteJump = false, esp = false, n
     fullbright = false, shadows = false, fov = false, fovValue = 80}
 local originals, collisions, highlights, tags = {}, {}, {}, {}
 local flyObjects, flyHumanoid, flyAutoRotate = {}, nil, nil
-local runtime={flightVelocity=Vector3.zero,flightAcceleration=Vector3.zero,gameStaff={},
+local runtime={flightVelocity=Vector3.zero,flightAcceleration=Vector3.zero,gameStaff={},groupRoles={},profileData={},antiVoid=false,shader=false,
     role="Member", saveRevision=0,lastSaved=nil,saveError=nil, imageCache={},performanceOwned={},voiceMaintenance=0,tweens={}}
 local lightingOriginal, cameraOriginal, spectating = nil, {}, nil
 local spectateOriginal={}
 local page, query, captureKey, activeSlider = "Start", "", false, nil
 local updatingSearch = false
-local opened=true
+local opened=settings.autoOpen
 local notify, render, refreshPlayers, setOpen, selectPage, setDockVisible, setQuickSearch
 local save
 local playUISound=function() end
@@ -591,8 +594,8 @@ local function animate(obj, props)
     end
 end
 local function label(parent, text, size, color, pos, dims)
-    return make("TextLabel", {BackgroundTransparency = 1, Text = text, Font = Enum.Font.BuilderSans,
-        TextSize = size or 14, TextColor3 = color or C.text, TextXAlignment = Enum.TextXAlignment.Left,
+    return make("TextLabel", {BackgroundTransparency = 1, Text = text, Font = Enum.Font.BuilderSansMedium,
+        TextSize = math.max(11,size or 14), TextColor3 = color or C.text, TextXAlignment = Enum.TextXAlignment.Left,
         Position = pos or UDim2.new(), Size = dims or UDim2.new(1,0,0,24)}, parent)
 end
 pcall(function() runtime.guiService=game:GetService("GuiService") end)
@@ -642,7 +645,7 @@ local function applyMovement()
     remember(h)
     if state.speed then
         if not originals[h].speedOwned then originals[h].WalkSpeed=h.WalkSpeed end
-        originals[h].speedOwned=true; h.WalkSpeed = state.speedValue
+        originals[h].speedOwned=true; if h.WalkSpeed~=state.speedValue then h.WalkSpeed = state.speedValue end
     end
     if state.jump then
         if not originals[h].jumpOwned then originals[h].JumpPower=h.JumpPower; originals[h].JumpHeight=h.JumpHeight end
@@ -757,28 +760,31 @@ local headerIcon=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffse
 local statusBar=make("CanvasGroup",{Name="StatusBar",BackgroundTransparency=.12,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-6,0,6),Size=UDim2.fromOffset(414,44)},gui)
 round(statusBar,22); runtime.glassSurface(statusBar,22); stroke(statusBar)
 local statusScale=make("UIScale",{Scale=1},statusBar)
-runtime.statusIcon=imageIcon(statusBar,"shield-check",18,UDim2.fromOffset(15,13),C.accent)
-local metrics=label(statusBar,"ISB  /  -- Spieler  ·  -- ms  ·  -- FPS",11,C.text,UDim2.fromOffset(43,11),UDim2.fromOffset(250,22))
+runtime.statusToggle=button(statusBar,"ISB",UDim2.fromOffset(8,9),UDim2.fromOffset(32,26),function() setDockVisible(not dockVisible) end)
+runtime.statusToggle.Name="StatusDockToggle"
+runtime.statusQuick=button(statusBar,"ISBQ",UDim2.fromOffset(44,9),UDim2.fromOffset(42,26),function() if page=="Schnellaktionen" then setOpen(not opened) else page="Schnellaktionen"; query=""; render(); setOpen(true) end end)
+local metrics=label(statusBar,"ISB  /  -- Spieler  ·  -- ms  ·  -- FPS",11,C.text,UDim2.fromOffset(98,11),UDim2.fromOffset(250,22))
 runtime.statusDivider=make("Frame",{Name="ExecutorDivider",BackgroundColor3=C.muted,BackgroundTransparency=.7,Position=UDim2.fromOffset(280,14),Size=UDim2.fromOffset(1,16)},statusBar)
 runtime.statusExecutor=label(statusBar,session.executor,11,C.text,UDim2.fromOffset(290,11),UDim2.fromOffset(60,22))
 runtime.statusExecutor.Name="ExecutorName"; runtime.statusExecutor.TextXAlignment=Enum.TextXAlignment.Right; runtime.statusExecutor.TextTruncate=Enum.TextTruncate.AtEnd
 runtime.textService=optionalService("TextService")
 function runtime.updateStatusLayout()
     local function width(text,font)
-        local ok,size=pcall(function() return runtime.textService:GetTextSize(text,11,font,Vector2.new(1000,22)) end)
-        return math.ceil(ok and size.X or #text*5.5)
+        local ok,size=pcall(function() return runtime.textService:GetTextSize(text,12,font,Vector2.new(1000,22)) end)
+        return math.ceil(ok and size.X or #text*6.3)
     end
     local metricWidth=width(metrics.Text,metrics.Font)
     local executorWidth=math.min(150,width(session.executor,runtime.statusExecutor.Font))
     metrics.Size=UDim2.fromOffset(metricWidth,22)
-    runtime.statusDivider.Position=UDim2.fromOffset(43+metricWidth+10,14)
-    runtime.statusExecutor.Position=UDim2.fromOffset(43+metricWidth+20,11)
+    runtime.statusDivider.Position=UDim2.fromOffset(98+metricWidth+10,14)
+    runtime.statusExecutor.Position=UDim2.fromOffset(98+metricWidth+20,11)
     runtime.statusExecutor.Size=UDim2.fromOffset(executorWidth,22)
-    statusBar.Size=UDim2.fromOffset(43+metricWidth+20+executorWidth+14,44)
+    statusBar.Size=UDim2.fromOffset(98+metricWidth+20+executorWidth+14,44)
     local camera=workspace.CurrentCamera
     if camera then statusScale.Scale=math.min(1,math.max(.1,(camera.ViewportSize.X-12)/statusBar.Size.X.Offset)) end
 end
-metrics.Font=Enum.Font.BuilderSansMedium
+metrics.Name="Metrics"; metrics.Font=Enum.Font.BuilderSansBold; metrics.TextSize=12
+runtime.statusExecutor.Font=Enum.Font.BuilderSansBold; runtime.statusExecutor.TextSize=12
 runtime.updateStatusLayout()
 button(header, "–", UDim2.new(1,-83,0,12), UDim2.fromOffset(28,28), function() setOpen(false) end)
 button(header, "×", UDim2.new(1,-47,0,12), UDim2.fromOffset(28,28), function() setOpen(false) end)
@@ -903,6 +909,7 @@ notify = function(message,heading,iconName)
     if not alive then return end
     message=tostring(message); heading=heading or "ISB Menu"
     logEvent(heading,message)
+    if not settings.notifications then return end
     while #notices>=3 do local old=table.remove(notices,1); old:Destroy() end
     local height=message=="" and 44 or 58+math.max(0,math.ceil(#message/38)-1)*14
     local notice=make("CanvasGroup",{BackgroundTransparency=1,GroupColor3=Color3.fromRGB(255,255,255),Size=UDim2.new(1,0,0,height),GroupTransparency=1,ZIndex=20},notificationStack)
@@ -935,10 +942,12 @@ local function fit()
     if not camera then return end
     local size = camera.ViewportSize
     statusScale.Scale=math.min(1,math.max(.1,(size.X-12)/statusBar.Size.X.Offset))
-    scale.Scale = math.min(1, math.max(0.1, (size.X-24)/600), math.max(0.1, (size.Y-(runtime.dockClearance or 18)-82)/552))
+    scale.Scale = math.min(settings.uiScale/100, math.max(0.1, (size.X-24)/600), math.max(0.1, (size.Y-(runtime.dockClearance or 18)-82)/552))
     quickBaseScale=math.min(1,math.max(.1,(size.X-24)/520),math.max(.1,(size.Y-24)/108))
     if quickScale then quickScale.Scale=quickBaseScale end
-    local position=UDim2.new(.5,0,1,-(runtime.dockClearance or 18))
+    local anchor=settings.alignment=="Left" and 0 or (settings.alignment=="Right" and 1 or .5)
+    host.AnchorPoint=Vector2.new(anchor,1)
+    local position=UDim2.new(anchor,anchor==0 and 12 or (anchor==1 and -12 or 0),1,-(runtime.dockClearance or 18))
     if runtime.dockFitReady then animate(host,{Position=position}) else host.Position=position; runtime.dockFitReady=true end
     notificationStack.Size=UDim2.new(0,math.min(300,math.max(120,size.X-24)),1,-24)
 end
@@ -954,6 +963,7 @@ function runtime.updateInventoryClearance()
     local viewport=camera.ViewportSize
     local clearance,order=18,90
     local half=300*scale.Scale
+    local center=settings.alignment=="Left" and 12+half or (settings.alignment=="Right" and viewport.X-12-half or viewport.X*.5)
     for _,source in ipairs(runtime.inventoryRoots) do
         local ok,objects=pcall(function() return source:GetDescendants() end)
         if ok then
@@ -979,7 +989,7 @@ function runtime.updateInventoryClearance()
                         local position=Vector2.new(absolute.X-origin.X,absolute.Y-origin.Y)
                         if size.X<120 or size.Y<20 or size.Y>math.min(220,viewport.Y*.3) then return nil end
                         if position.Y<viewport.Y*.65 or position.Y>=viewport.Y or position.Y+size.Y<=0 then return nil end
-                        if position.X+size.X<viewport.X*.5-half or position.X>viewport.X*.5+half then return nil end
+                        if position.X+size.X<center-half or position.X>center+half then return nil end
                         return position.Y
                     end)
                     if valid and top then clearance=math.max(clearance,viewport.Y-top+12) end
@@ -1092,7 +1102,7 @@ local function card(text, desc, height)
     round(f,12)
     animate(f,{GroupTransparency=0})
     local name = label(f,text,14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-150,0,24))
-    name.Font = Enum.Font.BuilderSansMedium
+    name.Font = Enum.Font.BuilderSansBold
     local d = label(f,desc,11,C.muted,UDim2.fromOffset(16,38),UDim2.new(1,-150,0,31))
     d.TextWrapped = true; d.TextYAlignment = Enum.TextYAlignment.Top
     return f
@@ -1194,6 +1204,11 @@ for i,caption in ipairs({"↑","↓"}) do
         if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then touchVertical=0 end
     end)
 end
+runtime.flightTier=1
+runtime.flightHud=make("CanvasGroup",{Name="FlightHUD",Visible=false,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(.5,0),Position=UDim2.new(.5,0,0,58),Size=UDim2.fromOffset(360,48)},gui)
+round(runtime.flightHud,16); stroke(runtime.flightHud)
+runtime.flightInfo=label(runtime.flightHud,"",13,C.text,UDim2.fromOffset(14,7),UDim2.fromOffset(254,34)); runtime.flightInfo.Font=Enum.Font.BuilderSansBold
+runtime.flightNext=button(runtime.flightHud,"",UDim2.fromOffset(272,9),UDim2.fromOffset(76,30),function() runtime.flightTier=runtime.flightTier%4+1; playUISound("tap") end)
 function runtime.drawRuler(parent,action)
     local valueBox=make("TextBox",{Name="NumericValue_"..action.id,Text=string.format("%g",action.get()),ClearTextOnFocus=false,
         Font=Enum.Font.BuilderSansMedium,TextSize=16,TextColor3=C.accent,BackgroundColor3=C.bg,
@@ -1247,8 +1262,8 @@ function runtime.drawRuler(parent,action)
     end)
     rowConnect(valueBox.FocusLost,function()
         local value=tonumber((valueBox.Text:gsub(",",".")))
-        local maximum=action.id=="volume" and 1000 or (action.id=="fovvalue" and 120 or 10000)
-        local minimum=action.id=="fovvalue" and 1 or 0
+        local maximum=action.id=="uiscale" and 120 or (action.id=="volume" and 1000 or (action.id=="fovvalue" and 120 or 10000))
+        local minimum=action.id=="uiscale" and 50 or (action.id=="fovvalue" and 1 or 0)
         if not value or value~=value or value<minimum or value>maximum then
             paint(action.get()); notify("Bitte eine Zahl zwischen "..minimum.." und "..maximum.." eingeben.",action.name); return
         end
@@ -1261,7 +1276,7 @@ local function drawAction(action)
     for _,child in ipairs(children) do
         if child:IsA("TextLabel") then
             if child.Text==action.name then child.Position=UDim2.fromOffset(14,7); child.TextSize=13
-            else child.Position=UDim2.fromOffset(14,30); child.TextSize=10; child.Size=UDim2.new(1,-150,0,18) end
+            else child.Position=UDim2.fromOffset(14,30); child.TextSize=11; child.Size=UDim2.new(1,-150,0,18) end
         end
     end
     local favorite = rowButton(f,"",UDim2.new(1,-40,0,12),UDim2.fromOffset(28,28),function()
@@ -1368,8 +1383,9 @@ end)
 function features.detectGameStaff(other,joined)
     task.spawn(function()
         local detected=table.find(CONFIG.StaffUserIds,other.UserId)~=nil
+        local roleLabel=detected and "Staff" or "Player"
         pcall(function()
-            if game.CreatorType==Enum.CreatorType.User then detected=detected or other.UserId==game.CreatorId; return end
+            if game.CreatorType==Enum.CreatorType.User then detected=detected or other.UserId==game.CreatorId; if other.UserId==game.CreatorId then roleLabel="Owner" end; return end
             if game.CreatorType~=Enum.CreatorType.Group then return end
             local groupService=game:GetService("GroupService")
             local ok,result=pcall(function() return groupService:GetRolesInGroupAsync(other.UserId,game.CreatorId) end)
@@ -1378,6 +1394,8 @@ function features.detectGameStaff(other,joined)
                 local fallback,role=pcall(function() return other:GetRoleInGroupAsync(game.CreatorId) end)
                 roles=fallback and {{Name=role}} or {}
             end
+            table.sort(roles,function(a,b) return (a.Rank or 0)>(b.Rank or 0) end)
+            if roles[1] and type(roles[1].Name)=="string" then roleLabel=roles[1].Name end
             for _,role in ipairs(roles) do
                 local name=string.lower(tostring(role.Name or "")):gsub("[^%w]"," ")
                 local padded=" "..name.." "
@@ -1391,7 +1409,10 @@ function features.detectGameStaff(other,joined)
         end)
         if not alive or not other.Parent then return end
         local previous=runtime.gameStaff[other]
+        local previousRole=runtime.groupRoles[other]
         runtime.gameStaff[other]=detected
+        runtime.groupRoles[other]=roleLabel
+        if page=="Spieler" and (previous~=detected or previousRole~=roleLabel) then render() end
         if detected and not previous and other~=player then notify(other.DisplayName..(joined and " ist dem Server beigetreten." or " gehört zur Spiel-Leitung."),joined and "Admin beigetreten" or "Spiel-Admin","shield-check") end
     end)
 end
@@ -1495,13 +1516,15 @@ local function drawCharacter()
         state.flyValue=45; state.fovValue=workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70
         activeSlider=nil; save(); render(); notify("Regler und Charakterwerte zurückgesetzt.","Charakter")
     end)
-    local source=findAction(tuning); local action=table.clone(source)
+    local selectedTuning=tuning
+    local source=findAction(selectedTuning); local action=table.clone(source)
     action.fn=function(value)
         source.fn(value)
-        local enable=({speedvalue="speed",jumpvalue="jump",fovvalue="fov"})[tuning]
+        local enable=({speedvalue="speed",jumpvalue="jump",fovvalue="fov"})[selectedTuning]
         if enable then local control=findAction(enable); if not control.get() then control.fn() end end
     end
     drawAction(action)
+    drawAction(findAction("antivoid"))
     if tuning=="fovvalue" then
         local reset=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
         rowButton(reset,"Sichtfeld zurücksetzen",UDim2.new(),UDim2.fromOffset(184,28),function()
@@ -1713,10 +1736,114 @@ local function drawScriptSearch()
     rowButton(paging,"Weiter",UDim2.fromOffset(196,0),UDim2.fromOffset(90,30),function() if scriptSearch.page<scriptSearch.totalPages then searchRemoteScripts(scriptSearch.page+1) end end)
     local footer=label(content,"Quelle: "..scriptSearch.provider,10,C.muted,UDim2.new(),UDim2.new(1,0,0,18))
 end
+function runtime.stopEmote()
+    for _,track in ipairs(runtime.emoteTracks or {}) do pcall(function() track:Stop(.15) end) end
+    runtime.emoteTracks={}
+end
+function runtime.playEmote(name)
+    runtime.stopEmote()
+    local h=humanoid(); if not h then return end
+    local animator=h:FindFirstChildOfClass("Animator")
+    local before={}; if animator then for _,track in ipairs(animator:GetPlayingAnimationTracks()) do before[track]=true end end
+    local ok,played=pcall(function() return h:PlayEmoteAsync(name) end)
+    if not ok or not played then notify("Dieses Emote ist für deinen Avatar nicht verfügbar.","Emote"); return end
+    if animator then for _,track in ipairs(animator:GetPlayingAnimationTracks()) do if not before[track] then table.insert(runtime.emoteTracks,track) end end end
+end
+function runtime.setShader(value)
+    runtime.shader=value
+    for _,effect in ipairs(runtime.shaderEffects or {}) do effect:Destroy() end
+    runtime.shaderEffects={}
+    if value then
+        table.insert(runtime.shaderEffects,make("ColorCorrectionEffect",{Name="ISBColorGrade",Contrast=.08,Saturation=.08,Brightness=.02,TintColor=Color3.fromRGB(245,248,255)},Lighting))
+        table.insert(runtime.shaderEffects,make("BloomEffect",{Name="ISBSoftBloom",Intensity=.14,Size=24,Threshold=1.25},Lighting))
+    end
+end
+function runtime.drawQuickActions()
+    plainCard("ISB Schnellaktionen","Sitzung, Bewegung und die Emotes deines Avatars.",78)
+    local grid=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,148)},content)
+    for i,item in ipairs({{"Fliegen","fly"},{"Noclip","noclip"},{"Highlights","esp"},{"Anti-Void","antivoid"},{"Licht-Preset","shader"},{"Schnellsuche","search"}}) do
+        rowButton(grid,item[1],UDim2.new(((i-1)%3)/3,0,0,math.floor((i-1)/3)*68),UDim2.new(1/3,-10,0,58),function()
+            if item[2]=="search" then setQuickSearch(true) else local action=findAction(item[2]); action.fn(); render() end
+        end)
+    end
+    local emotes=plainCard("Roleplay / Emotes","Die verfügbaren Emotes deines aktuellen Avatars.",120)
+    local h=humanoid(); local ok,description=pcall(function() return h:GetAppliedDescription() end)
+    local good,list=pcall(function() return description:GetEmotes() end)
+    local names={}; if ok and good and type(list)=="table" then for name in pairs(list) do if type(name)=="string" then table.insert(names,name) end end end
+    table.sort(names)
+    for i=1,math.min(8,#names) do
+        local name=names[i]; rowButton(emotes,name,UDim2.new(((i-1)%4)/4,8,0,68+math.floor((i-1)/4)*34),UDim2.new(.25,-16,0,28),function() runtime.playEmote(name) end)
+    end
+    if #names==0 then label(emotes,"Keine zugänglichen Emotes im Avatar.",12,C.muted,UDim2.fromOffset(16,66),UDim2.new(1,-32,0,22)) else emotes.Size=UDim2.new(1,0,0,#names>4 and 140 or 108) end
+    local footer=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+    rowButton(footer,"Emote stoppen",UDim2.new(),UDim2.fromOffset(130,28),runtime.stopEmote)
+    rowButton(footer,"Rejoin",UDim2.fromOffset(142,0),UDim2.fromOffset(100,28),rejoin)
+end
+function runtime.profileRequest(other,kind)
+    local cache=runtime.profileData[other.UserId] or {}; runtime.profileData[other.UserId]=cache
+    if cache[kind] then return end
+    cache[kind]={loading=true}; render()
+    task.spawn(function()
+        local url=kind=="history" and ("https://users.roblox.com/v1/users/"..other.UserId.."/username-history?limit=10&sortOrder=Desc") or ("https://avatar.roblox.com/v2/avatar/users/"..other.UserId.."/outfits?itemsPerPage=20&page=1&isEditable=false")
+        local ok,data=pcall(requestJSON,url)
+        cache[kind]=ok and type(data.data)=="table" and {data=data.data} or {error="Daten sind derzeit nicht öffentlich abrufbar."}
+        if alive and runtime.selectedPlayer==other then render() end
+    end)
+end
+function runtime.drawPlayerDetails(other)
+    local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
+    rowButton(back,"← Spieler",UDim2.new(),UDim2.fromOffset(120,28),function() runtime.selectedPlayer=nil; render() end)
+    local header=plainCard(other.DisplayName,"@"..other.Name.."  ·  "..(runtime.groupRoles[other] or "Player"),92)
+    local avatar=make("ImageLabel",{Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",BackgroundTransparency=1,Position=UDim2.new(1,-74,0,12),Size=UDim2.fromOffset(58,58)},header); round(avatar,29)
+    local h=other.Character and other.Character:FindFirstChildOfClass("Humanoid")
+    local team=other.Team and other.Team.Name or "Kein Team"
+    local detailsGrid=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,228)},content)
+    for index,entry in ipairs({{"Benutzer-ID",tostring(other.UserId)},{"Accountalter",tostring(other.AccountAge or "—").." Tage"},{"Team",team},{"Gesundheit",h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verfügbar"},{"Beziehung",session.friends[other.UserId] and "Freund" or "Spieler"},{"Gruppenrolle",runtime.groupRoles[other] or "Nicht verfügbar"}}) do
+        local f=plainCard(entry[1],entry[2],70)
+        f.Parent=detailsGrid; f.Size=UDim2.new(.5,-5,0,70); f.Position=UDim2.new((index-1)%2*.5,(index-1)%2*5,0,math.floor((index-1)/2)*76)
+        for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-56,0,24); child.TextWrapped=false end end
+        rowButton(f,"⧉",UDim2.new(1,-42,0,23),UDim2.fromOffset(30,28),function() copyText(entry[2]) end)
+    end
+    local controls=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+    rowButton(controls,session.friends[other.UserId] and "Bereits befreundet" or "Freund anfragen",UDim2.new(),UDim2.fromOffset(154,28),function()
+        if session.friends[other.UserId] then return end
+        local ok=pcall(function() game:GetService("StarterGui"):SetCore("PromptSendFriendRequest",other) end)
+        if not ok then notify("Roblox-Freundschaftsdialog ist hier nicht verfügbar.","Freunde") end
+    end)
+    rowButton(controls,"Profil-Link",UDim2.fromOffset(164,0),UDim2.fromOffset(102,28),function() copyText("https://www.roblox.com/users/"..other.UserId.."/profile") end)
+    local tabs=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+    rowButton(tabs,"Namenshistorie",UDim2.new(),UDim2.fromOffset(144,28),function() runtime.profileTab="history"; runtime.profileRequest(other,"history"); render() end)
+    rowButton(tabs,"Outfits",UDim2.fromOffset(156,0),UDim2.fromOffset(100,28),function() runtime.profileTab="outfits"; runtime.profileRequest(other,"outfits"); render() end)
+    local cache=runtime.profileData[other.UserId] or {}; local result=cache[runtime.profileTab or "history"]
+    if result then
+        if result.loading then plainCard("Lädt …","Öffentliche Roblox-Daten werden abgerufen.",70)
+        elseif result.error then plainCard("Nicht verfügbar",result.error,76)
+        elseif #result.data==0 then plainCard("Keine Einträge","Roblox liefert für diesen Spieler keine Einträge.",76)
+        else for i,entry in ipairs(result.data) do if i>20 then break end
+            local f=plainCard(tostring(entry.name or "Ohne Namen"),runtime.profileTab=="outfits" and "Öffentliches Outfit" or "Früherer Benutzername",88)
+            if runtime.profileTab=="outfits" and tonumber(entry.id) then
+                make("ImageLabel",{Image="rbxthumb://type=Outfit&id="..entry.id.."&w=150&h=150",BackgroundTransparency=1,Position=UDim2.new(1,-76,0,12),Size=UDim2.fromOffset(58,58)},f)
+            end
+        end end
+    end
+end
 local function drawPlayers()
-    for _,other in ipairs(Players:GetPlayers()) do
+    if runtime.selectedPlayer then runtime.drawPlayerDetails(runtime.selectedPlayer); return end
+    local roster=Players:GetPlayers()
+    table.sort(roster,function(a,b)
+        local function priority(p)
+            return (session.friends[p.UserId] and 2 or 0)+(runtime.gameStaff[p] and 1 or 0)
+        end
+        local pa,pb=priority(a),priority(b)
+        if pa~=pb then return pa>pb end
+        local an,bn=a.DisplayName:lower(),b.DisplayName:lower()
+        if an~=bn then return an<bn end
+        return a.UserId<b.UserId
+    end)
+    for _,other in ipairs(roster) do
         if other ~= player and matches(other.DisplayName .. " " .. other.Name) then
-            local f=card(other.DisplayName,"@" .. other.Name,104)
+            local relation=session.friends[other.UserId] and "Freund" or "Player"
+            local f=card(other.DisplayName,"@"..other.Name.."  ·  "..relation.."  ·  "..(runtime.groupRoles[other] or "Rolle wird geprüft"),104)
             for _,child in ipairs(f:GetChildren()) do
                 if child:IsA("TextLabel") then child.Position=UDim2.fromOffset(70,child.Position.Y.Offset); child.Size=UDim2.new(1,-86,0,child.Size.Y.Offset) end
             end
@@ -1726,6 +1853,7 @@ local function drawPlayers()
                 local ok,url=pcall(function() return Players:GetUserThumbnailAsync(other.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100) end)
                 if alive and avatar.Parent and ok then avatar.Image=url end
             end)
+            rowButton(f,"Details",UDim2.new(1,-114,0,68),UDim2.fromOffset(98,26),function() runtime.selectedPlayer=other; runtime.profileTab=nil; render() end)
             rowButton(f,"Beobachten",UDim2.fromOffset(16,68),UDim2.fromOffset(112,26),function()
                 local h=other.Character and other.Character:FindFirstChildOfClass("Humanoid")
                 if h and workspace.CurrentCamera then
@@ -1746,15 +1874,22 @@ local function drawPlayers()
         end
     end
 end
+addAction("antivoid","Bewegung","Anti-Void","Zum letzten Bodenpunkt zurück, bevor du die Fallgrenze erreichst","toggle",function() runtime.antiVoid=not runtime.antiVoid; runtime.safeGround=nil end,function() return runtime.antiVoid end)
+addAction("shader","Darstellung","Licht-Preset","Dezente Farben und Bloom · nur lokale Effekte","toggle",function() runtime.setShader(not runtime.shader) end,function() return runtime.shader end)
 render = function()
     if not alive then return end
+    local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
+    local scroll=context==runtime.renderContext and content.CanvasPosition or Vector2.zero
+    runtime.renderContext=context
+    runtime.renderRevision=(runtime.renderRevision or 0)+1
+    local revision=runtime.renderRevision
     clearRows()
     pageTitle.Text=page == "Start" and "ISB Menu" or page
     subtitle.Text=descriptions[page] or "Eigene Erweiterungen"
     local remote=page=="Skripte" and not scriptSearch.localMode
-    local searchable=page~="Start" and page~="Musik" and page~="Einstellungen" and page~="Voice" and page~="Profil"
+    local searchable=page~="Start" and page~="Musik" and page~="Einstellungen" and page~="Voice" and page~="Profil" and page~="Schnellaktionen"
     search.Visible=searchable
-    search.PlaceholderText=remote and "Skripte suchen …" or "Funktionen und Spieler suchen …"
+    search.PlaceholderText=page=="Spieler" and "Spieler suchen …" or (remote and "Skripte suchen …" or "Funktionen suchen …")
     content.Position=UDim2.fromOffset(18,searchable and 104 or 60)
     content.Size=UDim2.new(1,-36,1,searchable and -124 or -80)
     local desired=remote and scriptSearch.query or query
@@ -1776,7 +1911,8 @@ render = function()
     if runtime.statusIcon then runtime.statusIcon.ImageColor3=C.accent end
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
-    if page == "Start" then
+    if page=="Schnellaktionen" then runtime.drawQuickActions()
+    elseif page == "Start" then
         drawDashboard(); updateDashboard()
     elseif page=="Bewegung" and query=="" then
         drawCharacter()
@@ -1863,7 +1999,7 @@ render = function()
             end
             plainCard("Live-Messung",tostring(session.fps).." FPS  ·  "..tostring(session.ping or "—").." ms\nDie Statusleiste bleibt oben rechts sichtbar.",88)
         elseif settingsSection=="Tasten" then
-            for _,entry in ipairs({{"key","Menü öffnen / schließen"},{"dockKey","Dock einfahren / ausfahren"},{"searchKey","Skript-Schnellsuche"},{"flyKey","Fliegen an / aus"},{"noclipKey","Noclip an / aus"},{"espKey","Highlights / ESP an / aus"},{"speedKey","Laufgeschwindigkeit an / aus"}}) do
+            for _,entry in ipairs({{"key","Menü öffnen / schließen"},{"dockKey","Dock einfahren / ausfahren"},{"searchKey","Skript-Schnellsuche"},{"flyKey","Fliegen an / aus"},{"noclipKey","Noclip an / aus"},{"espKey","Highlights / ESP an / aus"},{"speedKey","Laufgeschwindigkeit an / aus"},{"flightTierKey","Fluggeschwindigkeit: nächste Stufe"}}) do
                 local field=entry[1]
                 local f=plainCard(entry[2],"Anklicken, Taste drücken. Escape bricht ab.",78)
                 local b
@@ -1880,6 +2016,11 @@ render = function()
             end)
             b.TextColor3=themes[name]
         end
+        local placement=plainCard("Position","Dock und Fenster gemeinsam ausrichten.",108)
+        for i,item in ipairs({{"Links","Left"},{"Mitte","Center"},{"Rechts","Right"}}) do rowButton(placement,item[1],UDim2.fromOffset(16+(i-1)*116,68),UDim2.fromOffset(106,28),function() settings.alignment=item[2]; runtime.updateInventoryClearance(); fit(); save(); render() end) end
+        runtime.drawRuler(content,{id="uiscale",name="Menügröße",desc="Größe in Prozent",kind="slider",min=50,max=120,step=5,get=function() return settings.uiScale end,fn=function(v) settings.uiScale=math.clamp(v,50,120); fit(); save() end})
+        drawAction({id="notifications",name="Benachrichtigungen",desc="Hinweise unten rechts anzeigen",kind="toggle",get=function() return settings.notifications end,fn=function() settings.notifications=not settings.notifications; save() end})
+        drawAction({id="autoopen",name="Beim Start öffnen",desc="Fenster beim nächsten Start automatisch öffnen",kind="toggle",get=function() return settings.autoOpen end,fn=function() settings.autoOpen=not settings.autoOpen; save() end})
         drawAction({id="uisounds",name="Interface-Sounds",desc="Dezente Klänge bei Öffnen, Schließen und Klicks",kind="toggle",get=function() return settings.sounds end,fn=function() settings.sounds=not settings.sounds; save() end})
         local voice=card("Voice Chat","Status, Mikrofon und Verbindung prüfen",78)
         rowButton(voice,"Öffnen",UDim2.new(1,-120,0,24),UDim2.fromOffset(104,32),function() query=""; selectPage("Voice") end)
@@ -1891,12 +2032,16 @@ render = function()
     else
         local count=0
         for _,action in ipairs(actions) do
-            local include=query ~= "" or action.category==page or (page=="Favoriten" and settings.favorites[action.id])
+            local include=page~="Spieler" and (query ~= "" or action.category==page or (page=="Favoriten" and settings.favorites[action.id]))
             if include and matches(action.name .. " " .. action.desc .. " " .. action.category) then drawAction(action); count=count+1 end
         end
         if page=="Spieler" then drawPlayers() end
         if count==0 and page~="Spieler" then card("Noch nichts gefunden", page=="Favoriten" and "Mit dem Stern an einer Funktion fügst du sie hier hinzu." or "Versuche einen anderen Suchbegriff.") end
     end
+    content.CanvasPosition=scroll
+    task.defer(function()
+        if alive and runtime.renderRevision==revision then content.CanvasPosition=scroll end
+    end)
 end
 connect(search:GetPropertyChangedSignal("Text"),function()
     if updatingSearch then return end
@@ -1908,7 +2053,15 @@ connect(search.FocusLost,function(enterPressed)
 end)
 connect(UIS.JumpRequest,function()
     local h=humanoid()
-    if state.infiniteJump and not UIS:GetFocusedTextBox() and h and h.Health>0 then h:ChangeState(Enum.HumanoidStateType.Jumping) end
+    local r=root()
+    if state.infiniteJump and not state.fly and not UIS:GetFocusedTextBox() and h and r and h.Health>0 then
+        if os.clock()-(runtime.lastExtraJump or -1)<.12 then return end
+        runtime.lastExtraJump=os.clock()
+        h:ChangeState(Enum.HumanoidStateType.Jumping)
+        local power=h.UseJumpPower and h.JumpPower or math.sqrt(2*math.max(workspace.Gravity,1)*h.JumpHeight)
+        local velocity=r.AssemblyLinearVelocity or Vector3.zero
+        r.AssemblyLinearVelocity=Vector3.new(velocity.X,power,velocity.Z)
+    end
 end)
 function runtime.keyName(code)
     local name=code.Name
@@ -1925,7 +2078,7 @@ connect(UIS.InputBegan,function(input,processed)
         local field=captureKey==true and "key" or captureKey
         captureKey=false
         if input.KeyCode~=Enum.KeyCode.Escape and input.KeyCode~=Enum.KeyCode.Unknown then
-            for _,other in ipairs({"key","dockKey","searchKey","flyKey","noclipKey","espKey","speedKey"}) do
+            for _,other in ipairs({"key","dockKey","searchKey","flyKey","noclipKey","espKey","speedKey","flightTierKey"}) do
                 if other~=field and settings[other]==pressed then notify("Diese Taste wird bereits verwendet.","Tastenkürzel"); render(); return end
             end
             settings[field]=pressed
@@ -1939,6 +2092,7 @@ connect(UIS.InputBegan,function(input,processed)
     if pressed==settings.key then setOpen(not opened)
     elseif pressed==settings.dockKey then setDockVisible(not dockVisible)
     elseif pressed==settings.searchKey then setQuickSearch(not quickSearchOpen)
+    elseif state.fly and pressed==settings.flightTierKey then runtime.flightTier=(runtime.flightTier or 1)%4+1; playUISound("tap")
     else
         for _,entry in ipairs({{"flyKey","fly"},{"noclipKey","noclip"},{"espKey","esp"},{"speedKey","speed"}}) do
             if pressed==settings[entry[1]] then
@@ -1968,6 +2122,17 @@ connect(Run.Stepped,function()
     end
 end)
 connect(Run.PreSimulation,function(dt)
+    applyMovement()
+    if runtime.antiVoid then
+        local r,h=root(),humanoid()
+        if r and h and h.Health>0 and not state.fly then
+            if h.FloorMaterial and h.FloorMaterial~=Enum.Material.Air and r.Position.Y>(workspace.FallenPartsDestroyHeight or -500)+100 then runtime.safeGround=r.CFrame end
+            if runtime.safeGround and r.Position.Y<(workspace.FallenPartsDestroyHeight or -500)+75 and os.clock()>(runtime.voidCooldown or 0) then
+                r.CFrame=runtime.safeGround+Vector3.new(0,5,0); r.AssemblyLinearVelocity=Vector3.zero; runtime.voidCooldown=os.clock()+2
+                notify("Zum letzten Bodenpunkt zurückgekehrt.","Anti-Void")
+            end
+        end
+    end
     local camera=workspace.CurrentCamera
     if state.fly and camera and flyObjects[1] and flyObjects[1].Parent then
         local h=humanoid()
@@ -1984,7 +2149,7 @@ connect(Run.PreSimulation,function(dt)
         else direction=Vector3.zero; up=0 end
         local target=direction+Vector3.new(0,up,0)
         if target.Magnitude>1 then target=target.Unit end
-        target=target*state.flyValue
+        target=target*state.flyValue*({1,1.5,2,3})[runtime.flightTier or 1]
         local step=math.clamp(dt,0,.25)
         local frequency=target.Magnitude>.01 and 8 or 10
         local offset=runtime.flightVelocity-target
@@ -2021,6 +2186,15 @@ connect(Run.RenderStepped,function(dt)
             widgetValue.Text=timeString(sound.TimePosition) .. " / " .. timeString(sound.TimeLength)
             widgetFill.Size=UDim2.fromScale(sound.TimeLength>0 and math.clamp(sound.TimePosition/sound.TimeLength,0,1) or 0,1)
         end
+    end
+    runtime.flightHud.Visible=state.fly
+    if state.fly then
+        runtime.flightInfo.Text="ISB FLUG  ·  "..({"Normal","Schnell","Turbo","Maximum"})[runtime.flightTier].."  ·  "..string.format("%g",state.flyValue*({1,1.5,2,3})[runtime.flightTier]).." studs/s"
+        runtime.flightNext.Text=settings.flightTierKey.."  "..runtime.flightTier.."/4"
+        local viewport=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.X or 1280
+        runtime.flightHud.Size=UDim2.fromOffset(math.min(360,math.max(220,viewport-24)),48)
+        runtime.flightNext.Position=UDim2.new(1,-88,0,9)
+        runtime.flightInfo.Size=UDim2.new(1,-106,0,34)
     end
     flyTouch.Visible=state.fly and UIS.TouchEnabled
     if not state.fly then touchVertical=0 end
@@ -2095,6 +2269,7 @@ connect(Run.RenderStepped,function(dt)
     end
 end)
 connect(player.CharacterRemoving,function()
+    runtime.safeGround=nil; runtime.stopEmote()
     stopFly(); restoreCollisions()
     table.clear(originals)
 end)
@@ -2111,7 +2286,8 @@ connect(Players.PlayerAdded,function(other) features.detectGameStaff(other,true)
 connect(Players.PlayerRemoving,function(other)
     if session.friends[other.UserId] then notify(other.DisplayName.." hat den Server verlassen.","Freund verlassen","users") end
     if runtime.gameStaff[other] then notify(other.DisplayName.." hat den Server verlassen.","Admin verlassen","shield-check") end
-    runtime.gameStaff[other]=nil
+    runtime.gameStaff[other]=nil; runtime.groupRoles[other]=nil
+    if runtime.selectedPlayer==other then runtime.selectedPlayer=nil end
     if highlights[other] then highlights[other]:Destroy(); highlights[other]=nil end
     if tags[other] then tags[other]:Destroy(); tags[other]=nil end
     if spectating==other then restoreCamera() end
@@ -2121,6 +2297,7 @@ local api = {}
 api.Destroy = function()
     if not alive then return end
     alive=false
+    runtime.stopEmote(); runtime.setShader(false)
     save(true)
     settings.lowEffects=false; features.applyPerformance()
     if runtime.performanceOwned.fps~=nil and type(setfpscap)=="function" then pcall(setfpscap,runtime.performanceOwned.fps) end
@@ -2192,7 +2369,7 @@ render()
 window.GroupTransparency=1; motionScale.Scale=0.94; window.Visible=false
 dock.GroupTransparency=1
 animate(dock,{GroupTransparency=0})
-task.delay(settings.reducedMotion and 0 or 0.3,function() if alive then setOpen(true) end end)
+task.delay(settings.reducedMotion and 0 or 0.3,function() if alive then setOpen(settings.autoOpen) end end)
 notify(CONFIG.Name .. " bereit • " .. CONFIG.ToggleKey.Name .. " öffnet das Menü")
 return api
 -- by Larsiopuw
