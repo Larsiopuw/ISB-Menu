@@ -1,7 +1,7 @@
--- ISB Menu 2.6.24 | Own-game universal client toolkit
+-- ISB Menu 2.6.25 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.24",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.25",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -1821,55 +1821,35 @@ function runtime.mediaRequest(path,body)
     assert(type(data)=="table" and (not result.StatusCode or (result.StatusCode>=200 and result.StatusCode<300)),type(data)=="table" and data.error or "Player antwortet nicht.")
     return data
 end
-function runtime.mediaBounds()
-    local data=runtime.media.state
-    return math.max(0,data.seekMin or 0),math.max(0,data.seekMax or data.duration or 0)
-end
 function runtime.mediaPosition()
     local data=runtime.media.state; local refs=runtime.mediaRefs
-    local minimum,maximum=runtime.mediaBounds()
-    if refs and refs.seeking then return refs.seekTarget or minimum end
+    local duration=data.duration or 0
+    if refs and refs.seeking then return (refs.seekValue or 0)*duration end
     local pending=runtime.media.seekPending
     if pending and os.clock()>pending.untilTime then runtime.media.seekPending=nil; pending=nil end
     local position=pending and pending.value or (data.position or 0)
     local since=pending and pending.at or (runtime.media.receivedAt or os.clock())
     if data.playing then position=position+math.max(0,os.clock()-since) end
-    return maximum>minimum and math.clamp(position,minimum,maximum) or math.max(0,position)
+    return math.clamp(position,0,duration)
 end
 function runtime.mediaProgress()
     local refs=runtime.mediaRefs
     if not refs or not refs.times.Parent then return end
-    local data=runtime.media.state; local duration=data.duration or 0; local position=runtime.mediaPosition()
-    local minimum,maximum=runtime.mediaBounds()
-    local text=timeString(position).." / "..timeString(duration)
-    if data.live then
-        if maximum>minimum then
-            local behind=math.max(0,maximum-position)
-            text=(behind<3 and "LIVE" or "−"..timeString(behind).." hinter Live").." · Rückspulfenster "..timeString(maximum-minimum)
-        else text="LIVE · Zeitdaten nicht verfügbar" end
-        if data.liveStartedAt and data.liveStartedAt>0 then text=text.." · Seit "..timeString(math.max(0,os.time()-data.liveStartedAt)) end
-    elseif data.available and duration<=0 then text="Zeitdaten nicht verfügbar" end
+    local duration=runtime.media.state.duration or 0; local position=runtime.mediaPosition()
+    local text=duration>0 and (timeString(position).." / "..timeString(duration)) or (runtime.media.state.available and "Zeitdaten nicht verfügbar" or "—")
     if refs.times.Text~=text then refs.times.Text=text end
-    refs.fill.Size=UDim2.fromScale(maximum>minimum and math.clamp((position-minimum)/(maximum-minimum),0,1) or 0,1)
+    refs.fill.Size=UDim2.fromScale(duration>0 and position/duration or 0,1)
 end
 function runtime.mediaPaint()
     local refs=runtime.mediaRefs
     if not refs or not refs.title.Parent then return end
     local data=runtime.media.state
-    refs.title.Text=runtime.media.connected and (data.title or data.message or "Kein Player aktiv") or "Windows-Bridge nicht verbunden"
-    refs.artist.Text=runtime.media.connected and ((data.source or "Windows")..(data.artist and data.artist~="" and " · "..data.artist or "")) or (runtime.media.reason or "ISBMediaBridge.exe starten · Verbindung wird automatisch geprüft")
+    refs.title.Text=runtime.media.connected and (data.title or data.message or "Kein Player aktiv") or "Windows-Musiksteuerung nicht verbunden"
+    refs.artist.Text=runtime.media.connected and ((data.source or "Windows")..(data.artist and data.artist~="" and " · "..data.artist or "")) or (runtime.media.reason or "Windows-Musiksteuerung benötigt die optionale ISBMediaBridge.exe")
     refs.cover.Image=runtime.media.connected and runtime.media.coverAsset or ""
     if refs.cover.Image==nil then refs.cover.Image="" end
     refs.coverPlaceholder.Visible=refs.cover.Image==""
     refs.toggle.Text=data.playing and "Pause" or "Abspielen"
-    refs.extra.Visible=data.browser==true
-    refs.card.Size=UDim2.new(1,0,0,data.browser and 268 or 228)
-    refs.sources.Position=UDim2.fromOffset(15,data.browser and 228 or 188)
-    refs.mute.Text=data.muted and "Entstummen" or "Stummschalten"
-    refs.live.Text=data.live and "Zur Live-Position" or "Zum Anfang"
-    refs.buttons.previous.Text=data.browser and "−10 Sekunden" or "Zurück"
-    refs.buttons.next.Text=data.browser and "+10 Sekunden" or "Weiter"
-    refs.live.TextColor3=data.controls and data.controls.seek and C.text or C.muted
     runtime.mediaProgress()
     refs.auto.BackgroundColor3=runtime.media.selected=="" and C.accent:Lerp(C.panel,.8) or C.panel
     refs.auto.TextColor3=runtime.media.selected=="" and C.accent or C.text
@@ -1892,8 +1872,7 @@ function runtime.mediaPaint()
         b.TextColor3=selected and C.accent or C.text
     end
     for command,b in pairs(refs.buttons) do
-        local capability=data.browser and (command=="previous" or command=="next") and "seek" or command
-        local enabled=runtime.media.connected and data.available and data.controls and data.controls[capability]
+        local enabled=runtime.media.connected and data.available and data.controls and data.controls[command]
         b.TextColor3=enabled and C.text or C.muted
         b.BackgroundTransparency=enabled and 0 or .5
     end
@@ -1916,7 +1895,7 @@ end
 function runtime.mediaPoll()
     if runtime.media.polling then return end
     if not runtime.mediaConfig() then
-        runtime.media.connected=false; runtime.media.reason="ISBMediaBridge.exe starten · Verbindung wird automatisch erneut geprüft"
+        runtime.media.connected=false; runtime.media.reason="Windows-Musiksteuerung benötigt die optionale ISBMediaBridge.exe"
         runtime.mediaPaint(); return
     end
     runtime.media.polling=true
@@ -1938,9 +1917,6 @@ function runtime.mediaPoll()
             if playback and playback.source==data.selected and os.clock()<playback.untilTime then
                 if data.playing==playback.value then runtime.media.playbackPending=nil else data.playing=playback.value end
             else runtime.media.playbackPending=nil end
-            local mute=runtime.media.mutePending
-            if mute and mute.source==data.selected and os.clock()<mute.untilTime and data.muted~=mute.value then data.muted=mute.value
-            else runtime.media.mutePending=nil end
             local seek=runtime.media.seekPending
             if seek then
                 local expected=seek.value+(data.playing and math.max(0,os.clock()-seek.at) or 0)
@@ -1955,7 +1931,7 @@ function runtime.mediaCommand(command,value)
     local data=runtime.media.state
     if not runtime.media.connected or not data.available then notify("Starte ISBMediaBridge und öffne einen Medienplayer.","Musik"); return end
     if not data.controls or not data.controls[command] then notify("Dieser Player unterstützt diese Aktion derzeit nicht.","Musik"); return end
-    local item={command=command,value=value,source=data.browser and data.selected or (runtime.media.selected~="" and runtime.media.selected or data.selected)}
+    local item={command=command,value=value,source=runtime.media.selected~="" and runtime.media.selected or data.selected}
     if #runtime.media.queue>=8 then notify("Player verarbeitet noch die vorherigen Aktionen.","Musik"); return end
     if command=="seek" then
         local pending={value=value,source=data.selected,title=data.title,at=os.clock(),untilTime=os.clock()+3}
@@ -1965,10 +1941,6 @@ function runtime.mediaCommand(command,value)
         local pending={value=not data.playing,original=data.playing,source=data.selected,untilTime=os.clock()+2}
         item.playbackPending=pending; runtime.media.playbackPending=pending
         data.playing=pending.value; runtime.mediaPaint()
-    end
-    if command=="mute" then
-        local pending={value=value,original=data.muted,source=data.selected,untilTime=os.clock()+3}
-        runtime.media.mutePending=pending; item.mutePending=pending; data.muted=value; runtime.mediaPaint()
     end
     local queue=runtime.media.queue
     if (command=="volume" or command=="seek") and #queue>0 and queue[#queue].command==command and queue[#queue].source==item.source then queue[#queue]=item
@@ -1983,9 +1955,6 @@ function runtime.mediaCommand(command,value)
                 if nextCommand.seekPending and runtime.media.seekPending==nextCommand.seekPending then runtime.media.seekPending=nil; runtime.mediaProgress() end
                 if nextCommand.playbackPending and runtime.media.playbackPending==nextCommand.playbackPending then
                     runtime.media.state.playing=nextCommand.playbackPending.original; runtime.media.playbackPending=nil; runtime.mediaPaint()
-                end
-                if nextCommand.mutePending and runtime.media.mutePending==nextCommand.mutePending then
-                    runtime.media.state.muted=nextCommand.mutePending.original; runtime.media.mutePending=nil; runtime.mediaPaint()
                 end
                 notify(ok and tostring(result.error or "Aktion nicht angenommen.") or tostring(result):sub(1,150),"Musik") end
         end
@@ -2015,45 +1984,29 @@ function runtime.drawMediaPlayer()
     local rail=make("Frame",{Name="MediaSeek",Active=true,BackgroundColor3=C.line,Position=UDim2.fromOffset(18,91),Size=UDim2.new(1,-36,0,8)},f); round(rail,4)
     local fill=make("Frame",{Name="MediaProgress",BackgroundColor3=C.accent,BorderSizePixel=0,Size=UDim2.fromScale(0,1)},rail); round(fill,4)
     local times=label(f,"00:00 / 00:00",10,C.muted,UDim2.fromOffset(18,104),UDim2.new(1,-36,0,18))
-    local refs={card=f,title=title,artist=artist,cover=cover,coverPlaceholder=coverPlaceholder,fill=fill,times=times,buttons={}}
+    local refs={title=title,artist=artist,cover=cover,coverPlaceholder=coverPlaceholder,fill=fill,times=times,buttons={}}
     runtime.mediaRefs=refs
     for i,item in ipairs({{"previous","Zurück"},{"toggle","Abspielen"},{"next","Weiter"}}) do
-        local b=rowButton(f,item[2],UDim2.new((i-1)/3,18-(i-1)*12,0,137),UDim2.new(1/3,-24,0,34),function()
-            if runtime.media.state.browser and (item[1]=="previous" or item[1]=="next") then
-                local low,high=runtime.mediaBounds()
-                runtime.mediaCommand("seek",math.clamp(runtime.mediaPosition()+(item[1]=="previous" and -10 or 10),low,high))
-            else runtime.mediaCommand(item[1]) end
-        end)
+        local b=rowButton(f,item[2],UDim2.new((i-1)/3,18-(i-1)*12,0,137),UDim2.new(1/3,-24,0,34),function() runtime.mediaCommand(item[1]) end)
         refs.buttons[item[1]]=b; if item[1]=="toggle" then refs.toggle=b; b.Name="MediaPlaybackButton" end
     end
     refs.sources=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(15,188),Size=UDim2.new(1,-30,0,28)},f)
-    refs.extra=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(18,181),Size=UDim2.new(1,-36,0,30),Visible=false},f)
-    refs.mute=rowButton(refs.extra,"Stummschalten",UDim2.fromOffset(0,0),UDim2.new(.5,-5,0,30),function() runtime.mediaCommand("mute",not runtime.media.state.muted) end)
-    refs.mute.Name="MediaMuteButton"; refs.buttons.mute=refs.mute
-    refs.live=rowButton(refs.extra,"Zur Live-Position",UDim2.new(.5,5,0,0),UDim2.new(.5,-5,0,30),function()
-        local minimum,maximum=runtime.mediaBounds()
-        runtime.mediaCommand("seek",runtime.media.state.live and maximum or minimum)
-    end)
     rowConnect(rail.InputBegan,function(input)
         if input.UserInputType~=Enum.UserInputType.MouseButton1 and input.UserInputType~=Enum.UserInputType.Touch then return end
         local data=runtime.media.state
-        local minimum,maximum=runtime.mediaBounds()
-        if not data.controls or not data.controls.seek or maximum<=minimum then return end
+        if not data.controls or not data.controls.seek then return end
         refs.seeking=true; content.ScrollingEnabled=false
-        local function update(x)
-            refs.seekValue=math.clamp((x-rail.AbsolutePosition.X)/math.max(1,rail.AbsoluteSize.X),0,1)
-            local low,high=runtime.mediaBounds(); refs.seekTarget=low+refs.seekValue*(high-low); runtime.mediaProgress()
-        end
+        local function update(x) refs.seekValue=math.clamp((x-rail.AbsolutePosition.X)/math.max(1,rail.AbsoluteSize.X),0,1); runtime.mediaProgress() end
         update(input.Position.X)
         activeSlider={input=input,update=update}
     end)
     rowConnect(UIS.InputEnded,function(input)
         if refs.seeking and (input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch) then
             refs.seeking=false; content.ScrollingEnabled=true
-            runtime.mediaCommand("seek",refs.seekTarget or 0)
+            runtime.mediaCommand("seek",(refs.seekValue or 0)*(runtime.media.state.duration or 0))
         end
     end)
-    drawAction({id="mediavolume",name="Player-Lautstärke",desc="Bei YouTube: aktuelles Video · sonst gesamte App",kind="slider",min=0,max=100,step=5,dragStep=.1,
+    drawAction({id="mediavolume",name="App-Lautstärke",desc="Gewählte Windows-App · beim Browser gilt sie für alle Tabs",kind="slider",min=0,max=100,step=5,dragStep=.1,
         get=function() return math.floor((runtime.media.state.volume or 0)*1000+.5)/10 end,
         preview=runtime.previewMediaVolume,commit=runtime.commitMediaVolume,
         fn=function(v) runtime.previewMediaVolume(v); runtime.commitMediaVolume() end})

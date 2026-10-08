@@ -1,4 +1,4 @@
-# ISB Menu 2.6.24 · by Larsiopuw
+# ISB Menu 2.6.25 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -10,9 +10,9 @@ Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das D
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
 
-## Änderungen in 2.6.24
+## Änderungen in 2.6.25
 
-YouTube-Anbindung als lokale Opera/Chromium-Erweiterung: direkte Video-Stummschaltung, Entstummen beim Erhöhen der Lautstärke, Live-Abstand, verfügbares Rückspulfenster, ±10 Sekunden und Zur Live-Position. Die Erweiterung muss einmal manuell geladen werden; Anleitung in ISBMediaBridge-README.md. Ohne Erweiterung erscheint bei fehlender Live-Zeitleiste ein verständlicher LIVE-Hinweis. Die gesamte Stream-Laufzeit wird nur angezeigt, wenn YouTube einen tatsächlichen Startzeitpunkt liefert.
+Die YouTube-Browsererweiterung wurde entfernt. Externe Windows-Musiksteuerung ist optional und setzt die lokale ISBMediaBridge.exe voraus. Das Roblox-Skript allein hat keinen Zugriff auf Spotify oder Browser-Player außerhalb des Spiels. Ohne bereitgestellte Zeitdaten erscheint ein verständlicher Hinweis statt 00:00 / 00:00. Alle anderen Menüfunktionen bleiben ohne Zusatzprogramm nutzbar.
 
 ## Änderungen in 2.6.23
 
