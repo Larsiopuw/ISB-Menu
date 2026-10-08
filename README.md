@@ -1,4 +1,4 @@
-# ISB Menu 2.6.17 · by Larsiopuw
+# ISB Menu 2.6.18 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,12 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Änderungen in 2.6.18
+
+Spieler mit blauem Roblox-Haken zeigen diesen auch direkt hinter dem Namen, einschließlich verifizierter Freunde und Admins. Lange Namen werden gekürzt und behalten Platz für das Symbol.
+
+Spielerliste: Freunde zuerst, danach Admins, danach Spieler mit Roblox HasVerifiedBadge und zuletzt alle übrigen Spieler. Innerhalb jeder Gruppe bleibt die alphabetische Sortierung erhalten. Der Badge-Status wird einmal pro Spieler beim Aufbau der sortierten Liste gelesen.
 
 ## Änderungen in 2.6.17
 

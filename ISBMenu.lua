@@ -1,7 +1,7 @@
--- ISB Menu 2.6.17 | Own-game universal client toolkit
+-- ISB Menu 2.6.18 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.17",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.18",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -2817,6 +2817,32 @@ function runtime.markerColor(friend,staff)
     -- Blue stays reserved for friends when the interface accent is blue.
     return settings.theme=="Blue" and Color3.fromRGB(255,190,82) or C.accent
 end
+function runtime.isRobloxVerified(other)
+    local ok,verified=pcall(function() return other.HasVerifiedBadge end)
+    return ok and verified==true
+end
+function runtime.playerVerifiedIcon(card,nameLabel)
+    local badge=make("Frame",{Name="RobloxVerifiedBadge",BackgroundTransparency=1,Size=UDim2.fromOffset(18,18)},card)
+    for _,angle in ipairs({0,45}) do
+        local blue=make("Frame",{BackgroundColor3=Color3.fromRGB(36,149,255),AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(13,13),Rotation=angle},badge)
+        round(blue,3)
+    end
+    local checkShort=make("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),Position=UDim2.fromOffset(4,9),Size=UDim2.fromOffset(5,2),Rotation=45},badge); round(checkShort,1)
+    local checkLong=make("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),Position=UDim2.fromOffset(7,8),Size=UDim2.fromOffset(8,2),Rotation=-45},badge); round(checkLong,1)
+    nameLabel.Size=UDim2.new(nameLabel.Size.X.Scale,nameLabel.Size.X.Offset-24,nameLabel.Size.Y.Scale,nameLabel.Size.Y.Offset)
+    nameLabel.TextWrapped=false; nameLabel.TextTruncate=Enum.TextTruncate.AtEnd
+    local function positionBadge()
+        local width=nameLabel.AbsoluteSize.X
+        if width<=0 then width=window.Size.X.Offset-32+nameLabel.Size.X.Offset end
+        local measured=width
+        if runtime.textService then
+            local ok,bounds=pcall(function() return runtime.textService:GetTextSize(nameLabel.Text,nameLabel.TextSize,nameLabel.Font,Vector2.new(10000,24)) end)
+            if ok then measured=bounds.X end
+        end
+        badge.Position=UDim2.fromOffset(nameLabel.Position.X.Offset+math.min(measured,math.max(0,width))+6,15)
+    end
+    positionBadge(); rowConnect(nameLabel:GetPropertyChangedSignal("AbsoluteSize"),positionBadge)
+end
 function runtime.drawPlayerCard(other,index)
             local relation=session.friends[other.UserId] and "Freund" or "Player"
             local f=card(other.DisplayName,"@"..other.Name.."  ·  "..relation.."  ·  "..(runtime.groupRoles[other] or "Rolle wird geprüft"),104)
@@ -2837,6 +2863,11 @@ function runtime.drawPlayerCard(other,index)
                 badge.Name="RelationshipBadge"; badge.TextXAlignment=Enum.TextXAlignment.Right; badge.Font=Enum.Font.BuilderSansBold
                 for _,child in ipairs(f:GetChildren()) do
                     if child:IsA("TextLabel") and child.Position.Y.Offset==12 then child.Size=UDim2.new(1,-182,0,24); child.TextTruncate=Enum.TextTruncate.AtEnd end
+                end
+            end
+            if runtime.isRobloxVerified(other) then
+                for _,child in ipairs(f:GetChildren()) do
+                    if child:IsA("TextLabel") and child.Text==other.DisplayName then runtime.playerVerifiedIcon(f,child); break end
                 end
             end
             local avatar=make("ImageLabel",{BackgroundColor3=C.panel,Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",Position=UDim2.fromOffset(14,12),Size=UDim2.fromOffset(40,40)},f)
@@ -2882,11 +2913,17 @@ end
 local function drawPlayers()
     if runtime.selectedPlayer then runtime.drawPlayerDetails(runtime.selectedPlayer); return end
     local roster=Players:GetPlayers()
-    table.sort(roster,function(a,b)
-        local function priority(p)
-            return (session.friends[p.UserId] and 2 or 0)+(runtime.gameStaff[p] and 1 or 0)
+    -- Read the replicated badge flag once per player, rather than during each comparison.
+    local priorities={}
+    for _,other in ipairs(roster) do
+        if session.friends[other.UserId] then priorities[other]=3
+        elseif runtime.gameStaff[other] then priorities[other]=2
+        else
+            priorities[other]=runtime.isRobloxVerified(other) and 1 or 0
         end
-        local pa,pb=priority(a),priority(b)
+    end
+    table.sort(roster,function(a,b)
+        local pa,pb=priorities[a],priorities[b]
         if pa~=pb then return pa>pb end
         local an,bn=a.DisplayName:lower(),b.DisplayName:lower()
         if an~=bn then return an<bn end
