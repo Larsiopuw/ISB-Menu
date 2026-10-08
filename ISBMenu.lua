@@ -1,7 +1,7 @@
--- ISB Menu 2.6.18 | Own-game universal client toolkit
+-- ISB Menu 2.6.19 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.18",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.19",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -2769,6 +2769,14 @@ function runtime.drawPlayerDetails(other)
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
     rowButton(back,"← Spieler",UDim2.new(),UDim2.fromOffset(120,28),function() runtime.selectedPlayer=nil; render() end)
     local header=plainCard(other.DisplayName,"@"..other.Name.."  ·  "..(runtime.groupRoles[other] or "Player"),92)
+    if runtime.isRobloxVerified(other) then
+        for _,child in ipairs(header:GetChildren()) do
+            if child:IsA("TextLabel") and child.Text==other.DisplayName then
+                child.Size=UDim2.new(1,-96,0,24)
+                runtime.playerVerifiedIcon(header,child); break
+            end
+        end
+    end
     local avatar=make("ImageLabel",{Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",BackgroundTransparency=1,Position=UDim2.new(1,-74,0,12),Size=UDim2.fromOffset(58,58)},header); round(avatar,29)
     local h=other.Character and other.Character:FindFirstChildOfClass("Humanoid")
     local team=other.Team and other.Team.Name or "Kein Team"
