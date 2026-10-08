@@ -1,7 +1,7 @@
--- ISB Menu 2.6.26 | Own-game universal client toolkit
+-- ISB Menu 2.6.27 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.26",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.27",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -1844,6 +1844,7 @@ end
 function runtime.mediaPaint()
     local refs=runtime.mediaRefs
     if not refs or not refs.title.Parent then return end
+    refs.setup.Visible=not runtime.media.connected
     local data=runtime.media.state
     refs.title.Text=runtime.media.connected and (data.title or data.message or "Kein Player aktiv") or "Windows-Musiksteuerung nicht verbunden"
     refs.artist.Text=runtime.media.connected and ((data.source or "Windows")..(data.artist and data.artist~="" and " · "..data.artist or "")) or (runtime.media.reason or "Windows-Musiksteuerung benötigt die optionale ISBMediaBridge.exe")
@@ -1990,7 +1991,7 @@ function runtime.drawMediaPlayer()
     local rail=make("Frame",{Name="MediaSeek",Active=true,BackgroundColor3=C.line,Position=UDim2.fromOffset(18,91),Size=UDim2.new(1,-36,0,8)},f); round(rail,4)
     local fill=make("Frame",{Name="MediaProgress",BackgroundColor3=C.accent,BorderSizePixel=0,Size=UDim2.fromScale(0,1)},rail); round(fill,4)
     local times=label(f,"00:00 / 00:00",10,C.muted,UDim2.fromOffset(18,104),UDim2.new(1,-36,0,18))
-    local refs={title=title,artist=artist,cover=cover,coverPlaceholder=coverPlaceholder,fill=fill,times=times,buttons={}}
+    local refs={setup=setup,title=title,artist=artist,cover=cover,coverPlaceholder=coverPlaceholder,fill=fill,times=times,buttons={}}
     runtime.mediaRefs=refs
     for i,item in ipairs({{"previous","Zurück"},{"toggle","Abspielen"},{"next","Weiter"}}) do
         local b=rowButton(f,item[2],UDim2.new((i-1)/3,18-(i-1)*12,0,137),UDim2.new(1/3,-24,0,34),function() runtime.mediaCommand(item[1]) end)
