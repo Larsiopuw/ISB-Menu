@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "ISB YouTube Player",
+  "version": "2.6.24",
+  "description": "YouTube-Livestream, Spulen und Stummschaltung lokal mit ISB Menu verbinden. by Larsiopuw",
+  "host_permissions": ["http://127.0.0.1:8766/*"],
+  "background": {"service_worker": "background.js"},
+  "content_scripts": [{"matches": ["https://www.youtube.com/*", "https://youtube.com/*", "https://m.youtube.com/*"], "js": ["content.js"], "run_at": "document_idle"}]
+}
