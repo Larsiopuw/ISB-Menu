@@ -1,6 +1,8 @@
-# Optionale Windows-Musiksteuerung · ISB 2.6.25
+# Optionale Windows-Musiksteuerung · ISB 2.6.26
 
-Das Roblox-Skript allein kann Spotify und YouTube außerhalb des Spiels nicht erkennen oder bedienen. Dafür ist dieses lokale Windows-Hintergrundprogramm erforderlich. Es wird nicht durch das Lua-Menü heruntergeladen, installiert oder gestartet. Wer kein Zusatzprogramm nutzen möchte, kann alle übrigen Menüfunktionen sowie Roblox-Audio verwenden. Eine Browser-Erweiterung wird nicht benötigt.
+Das Roblox-Skript allein kann Spotify und YouTube außerhalb des Spiels nicht erkennen oder bedienen. Dafür ist dieses lokale Windows-Hintergrundprogramm erforderlich. Es wird nicht durch das Lua-Menü heruntergeladen, installiert oder gestartet. Im Musik-Tab **Einrichtungsbefehl kopieren** anklicken und einmal in Windows PowerShell einfügen. Der Befehl prüft Installer und EXE, installiert für das eigene Windows-Konto und richtet den Autostart ein. Keine Administratorrechte erforderlich. Die Bridge wird sofort gestartet, sofern noch keine Verbindung läuft. Wiederholtes Ausführen verwendet dieselbe geprüfte EXE und dieselbe Autostart-Verknüpfung.
+
+Wer kein Zusatzprogramm nutzen möchte, kann alle übrigen Menüfunktionen sowie Roblox-Audio verwenden. Eine Browser-Erweiterung wird nicht benötigt.
 
 Bei dir eingerichteter Windows-Autostart gilt nur für deinen PC. Andere Nutzer müssten das Programm selbst einmal einrichten; eine vollständig voraussetzungslose externe Medienerkennung ist damit nicht möglich.
 
@@ -19,5 +21,11 @@ Real wird automatisch erkannt. Für einen anderen Executor die EXE mit `--client
 Zum Beenden im Windows-Task-Manager ausschließlich **ISBMediaBridge.exe** beenden. Für automatischen Start bei Windows-Anmeldung einmal ISBMediaBridge-Autostart.ps1 ausführen. Ohne diese ausdrückliche Einrichtung nach einem Windows-Neustart die Bridge erneut starten. Mit -Remove entfernt das Skript die Autostart-Verknüpfung. Es werden keine geplanten Aufgaben angelegt. Das Roblox-Menü ist weiterhin ohne Bridge verwendbar; Roblox-Audio-IDs bleiben als zusätzliche Möglichkeit vorhanden.
 
 Quellcode und festgelegte Python-Abhängigkeiten sind enthalten. Zum eigenen Build unter Windows: Abhängigkeiten aus `ISBMediaBridge-requirements.txt` sowie PyInstaller installieren und `pyinstaller --onefile --noconsole --collect-all winrt --collect-all comtypes --collect-submodules pycaw ISBMediaBridge.py` ausführen.
+
+## Andere Executor-Workspaces
+
+Real wird automatisch erkannt. Für einen anderen Executor den geprüften Installer mit `-ClientWorkspace "C:/Pfad/zum/Executor/workspace"` ausführen. Dieses Argument wird auch in der Autostart-Verknüpfung gespeichert. Der Executor muss lokale HTTP-Anfragen und Workspace-Dateien unterstützen.
+
+Zum Deaktivieren Win+R drücken, `shell:startup` öffnen und die Verknüpfung **ISB Media Bridge** entfernen. Eine bereits laufende Bridge kann über den Task-Manager beendet werden. Die Einrichtung bleibt erhalten, bis sie entfernt wird; eine Windows-Neuinstallation oder ein Benutzerwechsel erfordern erneute Einrichtung.
 
 <!-- -- by Larsiopuw -->

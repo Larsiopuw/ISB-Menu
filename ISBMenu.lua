@@ -1,7 +1,7 @@
--- ISB Menu 2.6.25 | Own-game universal client toolkit
+-- ISB Menu 2.6.26 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.25",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.26",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -1806,6 +1806,7 @@ local function drawAction(action)
 end
 
 runtime.media={state={},queue={},selected="",connected=false,pollTime=0,sourceSignature=""}
+runtime.mediaInstallCommand="$ErrorActionPreference='Stop'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $isbSetup=Join-Path $env:TEMP ('ISBMediaBridge-Install-'+[Guid]::NewGuid().ToString('N')+'.ps1'); Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/Larsiopuw/ISB-Menu/19eb1a9d3a5317ecb87ac3dee9ade748618b76ca/ISBMediaBridge-Install.ps1' -OutFile $isbSetup; if ((Get-FileHash -LiteralPath $isbSetup -Algorithm SHA256).Hash -ne 'B114EA37C1A039B6F5CD7B21FE62340F212198F5D328D668C3DE7ED7AC015E25') { throw 'Installationsdatei konnte nicht bestätigt werden.' }; & ([scriptblock]::Create([IO.File]::ReadAllText($isbSetup))) # -- by Larsiopuw"
 function runtime.mediaConfig()
     if not capabilities.files or not capabilities.http then return nil end
     local ok,config=pcall(function() return Http:JSONDecode(readfile("ISBMenu-media-bridge.json")) end)
@@ -1974,6 +1975,11 @@ function runtime.commitMediaVolume()
 end
 function runtime.drawMediaPlayer()
     runtime.media.sourceSignature=""
+    local setup=card("Windows-Musik einrichten","Einmal in PowerShell einfügen · startet danach bei Windows-Anmeldung",84)
+    setup.Name="MediaSetupCard"
+    for _,child in ipairs(setup:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-236,0,child.Size.Y.Offset) end end
+    local setupButton=rowButton(setup,"Einrichtungsbefehl kopieren",UDim2.new(1,-214,0,26),UDim2.fromOffset(198,32),function() copyText(runtime.mediaInstallCommand) end)
+    setupButton.Name="MediaSetupCopy"; setupButton.TextSize=11
     local f=card("Windows-Musikplayer","",228)
     for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Visible=false end end
     local cover=make("ImageLabel",{Name="MediaCover",BackgroundColor3=C.bg,Image="",Position=UDim2.fromOffset(18,16),Size=UDim2.fromOffset(64,64),ScaleType=Enum.ScaleType.Crop},f); round(cover,12)
