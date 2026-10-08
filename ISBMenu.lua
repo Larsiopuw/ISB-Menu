@@ -1,7 +1,7 @@
--- ISB Menu 2.6.27 | Own-game universal client toolkit
+-- ISB Menu 2.6.28 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.27",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.28",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -2922,11 +2922,11 @@ function runtime.drawPlayerCard(other,index)
                 local tint=runtime.markerColor(isFriend,isStaff)
                 f.Name=isStaff and "StaffPlayerCard" or "FriendPlayerCard"
                 f:FindFirstChild("ContentSurface"):Destroy(); f:FindFirstChild("ContentEdge"):Destroy()
-                local glow=make("Frame",{Name="RelationshipGlow",BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1),ZIndex=0},f)
-                round(glow,16.5)
+                local edge=make("Frame",{Name="RelationshipEdge",BackgroundColor3=tint,BackgroundTransparency=.35,BorderSizePixel=0,Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,1,-2),ZIndex=0},f)
+                round(edge,16)
+                local glow=make("Frame",{Name="RelationshipGlow",BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Position=UDim2.fromOffset(1.5,1.5),Size=UDim2.new(1,-3,1,-3),ZIndex=0},edge)
+                round(glow,14.5)
                 make("UIGradient",{Rotation=0,Color=ColorSequence.new(C.card:Lerp(tint,.25),C.card:Lerp(tint,.04))},glow)
-                local edge=make("Frame",{Name="RelationshipEdge",BackgroundTransparency=1,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1),ZIndex=0},f); round(edge,16.5)
-                make("UIStroke",{Color=tint,Thickness=1,Transparency=.5},edge)
                 local badge=label(f,isStaff and "ADMIN" or "FREUND",10,tint,UDim2.new(1,-98,0,14),UDim2.fromOffset(82,20))
                 badge.Name="RelationshipBadge"; badge.TextXAlignment=Enum.TextXAlignment.Right; badge.Font=Enum.Font.BuilderSansBold
                 for _,child in ipairs(f:GetChildren()) do
