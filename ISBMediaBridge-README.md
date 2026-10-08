@@ -10,7 +10,7 @@ Die Verbindung bleibt lokal auf `127.0.0.1:8766`; Browser-Webseiten werden abgew
 
 Real wird automatisch erkannt. Für einen anderen Executor die EXE mit `--client-workspace "C:\Pfad\zum\Executor\workspace"` starten. Ein anderer Port ist für die fertige Lua-Fassung nicht vorgesehen.
 
-Zum Beenden im Windows-Task-Manager ausschließlich **ISBMediaBridge.exe** beenden. Es werden keine Autostarts oder geplanten Aufgaben angelegt. Nach einem Windows-Neustart die Bridge erneut starten. Das Roblox-Menü ist weiterhin ohne Bridge verwendbar; Roblox-Audio-IDs bleiben als zusätzliche Möglichkeit vorhanden.
+Zum Beenden im Windows-Task-Manager ausschließlich **ISBMediaBridge.exe** beenden. Für automatischen Start bei Windows-Anmeldung einmal ISBMediaBridge-Autostart.ps1 ausführen. Ohne diese ausdrückliche Einrichtung nach einem Windows-Neustart die Bridge erneut starten. Mit -Remove entfernt das Skript die Autostart-Verknüpfung. Es werden keine geplanten Aufgaben angelegt. Das Roblox-Menü ist weiterhin ohne Bridge verwendbar; Roblox-Audio-IDs bleiben als zusätzliche Möglichkeit vorhanden.
 
 Quellcode und festgelegte Python-Abhängigkeiten sind enthalten. Zum eigenen Build unter Windows: Abhängigkeiten aus `ISBMediaBridge-requirements.txt` sowie PyInstaller installieren und `pyinstaller --onefile --noconsole --collect-all winrt --collect-all comtypes --collect-submodules pycaw ISBMediaBridge.py` ausführen.
 

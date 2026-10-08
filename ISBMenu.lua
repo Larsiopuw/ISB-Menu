@@ -1,7 +1,7 @@
--- ISB Menu 2.6.8 | Own-game universal client toolkit
+-- ISB Menu 2.6.9 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.8",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.9",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -107,7 +107,7 @@ if type(readfile) == "function" then
             end
         end
         if data.theme == "Neutral" or data.theme == "Mint" or data.theme == "Amber" or data.theme == "Blue" then settings.theme = data.theme end
-        if data.flightStyle=="TLFly" then data.flightStyle="Fly" end
+        if not ({Fly=true,Mysterious=true,["Villain Fly"]=true,Superman=true,["Halloween Fly"]=true})[data.flightStyle] then data.flightStyle="Fly" end
         if data.flightStyle=="Fly" or data.flightStyle=="Mysterious" or data.flightStyle=="Villain Fly" or data.flightStyle=="Superman" or data.flightStyle=="Halloween Fly" then settings.flightStyle=data.flightStyle end
         settings.blur=false
         if data.designVersion~="2.2" and data.designVersion~="2.3" then settings.theme="Amber" end
@@ -815,7 +815,7 @@ function runtime.muteFlightSound(obj)
         if state.fly and obj.Parent and obj.Volume~=0 then obj.Volume=0 end
     end))
 end
--- Animation IDs and glide/forward switching adapted from the TL flight module.
+-- Flight animation assets and speed-dependent glide/forward switching.
 runtime.flightLevels={
     {name="GLIDE",speed=55,color=Color3.fromRGB(100,200,255)},
     {name="NORMAL",speed=110,color=Color3.fromRGB(120,200,255)},
@@ -1559,11 +1559,11 @@ connect(UIS.InputBegan,function(input)
     if not inside(runtime.flightStyleMenu) and not inside(runtime.flightStyleButton) then runtime.flightStyleMenu.Visible=false end
 end)
 function runtime.rulerResetButton(parent,text,fn)
-    local button=rowButton(parent,text,UDim2.new(1,-174,0,130),UDim2.fromOffset(158,30),fn)
+    local button=rowButton(parent,text,UDim2.new(1,-281,0,11),UDim2.fromOffset(132,30),fn)
     button.Name="RulerResetButton"
     button.BackgroundColor3=C.panel
     button.BackgroundTransparency=.18
-    button.TextSize=11
+    button.TextSize=10
     round(button,10)
     make("UIPadding",{PaddingLeft=UDim.new(0,27),PaddingRight=UDim.new(0,9)},button)
     imageIcon(button,"arrow-path",14,UDim2.fromOffset(9,8),C.muted)
@@ -1646,11 +1646,11 @@ function runtime.refreshControls()
     for _,refresh in pairs(runtime.actionRefresh or {}) do refresh() end
 end
 local function drawAction(action)
-    local f = card(action.name,action.desc,action.kind == "slider" and ((action.id=="volume" or action.id=="brightnessvalue") and 172 or 132) or 58)
+    local f = card(action.name,action.desc,action.kind == "slider" and 132 or 58)
     local children=f:GetChildren()
     for _,child in ipairs(children) do
         if child:IsA("TextLabel") then
-            if child.Text==action.name then child.Position=UDim2.fromOffset(16,9); child.TextSize=14
+            if child.Text==action.name then child.Position=UDim2.fromOffset(16,9); child.TextSize=14; child.Size=UDim2.new(1,(action.id=="volume" or action.id=="brightnessvalue") and -297 or -150,0,22)
             else child.Position=UDim2.fromOffset(16,34); child.TextSize=11; child.Size=UDim2.new(1,-150,0,18) end
         end
     end
@@ -1722,8 +1722,8 @@ function runtime.mediaPaint()
     local refs=runtime.mediaRefs
     if not refs or not refs.title.Parent then return end
     local data=runtime.media.state
-    refs.title.Text=runtime.media.connected and (data.title or data.message or "Kein Player aktiv") or "Windows-Player verbinden"
-    refs.artist.Text=runtime.media.connected and ((data.source or "Windows")..(data.artist and data.artist~="" and " · "..data.artist or "")) or "ISBMediaBridge starten · Spotify und Browser automatisch erkennen"
+    refs.title.Text=runtime.media.connected and (data.title or data.message or "Kein Player aktiv") or "Windows-Bridge nicht verbunden"
+    refs.artist.Text=runtime.media.connected and ((data.source or "Windows")..(data.artist and data.artist~="" and " · "..data.artist or "")) or (runtime.media.reason or "ISBMediaBridge.exe starten · Verbindung wird automatisch geprüft")
     refs.cover.Image=runtime.media.connected and runtime.media.coverAsset or ""
     if refs.cover.Image==nil then refs.cover.Image="" end
     refs.coverPlaceholder.Visible=refs.cover.Image==""
@@ -1764,13 +1764,18 @@ function runtime.mediaCover(data)
     if ok and type(asset)=="string" then runtime.media.coverId=id; runtime.media.coverAsset=asset end
 end
 function runtime.mediaPoll()
-    if runtime.media.polling or not runtime.mediaConfig() then return end
+    if runtime.media.polling then return end
+    if not runtime.mediaConfig() then
+        runtime.media.connected=false; runtime.media.reason="ISBMediaBridge.exe starten · Verbindung wird automatisch erneut geprüft"
+        runtime.mediaPaint(); return
+    end
     runtime.media.polling=true
     task.spawn(function()
         local selected=runtime.media.selected
         local ok,data=pcall(runtime.mediaRequest,"/state?cover="..Http:UrlEncode(runtime.media.coverId or "")..(selected~="" and "&source="..Http:UrlEncode(selected) or ""))
         if not alive then return end
         runtime.media.polling=false; runtime.media.connected=ok
+        runtime.media.reason=ok and nil or "Windows-Bridge nicht erreichbar · ISBMediaBridge.exe starten"
         if ok then
             runtime.mediaCover(data)
             if data.selected~=runtime.media.state.selected then runtime.media.volumePending=nil; runtime.media.lastVolumeSent=nil end
@@ -1780,7 +1785,7 @@ function runtime.mediaPoll()
                 else data.volume=pending.value end
             else runtime.media.volumePending=nil end
             runtime.media.state=data
-        else runtime.media.selected="" end
+        else runtime.media.selected=""; runtime.media.state={}; runtime.media.volumePending=nil end
         runtime.mediaPaint()
     end)
 end
@@ -1852,7 +1857,7 @@ function runtime.drawMediaPlayer()
         get=function() return math.floor((runtime.media.state.volume or 0)*1000+.5)/10 end,
         preview=runtime.previewMediaVolume,commit=runtime.commitMediaVolume,
         fn=function(v) runtime.previewMediaVolume(v); runtime.commitMediaVolume() end})
-    rowButton(f,"Automatisch",UDim2.new(1,-112,0,105),UDim2.fromOffset(94,22),function() runtime.media.selected=""; runtime.media.volumePending=nil; runtime.media.lastVolumeSent=nil; runtime.media.pollTime=2 end)
+    rowButton(f,"Automatisch",UDim2.new(1,-112,0,105),UDim2.fromOffset(94,22),function() runtime.media.selected=""; runtime.media.volumePending=nil; runtime.media.lastVolumeSent=nil; runtime.media.pollTime=0; runtime.mediaPoll() end)
     runtime.mediaPaint(); runtime.mediaPoll()
 end
 
@@ -1871,7 +1876,7 @@ local function findAction(id)
     for _,action in ipairs(actions) do if action.id==id then return action end end
 end
 local function clearRows()
-    runtime.actionRefresh={}; runtime.detailRefs=nil; runtime.mediaRefs=nil
+    runtime.playerRows=nil; runtime.actionRefresh={}; runtime.detailRefs=nil; runtime.mediaRefs=nil
     local slider=activeSlider; activeSlider=nil; content.ScrollingEnabled=true
     if slider and slider.finish then slider.finish() end
     for _,con in ipairs(rowConnections) do con:Disconnect() end
@@ -2361,7 +2366,7 @@ function runtime.setShader(value)
         local ok,original=pcall(function() return Lighting[property] end)
         if ok then runtime.shaderOriginal[property]=original end
     end
-    -- Original TL Basic Realistic Shaders profile, with owned cleanup.
+    -- Realistic shader profile, with owned cleanup.
     for property,setting in pairs({Brightness=2.25,ClockTime=17.55,ExposureCompensation=.1,Technology=Enum.Technology.Future}) do
         pcall(function() Lighting[property]=setting end)
     end
@@ -2542,7 +2547,7 @@ function runtime.startRoleplay(mode)
     local animator=h:FindFirstChildOfClass("Animator")
     if animator and h.RigType~=Enum.HumanoidRigType.R6 then
         local resolved="rbxassetid://"..mode.animation
-        -- TL uses packaged Animation assets; their asset ID can differ from the clip ID.
+        -- Packaged Animation assets can have a different asset ID from the clip ID.
         pcall(function()
             local objects=game:GetObjects(resolved)
             for _,asset in ipairs(objects) do
@@ -2697,21 +2702,7 @@ function runtime.markerColor(friend,staff)
     -- Blue stays reserved for friends when the interface accent is blue.
     return settings.theme=="Blue" and Color3.fromRGB(255,190,82) or C.accent
 end
-local function drawPlayers()
-    if runtime.selectedPlayer then runtime.drawPlayerDetails(runtime.selectedPlayer); return end
-    local roster=Players:GetPlayers()
-    table.sort(roster,function(a,b)
-        local function priority(p)
-            return (session.friends[p.UserId] and 2 or 0)+(runtime.gameStaff[p] and 1 or 0)
-        end
-        local pa,pb=priority(a),priority(b)
-        if pa~=pb then return pa>pb end
-        local an,bn=a.DisplayName:lower(),b.DisplayName:lower()
-        if an~=bn then return an<bn end
-        return a.UserId<b.UserId
-    end)
-    for _,other in ipairs(roster) do
-        if other ~= player and matches(other.DisplayName .. " " .. other.Name) then
+function runtime.drawPlayerCard(other,index)
             local relation=session.friends[other.UserId] and "Freund" or "Player"
             local f=card(other.DisplayName,"@"..other.Name.."  ·  "..relation.."  ·  "..(runtime.groupRoles[other] or "Rolle wird geprüft"),104)
             for _,child in ipairs(f:GetChildren()) do
@@ -2754,11 +2745,49 @@ local function drawPlayers()
                 if target and r then r.CFrame=target.CFrame*CFrame.new(3,0,0); notify("Position lokal geändert.")
                 else notify("Charakter ist noch nicht verfügbar.") end
             end)
-        end
+
+    f.LayoutOrder=index
+end
+function runtime.fillPlayerRows()
+    local pending=runtime.playerRows
+    if not pending or pending.revision~=runtime.renderRevision or page~="Spieler" or runtime.selectedPlayer then return end
+    -- Build only visible rows plus a small buffer, at most two cards per frame.
+    local needed=math.max(4,math.ceil(((content.CanvasPosition.Y or 0)+(content.AbsoluteSize.Y or 400))/114)+2)
+    local limit=math.min(#pending.roster,needed,pending.next+1)
+    while pending.next<=limit do
+        local index=pending.next; pending.next=index+1
+        local other=pending.roster[index]
+        if other.Parent then runtime.drawPlayerCard(other,index) end
     end
+    if pending.next>#pending.roster then
+        if pending.tail then pending.tail:Destroy() end
+        runtime.playerRows=nil
+    elseif pending.tail then pending.tail.Size=UDim2.new(1,0,0,(#pending.roster-pending.next+1)*114-10) end
+end
+local function drawPlayers()
+    if runtime.selectedPlayer then runtime.drawPlayerDetails(runtime.selectedPlayer); return end
+    local roster=Players:GetPlayers()
+    table.sort(roster,function(a,b)
+        local function priority(p)
+            return (session.friends[p.UserId] and 2 or 0)+(runtime.gameStaff[p] and 1 or 0)
+        end
+        local pa,pb=priority(a),priority(b)
+        if pa~=pb then return pa>pb end
+        local an,bn=a.DisplayName:lower(),b.DisplayName:lower()
+        if an~=bn then return an<bn end
+        return a.UserId<b.UserId
+    end)
+    local filtered={}
+    for _,other in ipairs(roster) do
+        if other~=player and matches(other.DisplayName.." "..other.Name) then table.insert(filtered,other) end
+    end
+    runtime.playerRows={roster=filtered,next=1,revision=runtime.renderRevision}
+    runtime.playerRows.tail=make("Frame",{Name="PlayerListTail",BackgroundTransparency=1,Size=UDim2.new(1,0,0,#filtered*114),LayoutOrder=100000},content)
+    runtime.fillPlayerRows()
+    runtime.fillPlayerRows()
 end
 addAction("antivoid","Bewegung","Anti-Void","Zum letzten Bodenpunkt zurück, bevor du die Fallgrenze erreichst","toggle",function() runtime.antiVoid=not runtime.antiVoid; runtime.safeGround=nil end,function() return runtime.antiVoid end)
-addAction("shader","Darstellung","Shader","Realistische Farben, Sonnenstrahlen und Himmel · TL-Profil","toggle",function() runtime.setShader(not runtime.shader) end,function() return runtime.shader end)
+addAction("shader","Darstellung","Shader","Realistische Farben, Sonnenstrahlen und Himmel","toggle",function() runtime.setShader(not runtime.shader) end,function() return runtime.shader end)
 render = function()
     if not alive then return end
     local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
@@ -2885,7 +2914,7 @@ render = function()
         end
         local placement=plainCard("Position","Dock und Fenster gemeinsam ausrichten.",108)
         for i,item in ipairs({{"Links","Left"},{"Mitte","Center"},{"Rechts","Right"}}) do rowButton(placement,item[1],UDim2.fromOffset(16+(i-1)*116,68),UDim2.fromOffset(106,28),function() settings.alignment=item[2]; runtime.updateInventoryClearance(); fit(); save(); render() end) end
-        local sizeCard=plainCard("Menügröße","Größe in Prozent",172)
+        local sizeCard=plainCard("Menügröße","Größe in Prozent",132)
         runtime.drawRuler(sizeCard,{id="uiscale",name="Menügröße",desc="Größe in Prozent",kind="slider",min=50,max=120,step=5,get=function() return settings.uiScale end,fn=function(v) settings.uiScale=math.clamp(v,50,120); fit(); save() end})
         runtime.rulerResetButton(sizeCard,"Standard · 100 %",function() settings.uiScale=100; fit(); save(); runtime.refreshControls() end)
         drawAction({id="notifications",name="Benachrichtigungen",desc="Hinweise unten rechts anzeigen",kind="toggle",get=function() return settings.notifications end,fn=function() settings.notifications=not settings.notifications; save() end})
@@ -2934,19 +2963,24 @@ function runtime.finishExtraJump()
     local velocity=jump.root.AssemblyLinearVelocity or Vector3.zero
     jump.root.AssemblyLinearVelocity=Vector3.new(velocity.X,jump.power,velocity.Z)
 end
-connect(UIS.JumpRequest,function()
+function runtime.requestExtraJump()
     local h=humanoid()
     local r=root()
     if state.infiniteJump and not state.fly and not runtime.roleplay and not UIS:GetFocusedTextBox() and h and r and h.Health>0 and not h.PlatformStand and not h.Sit then
         if os.clock()-(runtime.lastExtraJump or -1)<.12 then return end
         runtime.lastExtraJump=os.clock()
         if h:GetState()==Enum.HumanoidStateType.Jumping then h:ChangeState(Enum.HumanoidStateType.Freefall) end
+        h.Jump=true
         h:ChangeState(Enum.HumanoidStateType.Jumping)
         local power=h.UseJumpPower and h.JumpPower or math.sqrt(2*math.max(workspace.Gravity,1)*h.JumpHeight)
         runtime.extraJump={h=h,root=r,power=power}
         local velocity=r.AssemblyLinearVelocity or Vector3.zero
         r.AssemblyLinearVelocity=Vector3.new(velocity.X,power,velocity.Z)
     end
+end
+connect(UIS.JumpRequest,runtime.requestExtraJump)
+connect(UIS.InputBegan,function(input)
+    if input.KeyCode==Enum.KeyCode.Space or input.KeyCode==Enum.KeyCode.ButtonA then runtime.requestExtraJump() end
 end)
 function runtime.keyName(code)
     local name=code.Name
@@ -3090,6 +3124,7 @@ end)
 local visualTimer, fpsTime, frames = 0,0,0
 local lastViewport, lastCamera = nil,nil
 connect(Run.RenderStepped,function(dt)
+    if opened and page=="Spieler" then runtime.fillPlayerRows() end
     if activeSlider and activeSlider.id=="mediavolume" then
         runtime.media.volumeTick=(runtime.media.volumeTick or 0)+dt
         if runtime.media.volumeTick>=.08 then runtime.media.volumeTick=0; runtime.commitMediaVolume() end

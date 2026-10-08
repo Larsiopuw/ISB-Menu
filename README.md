@@ -1,4 +1,4 @@
-# ISB Menu 2.6.8 · by Larsiopuw
+# ISB Menu 2.6.9 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -10,13 +10,25 @@ Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das D
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
 
+## Änderungen in 2.6.9
+
+Standardknöpfe sitzen neben dem Zahlenfeld im oberen Kartenbereich. Helligkeit, Lautstärke und Menügröße benötigen dadurch keine zusätzliche leere Zeile. Shader-Texte und Kommentare verwenden neutrale Namen.
+
+Mehrfachsprung nutzt zusätzlich die direkte Leertasten-/Gamepad-Eingabe, weil der reguläre Sprung-Request in manchen Steuerungen in der Luft nicht erneut ankommt. Beide Eingabewege werden entprellt; die Physikkorrektur bleibt einmalig. Die Wirkung auf dem echten R15-Avatar ist noch zu bestätigen.
+
+Spielerliste: zunächst vier Karten; weitere Karten werden nur beim Scrollen benötigt und höchstens zwei pro Bildschritt erstellt. Die vollständige Liste wird vorab sortiert und durchsucht, unabhängig von bereits gebauten Karten. Der Wechsel zu einem anderen Tab verwirft die ausstehende Erstellung. 75 Spieler, Suche nach dem letzten noch nicht gebauten Eintrag und Abbruch beim Tabwechsel wurden simuliert geprüft.
+
+Musik: getrennte Meldung für eine beendete Windows-Bridge; automatische Wiederverbindung beim nächsten Poll. „Automatisch“ fordert unmittelbar einen neuen Status an. Die Bridge muss als Windows-Prozess laufen. Optional richtet ISBMediaBridge-Autostart.ps1 die automatische Anmeldung ein; -Remove entfernt nur die Autostart-Verknüpfung. Spotify und Opera wurden aktuell erkannt. Auf Lars' PC wurde der Autostart ausdrücklich gewünscht und eingerichtet.
+
+1748 simulierte Interaktionsprüfungen, Luau -O0/-O1/-O2 und Preview-JavaScript bestanden. Kartenanordnung im Browser visuell geprüft. Der Roblox-Start der neuen Fassung ist noch nicht bestätigt.
+
 ## Änderungen in 2.6.8
 
 Bewegung: Reset setzt nur den ausgewählten Regler zurück. Die vier Flugstufen bleiben GLIDE 55, NORMAL 110, FAST 140 und TURBO 250 studs/s; ein Stufenwechsel benötigt jetzt 48 Pixel Zugweg. Alle vier Stufen sind beschriftet. Mehrfachsprung stellt den Sprungimpuls einmal nach dem Physikschritt wieder her, auch bei R15 und JumpHeight-Steuerung, ohne dauerhaft nach oben zu drücken.
 
 Helligkeit, Musiklautstärke und Menügröße haben denselben kompakten Standardknopf mit Reset-Symbol innerhalb der Karte. Menügröße wird ohne Neuaufbau der Ansicht zurückgesetzt.
 
-Shader ersetzt das bisherige Licht-Preset durch das TL-Profil „Basic Realistic Shaders“: Helligkeit 2.25, Uhrzeit 17.55, Belichtung 0.1, Sättigung 0.25, Kontrast 0.1, Bloom 0.3/10/0.8 sowie Sonnenstrahlen und dieselben sechs Skybox-Assets. Future-Beleuchtung wird angewendet, wenn die Roblox-API es erlaubt. Abschalten entfernt eigene Effekte und stellt die zuvor geänderten Lichtwerte wieder her. Kein externer Shader-Code wird zur Laufzeit geladen. Die tatsächliche Darstellung hängt vom Spiel, seinen vorhandenen Effekten und den Grafikeinstellungen ab.
+Shader ersetzt das bisherige Licht-Preset durch das Shaderprofil „Basic Realistic Shaders“: Helligkeit 2.25, Uhrzeit 17.55, Belichtung 0.1, Sättigung 0.25, Kontrast 0.1, Bloom 0.3/10/0.8 sowie Sonnenstrahlen und dieselben sechs Skybox-Assets. Future-Beleuchtung wird angewendet, wenn die Roblox-API es erlaubt. Abschalten entfernt eigene Effekte und stellt die zuvor geänderten Lichtwerte wieder her. Kein externer Shader-Code wird zur Laufzeit geladen. Die tatsächliche Darstellung hängt vom Spiel, seinen vorhandenen Effekten und den Grafikeinstellungen ab.
 
 Skript-Details zeigen die Anbieter-Verifizierung als dasselbe Schild-Badge wie die Ergebniskarten. Lange Titel erhalten Platz über den Metadaten; die Aktionsknöpfe stehen unter dem Badge.
 
@@ -36,9 +48,9 @@ Performance: Status-Textbreiten werden in einem begrenzten Cache gespeichert. In
 
 Performance: Inventarleisten werden zwischengespeichert. Vollständige GUI-Suchen erfolgen beim Start und nach relevanten Strukturänderungen, nicht mehr zweimal pro Sekunde. Unveränderte Inventarleisten prüfen nur die bekannten Elemente. Eigene Körperteile werden für Noclip/Roleplay einmal erfasst und bei hinzugefügten Teilen ergänzt. Detailwerte werden nur in der geöffneten Detailansicht aktualisiert; unveränderte Sprunghöhe und eingefrorene Animation werden nicht ständig neu geschrieben.
 
-Auf dem Kopf: dieselbe TL-Animation und Pose bei Sekunde 2; die senkrechte Blickrichtung erhält eine eindeutige horizontale Ausrichtung vom Ziel. So wird die mehrdeutige Rotation bei einem Blick exakt nach unten vermieden. Die Optik ist noch im Spiel zu bestätigen.
+Auf dem Kopf: dieselbe Sitzanimation und Pose bei Sekunde 2; die senkrechte Blickrichtung erhält eine eindeutige horizontale Ausrichtung vom Ziel. So wird die mehrdeutige Rotation bei einem Blick exakt nach unten vermieden. Die Optik ist noch im Spiel zu bestätigen.
 
-Der Benutzer bestätigt, dass auch TL aus Sicht des Mitspielers verzögert folgt. Lokale Render-Korrekturen erzeugen keine gemeinsame serverseitige Verbindung. Eine garantiert feste Verbindung für alle Clients benötigt Unterstützung des Spiels auf dem Server; das Menü stellt dafür keine Wirkung vor, die es nicht liefern kann. [Roblox-Netzwerkeigentum](https://create.roblox.com/docs/physics/network-ownership). Es wird kein fremder PhysicsRepRootPart zugewiesen.
+Der Benutzer bestätigt, dass auch Referenz aus Sicht des Mitspielers verzögert folgt. Lokale Render-Korrekturen erzeugen keine gemeinsame serverseitige Verbindung. Eine garantiert feste Verbindung für alle Clients benötigt Unterstützung des Spiels auf dem Server; das Menü stellt dafür keine Wirkung vor, die es nicht liefern kann. [Roblox-Netzwerkeigentum](https://create.roblox.com/docs/physics/network-ownership). Es wird kein fremder PhysicsRepRootPart zugewiesen.
 
 1717 simulierte Prüfungen bestanden, einschließlich eines GUI-Baums mit 1000 unbeteiligten Elementen ohne wiederholte Vollsuche, wiederholtem Kollisionsabgleich ohne Charakter-Vollsuche und stabiler Kopf-Ausrichtung. Luau kompiliert auf -O0/-O1/-O2. Die tatsächliche Framezeit im Spiel und die Kopf-Pose sind noch live zu prüfen.
 
@@ -60,15 +72,15 @@ Der Benutzer hat bestätigt, dass 2.6.4 auf Potassium wieder funktioniert; sein 
 
 ## Änderungen in 2.6.3
 
-Die vier Flugstufen übernehmen die festen Geschwindigkeiten und Namen der TL-Flugreferenz: GLIDE 55, NORMAL 110, FAST 140 und TURBO 250 studs/s. Q und der Knopf in der Flugleiste schalten die Stufen zyklisch. Der Flight-Regler wählt nun die Stufe 1–4; ein alter gespeicherter Basiswert verändert die Originalgeschwindigkeiten nicht mehr. Reset setzt Stufe 1. Flugleiste und Animationen verwenden dieselbe Stufentabelle, einschließlich der Originalfarben. Die bestehende ISB-Flugphysik mit weicher Beschleunigung bleibt erhalten.
+Die vier Flugstufen übernehmen die festen Geschwindigkeiten und Namen der Flugreferenz: GLIDE 55, NORMAL 110, FAST 140 und TURBO 250 studs/s. Q und der Knopf in der Flugleiste schalten die Stufen zyklisch. Der Flight-Regler wählt nun die Stufe 1–4; ein alter gespeicherter Basiswert verändert die Originalgeschwindigkeiten nicht mehr. Reset setzt Stufe 1. Flugleiste und Animationen verwenden dieselbe Stufentabelle, einschließlich der Originalfarben. Die bestehende ISB-Flugphysik mit weicher Beschleunigung bleibt erhalten.
 
 Luau kompiliert; 1707 simulierte Prüfungen bestanden. Alle vier Zielgeschwindigkeiten wurden mit Bewegungseingabe geprüft. Die sichtbare Wirkung im konkreten Spiel benötigt weiterhin einen Live-Test.
 
 ## Änderungen in 2.6.2
 
-Die Flugleiste bietet Fly, Mysterious, Villain Fly, Superman und Halloween Fly aus der TL-Flugreferenz. Der Standardstyle heißt Fly; der Dropdown-Pfeil wird aus Formen gezeichnet. Frühere gespeicherte TLFly-Auswahlen werden übernommen. Die Auswahl bleibt gespeichert und kann während des Fluges geändert werden. Stufe 1 verwendet die Gleitpose, Stufe 2 die ruhige Flugpose; Stufen 3/4 wechseln abhängig von der tatsächlich erreichten Geschwindigkeit zur Vorwärtspose. Stufe 4 verwendet bei Styles mit zusätzlichem Clip die schnelle Alternativpose. Übergänge blenden weich über. Q und die bisherigen vier Geschwindigkeitsfaktoren bleiben erhalten.
+Die Flugleiste bietet Fly, Mysterious, Villain Fly, Superman und Halloween Fly aus der Flugreferenz. Der Standardstyle heißt Fly; der Dropdown-Pfeil wird aus Formen gezeichnet. Frühere gespeicherte TLFly-Auswahlen werden übernommen. Die Auswahl bleibt gespeichert und kann während des Fluges geändert werden. Stufe 1 verwendet die Gleitpose, Stufe 2 die ruhige Flugpose; Stufen 3/4 wechseln abhängig von der tatsächlich erreichten Geschwindigkeit zur Vorwärtspose. Stufe 4 verwendet bei Styles mit zusätzlichem Clip die schnelle Alternativpose. Übergänge blenden weich über. Q und die bisherigen vier Geschwindigkeitsfaktoren bleiben erhalten.
 
-Das Dropdown sitzt außerhalb der geklippten Flugleiste. Auf schmalen Bildschirmen stehen die Bedienelemente in einer zweiten Zeile. Beim Landen, Style-Wechsel, Respawn und Entfernen des Menüs werden eigene Flugtracks freigegeben; überholte Ladeaufträge werden verworfen. Verfügbarkeit und sichtbare Wirkung der TL-Animationsassets im jeweiligen Spiel benötigen einen Live-Test.
+Das Dropdown sitzt außerhalb der geklippten Flugleiste. Auf schmalen Bildschirmen stehen die Bedienelemente in einer zweiten Zeile. Beim Landen, Style-Wechsel, Respawn und Entfernen des Menüs werden eigene Flugtracks freigegeben; überholte Ladeaufträge werden verworfen. Verfügbarkeit und sichtbare Wirkung der Sitzanimationsassets im jeweiligen Spiel benötigen einen Live-Test.
 
 Luau kompiliert; 1705 simulierte Prüfungen bestanden, einschließlich Style-Auswahl/Speicherung, maximaler Superman-Pose, Rückwechsel beim Abbremsen, schmaler Flugleiste und Track-Bereinigung.
 
@@ -122,7 +134,7 @@ Hover gehört nur einem Bedienelement gleichzeitig und endet beim Verlassen, Fok
 
 K schließt Dock und Fenster gemeinsam. M öffnet das Fenster nur bei sichtbarem Dock; auch verzögerte Tabwechsel können kein einzelnes Fenster mehr öffnen. Sichtbare leere native Werkzeugleisten reservieren keinen Abstand. Bei unbekannten eigenen Inventaren bleibt die Erkennung von sichtbaren Inhalten abhängig.
 
-Roleplay löst wie TL verpackte Animationsassets vor dem Laden auf, verwendet Action4 und hält die Kopf-Sitzpose nach zwei Sekunden fest. Huckepack folgt der Referenz-Ausrichtung; ohne Auswahl wird der nächste verfügbare Spieler gewählt. Schulter- und Trageanimationen laufen weiter, statt versehentlich die Kopf-Pose zu übernehmen.
+Roleplay löst verpackte Animationsassets vor dem Laden auf, verwendet Action4 und hält die Kopf-Sitzpose nach zwei Sekunden fest. Huckepack folgt der Referenz-Ausrichtung; ohne Auswahl wird der nächste verfügbare Spieler gewählt. Schulter- und Trageanimationen laufen weiter, statt versehentlich die Kopf-Pose zu übernehmen.
 
 946 simulierte Assertions und Luau-Kompilierung bestehen. Roblox war bei dieser Prüfung geschlossen; Layout, Mikrofonbedienung und Roleplay-Physik dieser Fassung wurden noch nicht erneut im Spiel bestätigt. Die folgenden Abschnitte dokumentieren ältere Versionen.
 
