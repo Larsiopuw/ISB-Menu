@@ -1,7 +1,7 @@
--- ISB Menu 2.6.6 | Own-game universal client toolkit
+-- ISB Menu 2.6.7 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.6",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.7",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -692,6 +692,7 @@ function runtime.bindPress(obj,callback,register)
         end
         local navigation=obj.Name:sub(1,3)=="Nav"
         local copying=obj.Name:sub(1,5)=="Copy_"
+        local scriptTile=obj.Name=="ScriptTile"
         local height=obj.AbsoluteSize.Y
         if height<=0 then
             height=obj.Size.Y.Offset
@@ -707,7 +708,7 @@ function runtime.bindPress(obj,callback,register)
         local lift=enabled and hovered and not down and (navigation and -4 or -math.min(2,height*.02)) or 0
         animate(faceScale,{Scale=factor})
         animate(face,{Position=UDim2.new(.5,0,.5,lift)})
-        animate(glow,{BackgroundTransparency=down and .78 or (hovered and .86 or 1)})
+        animate(glow,{BackgroundTransparency=scriptTile and 1 or (down and .78 or (hovered and .86 or 1))})
         animate(edge,{Transparency=hovered and .35 or 1})
         if obj:IsA("TextLabel") and obj.Text~="" then
             fontBase=fontBase or obj.TextSize
@@ -1005,13 +1006,19 @@ runtime.statusDivider=make("Frame",{Name="ExecutorDivider",BackgroundColor3=C.mu
 runtime.statusExecutor=label(statusBar,session.executor,11,C.text,UDim2.fromOffset(290,11),UDim2.fromOffset(60,22))
 runtime.statusExecutor.Name="ExecutorName"; runtime.statusExecutor.TextXAlignment=Enum.TextXAlignment.Right; runtime.statusExecutor.TextTruncate=Enum.TextTruncate.AtEnd
 runtime.textService=optionalService("TextService")
+runtime.statusWidths={}; runtime.statusWidthCount=0
+function runtime.statusTextWidth(text,font)
+    local key=tostring(font)..":"..text
+    local cached=runtime.statusWidths[key]; if cached then return cached end
+    local ok,size=pcall(function() return runtime.textService:GetTextSize(text,12,font,Vector2.new(1000,22)) end)
+    local width=math.ceil(ok and size.X or #text*6.3)
+    if runtime.statusWidthCount>=96 then table.clear(runtime.statusWidths); runtime.statusWidthCount=0 end
+    runtime.statusWidths[key]=width; runtime.statusWidthCount=runtime.statusWidthCount+1
+    return width
+end
 function runtime.updateStatusLayout()
-    local function width(text,font)
-        local ok,size=pcall(function() return runtime.textService:GetTextSize(text,12,font,Vector2.new(1000,22)) end)
-        return math.ceil(ok and size.X or #text*6.3)
-    end
-    local metricWidth=width((metrics.Text:gsub("<.->","")),metrics.Font)
-    local executorWidth=math.min(150,width(session.executor,runtime.statusExecutor.Font))
+    local metricWidth=runtime.statusTextWidth((metrics.Text:gsub("<.->","")),metrics.Font)
+    local executorWidth=math.min(150,runtime.statusTextWidth(session.executor,runtime.statusExecutor.Font))
     metrics.Size=UDim2.fromOffset(metricWidth,22)
     runtime.statusDivider.Position=UDim2.fromOffset(98+metricWidth+10,14)
     runtime.statusExecutor.Position=UDim2.fromOffset(98+metricWidth+20,11)
@@ -1280,6 +1287,12 @@ function runtime.updateInventoryClearance()
                             ancestor=ancestor.Parent
                         end
                         if not visible or not named then return nil end
+                        local absolute,size=obj.AbsolutePosition,obj.AbsoluteSize
+                        local origin=gui.AbsolutePosition
+                        local position=Vector2.new(absolute.X-origin.X,absolute.Y-origin.Y)
+                        if size.X<120 or size.Y<20 or size.Y>math.min(220,viewport.Y*.3) then return nil end
+                        if position.Y<viewport.Y*.65 or position.Y>=viewport.Y or position.Y+size.Y<=0 then return nil end
+                        if position.X+size.X<center-half or position.X>center+half then return nil end
                         local occupied=false
                         for _,slot in ipairs(candidate.slots) do
                             if slot.Parent and slot.Visible then
@@ -1297,12 +1310,6 @@ function runtime.updateInventoryClearance()
                             end
                         end
                         if not occupied then return nil end
-                        local absolute,size=obj.AbsolutePosition,obj.AbsoluteSize
-                        local origin=gui.AbsolutePosition
-                        local position=Vector2.new(absolute.X-origin.X,absolute.Y-origin.Y)
-                        if size.X<120 or size.Y<20 or size.Y>math.min(220,viewport.Y*.3) then return nil end
-                        if position.Y<viewport.Y*.65 or position.Y>=viewport.Y or position.Y+size.Y<=0 then return nil end
-                        if position.X+size.X<center-half or position.X>center+half then return nil end
                         return position.Y
                     end)
                     if valid and top then clearance=math.max(clearance,viewport.Y-top+12) end
@@ -2202,8 +2209,8 @@ function features.scriptThumbnail(parent,entry)
     if url:sub(1,1)=="/" then url=(entry.provider=="ScriptBlox" and "https://scriptblox.com" or "https://roscripts.io")..url end
     local host=url:match("^https://([^/]+)")
     if not host or not (host=="scriptblox.com" or host=="roscripts.io" or host:match("%.rbxcdn%.com$") or host:match("%.roscripts%.io$")) then return end
-    local image=make("ImageLabel",{Name="ScriptThumbnail",BackgroundTransparency=1,Image="",Size=UDim2.new(1,0,0,76),ScaleType=Enum.ScaleType.Crop},parent)
-    round(image,14)
+    local image=make("ImageLabel",{Name="ScriptThumbnail",BackgroundTransparency=1,Image="",Size=UDim2.fromScale(1,1),ScaleType=Enum.ScaleType.Crop},parent)
+    round(image,11)
     if runtime.imageCache[url]~=nil then if runtime.imageCache[url] then image.Image=runtime.imageCache[url] end; return end
     runtime.imageWaiters=runtime.imageWaiters or {}
     if runtime.imageWaiters[url] then table.insert(runtime.imageWaiters[url],image); return end
@@ -2279,8 +2286,8 @@ local function drawScriptSearch()
             local entry=scriptSearch.rows[i+col]
             if entry then
                 local tile=rowButton(pair,"",UDim2.new(col*.5,col*5,0,0),UDim2.new(.5,-5,0,158),function() loadScriptSource(entry) end)
-                round(tile,14); tile.BackgroundColor3=C.card
-                local art=make("Frame",{Name="ScriptArtwork",ClipsDescendants=true,BackgroundColor3=C.panel,Size=UDim2.new(1,0,0,76)},tile); round(art,14)
+                tile.Name="ScriptTile"; round(tile,14); tile.BackgroundColor3=C.card
+                local art=make("Frame",{Name="ScriptArtwork",ClipsDescendants=true,BackgroundColor3=C.panel,Position=UDim2.fromOffset(3,3),Size=UDim2.new(1,-6,0,72)},tile); round(art,11)
                 make("UIGradient",{Color=ColorSequence.new(C.line,C.bg),Rotation=35},art)
                 imageIcon(art,"code-bracket-square",27,UDim2.fromOffset(16,24),C.muted)
                 features.scriptThumbnail(art,entry)
@@ -2290,7 +2297,12 @@ local function drawScriptSearch()
                 titleLabel.TextWrapped=true; titleLabel.TextYAlignment=Enum.TextYAlignment.Top
                 local gameLabel=label(tile,entry.game..(entry.views and "  ·  "..tostring(entry.views).." Aufrufe" or ""),10,C.muted,UDim2.fromOffset(14,132),UDim2.new(1,-28,0,16))
                 gameLabel.TextTruncate=Enum.TextTruncate.AtEnd
-                if entry.verified then label(tile,"VERIFIZIERT",8,C.good,UDim2.new(1,-109,0,58),UDim2.fromOffset(82,16)) end
+                if entry.verified then
+                    local badge=make("Frame",{Name="ScriptVerifiedBadge",Active=false,BackgroundColor3=C.bg,BackgroundTransparency=.12,Position=UDim2.fromOffset(12,46),Size=UDim2.fromOffset(104,22),ZIndex=3},art)
+                    round(badge,11); make("UIStroke",{Color=C.good,Thickness=1,Transparency=.55},badge)
+                    imageIcon(badge,"shield-check",13,UDim2.fromOffset(7,4),C.good).ZIndex=4
+                    local text=label(badge,"Verifiziert",11,C.good,UDim2.fromOffset(26,0),UDim2.new(1,-31,1,0)); text.ZIndex=4
+                end
             end
         end
     end
@@ -2454,11 +2466,12 @@ function runtime.roleplayFrame(owned,part,dt,rendered)
     local position=frame.Position or part.Position
     local mode=owned.mode
     if mode.id=="head" then
-        -- A downward look needs an explicit, horizontal up vector to avoid
-        -- the singular default-up orientation when sitting directly above a head.
+        -- Keep the character upright. Looking down rotates the complete rig
+        -- onto its stomach instead of placing the seated pose on the head.
         local forward=Vector3.new(frame.LookVector.X,0,frame.LookVector.Z)
         if forward.Magnitude<.001 then forward=Vector3.new(0,0,-1) end
-        return CFrame.lookAt(position+Vector3.new(0,1,0),position,forward.Unit)
+        local target=position+Vector3.new(0,1,0)
+        return CFrame.lookAt(target,target+forward.Unit,Vector3.new(0,1,0))
     end
     if mode.id=="piggy" or mode.id=="piggy2" then
         local target=position-frame.LookVector*1.1+Vector3.new(0,.2,0)
@@ -3065,7 +3078,7 @@ connect(Run.RenderStepped,function(dt)
     end
     if state.fov and camera then
         if cameraOriginal[camera]==nil then cameraOriginal[camera]=camera.FieldOfView end
-        camera.FieldOfView=state.fovValue
+        if camera.FieldOfView~=state.fovValue then camera.FieldOfView=state.fovValue end
     end
     if spectating and camera then
         local h=spectating.Character and spectating.Character:FindFirstChildOfClass("Humanoid")
@@ -3152,7 +3165,7 @@ function runtime.refreshDetails()
     local other=refs.player; local h=other.Character and other.Character:FindFirstChildOfClass("Humanoid")
     local values={["Team"]=other.Team and other.Team.Name or "Kein Team",["Gesundheit"]=h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verfügbar",
         ["Beziehung"]=session.friends[other.UserId] and "Freund" or "Spieler",["Gruppenrolle"]=runtime.groupRoles[other] or "Nicht verfügbar"}
-    for name,value in pairs(values) do local field=refs.fields[name]; if field then field.entry[2]=value; if field.label and field.label.Parent then field.label.Text=value end end end
+    for name,value in pairs(values) do local field=refs.fields[name]; if field then field.entry[2]=value; if field.label and field.label.Parent then if field.label.Text~=value then field.label.Text=value end end end end
 end
 refreshPlayers=function()
     if page=="Spieler" and runtime.selectedPlayer then runtime.refreshDetails(); return end

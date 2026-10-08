@@ -1,4 +1,4 @@
-# ISB Menu 2.6.6 · by Larsiopuw
+# ISB Menu 2.6.7 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,14 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Änderungen in 2.6.7
+
+Auf dem Kopf hält den Avatar jetzt aufrecht und übernimmt die horizontale Blickrichtung des Ziels. Der bisherige senkrechte Abwärtsblick drehte den ganzen Charakter auf den Bauch. Animationsasset und eingefrorene Pose bei Sekunde 2 bleiben erhalten. Die tatsächliche Sitzhöhe hängt vom Avatar ab und die Optik benötigt noch Bestätigung im Spiel.
+
+Skriptkarten: Verifizierung als gestaltetes Badge mit Schildsymbol, Hintergrund und Kontur. Die Kennzeichnung stammt vom Anbieter. Bildbereich und Symbol halten drei Pixel Abstand zum Kartenrand. Der Hover-Rahmen überdeckt das Bild nicht mehr mit einer getönten Fläche; Karte, Bild und Inhalt bewegen sich gemeinsam.
+
+Performance: Status-Textbreiten werden in einem begrenzten Cache gespeichert. Inventare außerhalb der relevanten Bildschirmfläche werden vor der Slot-Prüfung ausgeschlossen. Unveränderte Detailtexte und FOV-Werte werden nicht erneut geschrieben. 1722 simulierte Prüfungen und Luau -O0/-O1/-O2 bestanden. Die verbleibenden sporadischen Ruckler sind damit noch nicht als beseitigt bestätigt.
 
 ## Änderungen in 2.6.6
 
