@@ -1,4 +1,4 @@
-# ISB Menu 2.6.12 · by Larsiopuw
+# ISB Menu 2.6.13 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,12 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Änderungen in 2.6.13
+
+Die gemeinsame GlassEdge-Kontur folgt nun ebenfalls dem halben Pixel Randabstand der sichtbaren Fläche; die bisherige 2-px-Geometrie ließ unter der Statuskontur einen Streifen stehen. Das betrifft auch andere Glasflächen.
+
+Favoritensterne sitzen mittig rechts neben dem Bedienelement: Toggle/Start bei y=29, Zahlfeld bei y=26. Kompakter 28-px-Knopf mit subtiler Hintergrundfläche und mittigem 16-px-Symbol. Die Favoritenfunktion bleibt unverändert.
 
 ## Änderungen in 2.6.12
 

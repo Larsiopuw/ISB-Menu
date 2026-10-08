@@ -1,7 +1,7 @@
--- ISB Menu 2.6.12 | Own-game universal client toolkit
+-- ISB Menu 2.6.13 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.12",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.13",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -593,7 +593,7 @@ end
 local function stroke(obj)
     local target=obj
     if obj:IsA("CanvasGroup") then
-        target=make("Frame",{Name="GlassEdge",BackgroundTransparency=1,Size=UDim2.new(1,-4,1,-4),Position=UDim2.fromOffset(2,2),ZIndex=0},obj)
+        target=make("Frame",{Name="GlassEdge",BackgroundTransparency=1,Size=UDim2.new(1,-1,1,-1),Position=UDim2.fromOffset(.5,.5),ZIndex=0},obj)
         local corner=obj:FindFirstChildOfClass("UICorner")
         make("UICorner",{CornerRadius=corner and UDim.new(corner.CornerRadius.Scale,math.max(0,corner.CornerRadius.Offset-.5)) or UDim.new(0,16)},target)
     end
@@ -1673,12 +1673,12 @@ local function drawAction(action)
             else child.Position=UDim2.fromOffset(16,34); child.TextSize=11; child.Size=UDim2.new(1,-150,0,18) end
         end
     end
-    local favorite = rowButton(f,"",UDim2.new(1,-40,0,12),UDim2.fromOffset(28,28),function()
+    local favorite = rowButton(f,"",UDim2.new(1,-40,0,action.kind=="slider" and 12 or 15),UDim2.fromOffset(28,28),function()
         settings.favorites[action.id] = not settings.favorites[action.id] or nil
         save(); render()
     end)
-    favorite.BackgroundTransparency=1
-    imageIcon(favorite,"star",18,UDim2.fromOffset(5,5),settings.favorites[action.id] and C.accent or C.muted)
+    favorite.Name="Favorite_"..action.id; favorite.BackgroundColor3=C.panel; favorite.BackgroundTransparency=.85
+    imageIcon(favorite,"star",16,UDim2.fromOffset(6,6),settings.favorites[action.id] and C.accent or C.muted)
     if action.kind == "toggle" then
         local enabled = action.get()
         local b, knob, status
