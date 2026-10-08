@@ -1,4 +1,4 @@
-# ISB Menu 2.6.20 · by Larsiopuw
+# ISB Menu 2.6.21 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,10 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Änderungen in 2.6.21
+
+Skript-Hub und Serverliste teilen dieselbe kompakte Seitennavigation: Zurück, Seitenanzeige, Weiter. Bei einer einzigen Serverseite steht 1 / 1. Solange weitere Cursor-Seiten existieren und die Gesamtzahl unbekannt ist, zeigt der Nenner eine Ellipse.
 
 ## Änderungen in 2.6.20
 

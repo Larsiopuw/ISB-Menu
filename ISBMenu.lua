@@ -1,7 +1,7 @@
--- ISB Menu 2.6.20 | Own-game universal client toolkit
+-- ISB Menu 2.6.21 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.20",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.21",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -1478,6 +1478,14 @@ local function rowButton(parent, text, pos, dims, fn)
     end,rowConnect)
     return b
 end
+function runtime.pagination(parent,name,current,total,previous,nextPage)
+    rowButton(parent,"Zurück",UDim2.fromOffset(0,0),UDim2.fromOffset(90,30),previous)
+    local text=runtime.formatCount(current).." / "..(total and runtime.formatCount(total) or "…")
+    local counter=label(parent,text,11,C.muted,UDim2.fromOffset(98,0),UDim2.fromOffset(96,30))
+    counter.Name=name; counter.TextXAlignment=Enum.TextXAlignment.Center
+    counter.BackgroundColor3=C.panel; counter.BackgroundTransparency=.45; round(counter,10)
+    rowButton(parent,"Weiter",UDim2.fromOffset(202,0),UDim2.fromOffset(90,30),nextPage)
+end
 local function card(text, desc, height)
     local f = make("CanvasGroup", {BackgroundColor3 = C.card, Size = UDim2.new(1,0,0,height or 80),GroupTransparency=0}, content)
     round(f,17); runtime.contentSurface(f,17)
@@ -2273,12 +2281,12 @@ local function drawServers()
         elseif query~="" then plainCard("Serversuche","Filtert Server-ID und Spieleranzahl auf dieser geladenen Seite. Spielernamen und private Servercodes liefert die Roblox-Serverliste nicht.",76) end
     end
     local pagination=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
-    rowButton(pagination,"Zurück",UDim2.fromOffset(0,0),UDim2.fromOffset(90,30),function()
+    local currentPage=#servers.history+1
+    local totalPages=servers.loaded and not servers.loading and not servers.error and not servers.nextCursor and currentPage or nil
+    runtime.pagination(pagination,"ServerPageCounter",currentPage,totalPages,function()
         if servers.loading or #servers.history==0 then return end
         local previous=table.remove(servers.history); fetchServers(previous~=false and previous or nil)
-    end)
-    label(pagination,"Seite "..tostring(#servers.history+1),12,C.muted,UDim2.fromOffset(105,4),UDim2.fromOffset(94,22))
-    rowButton(pagination,"Weiter",UDim2.fromOffset(200,0),UDim2.fromOffset(90,30),function()
+    end,function()
         if servers.loading or not servers.nextCursor then return end
         table.insert(servers.history,servers.cursor or false); fetchServers(servers.nextCursor)
     end)
@@ -2451,11 +2459,11 @@ local function drawScriptSearch()
         end
     end
     local paging=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-    rowButton(paging,"Zurück",UDim2.fromOffset(0,0),UDim2.fromOffset(90,30),function() if scriptSearch.page>1 then searchRemoteScripts(scriptSearch.page-1) end end)
-    rowButton(paging,"Weiter",UDim2.fromOffset(98,0),UDim2.fromOffset(90,30),function() if scriptSearch.page<scriptSearch.totalPages then searchRemoteScripts(scriptSearch.page+1) end end)
-    local counter=label(paging,runtime.formatCount(scriptSearch.page).." / "..runtime.formatCount(scriptSearch.totalPages),11,C.muted,UDim2.fromOffset(198,0),UDim2.fromOffset(104,30))
-    counter.Name="ScriptPageCounter"; counter.TextXAlignment=Enum.TextXAlignment.Center
-    counter.BackgroundColor3=C.panel; counter.BackgroundTransparency=.45; round(counter,10)
+    runtime.pagination(paging,"ScriptPageCounter",scriptSearch.page,scriptSearch.totalPages,function()
+        if scriptSearch.page>1 then searchRemoteScripts(scriptSearch.page-1) end
+    end,function()
+        if scriptSearch.page<scriptSearch.totalPages then searchRemoteScripts(scriptSearch.page+1) end
+    end)
     local footer=label(content,"Quelle: "..scriptSearch.provider,10,C.muted,UDim2.new(),UDim2.new(1,0,0,18))
 end
 function runtime.stopEmote()
