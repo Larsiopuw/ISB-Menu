@@ -1,7 +1,7 @@
--- ISB Menu 2.6.14 | Own-game universal client toolkit
+-- ISB Menu 2.6.15 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.14",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.15",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -593,16 +593,19 @@ end
 local function stroke(obj)
     local target=obj
     if obj:IsA("CanvasGroup") then
-        target=make("Frame",{Name="GlassEdge",BackgroundTransparency=1,Size=UDim2.new(1,-1,1,-1),Position=UDim2.fromOffset(.5,.5),ZIndex=0},obj)
-        local corner=obj:FindFirstChildOfClass("UICorner")
-        make("UICorner",{CornerRadius=corner and UDim.new(corner.CornerRadius.Scale,math.max(0,corner.CornerRadius.Offset-.5)) or UDim.new(0,16)},target)
+        target=obj:FindFirstChild("GlassSurface") or obj:FindFirstChild("ContentSurface")
+        if not target then
+            target=make("Frame",{Name="GlassEdge",BackgroundTransparency=1,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1)},obj)
+            local corner=obj:FindFirstChildOfClass("UICorner")
+            round(target,corner and math.max(0,corner.CornerRadius.Offset-.5) or 16)
+        end
     end
     make("UIStroke", {Color = C.line, Thickness = 1, Transparency = 0.45}, target)
 end
 function runtime.glassSurface(group,radius)
     group.BackgroundTransparency=1
-    local surface=make("Frame",{Name="GlassSurface",BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=.025,Size=UDim2.fromScale(1,1),ZIndex=0},group)
-    round(surface,radius)
+    local surface=make("Frame",{Name="GlassSurface",BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=.025,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1),ZIndex=0},group)
+    round(surface,math.max(0,radius-.5))
     make("UIGradient",{Rotation=75,Color=ColorSequence.new(Color3.fromRGB(50,61,77),Color3.fromRGB(13,19,29))},surface)
 end
 -- Quiet content surfaces match the preview without changing hit geometry.
@@ -634,6 +637,7 @@ local function label(parent, text, size, color, pos, dims)
 end
 pcall(function() runtime.guiService=game:GetService("GuiService") end)
 -- Plain interactive labels avoid Roblox's automatic GuiButton hand-cursor swaps.
+runtime.pressResets=setmetatable({},{__mode="k"})
 function runtime.bindPress(obj,callback,register)
     obj.Active=true; obj.Selectable=UIS.GamepadEnabled==true
     -- Keep the real input label fixed and animate a separate rendered face.
@@ -729,6 +733,22 @@ function runtime.bindPress(obj,callback,register)
         runtime.hoverOwner=obj; runtime.clearHover=clearHover
         hovered=true; pose(pressed~=nil)
     end
+    runtime.pressResets[obj]=function()
+        clearHover()
+        -- Tab selection is immediate: cancel pending paint and motion from earlier pointer events.
+        for _,target in ipairs({obj,face,faceScale,glow,edge}) do
+            for _,track in pairs(runtime.tweens[target] or {}) do pcall(function() track:Cancel() end) end
+            runtime.tweens[target]=nil
+        end
+        faceScale.Scale=1; face.Position=UDim2.fromScale(.5,.5)
+        glow.BackgroundTransparency=1
+        edge.Transparency=obj.BackgroundTransparency>=.95 and 1 or .92
+        edge.Color=Color3.fromRGB(176,197,227)
+        for _,iconScale in pairs(iconScales) do
+            for _,track in pairs(runtime.tweens[iconScale] or {}) do pcall(function() track:Cancel() end) end
+            runtime.tweens[iconScale]=nil; iconScale.Scale=1
+        end
+    end
     register(obj.MouseEnter,enter); register(face.MouseEnter,enter)
     local function begin(input)
         if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then pressed=input; pose(true) end
@@ -746,6 +766,14 @@ function runtime.bindPress(obj,callback,register)
     register(UIS.WindowFocusReleased,clearHover)
 
 end
+function runtime.closeGlyph(control)
+    control.Text=""; control.Name="CloseButton"
+    local glyph=make("Frame",{Name="CloseGlyph",BackgroundTransparency=1,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(16,16)},control)
+    for _,angle in ipairs({45,-45}) do
+        local line=make("Frame",{BackgroundColor3=C.text,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(14,2),Rotation=angle},glyph)
+        round(line,1)
+    end
+end
 local function button(parent, text, pos, dims, fn)
     local b = make("TextLabel", {Text = text, Font = Enum.Font.BuilderSansMedium, TextSize = 13,
         TextColor3 = C.text, BackgroundColor3 = C.card,
@@ -758,6 +786,7 @@ local function button(parent, text, pos, dims, fn)
         local ok, err = pcall(fn)
         if not ok then warn("ISB Menu: " .. tostring(err)); if notify then notify("Aktion konnte nicht ausgeführt werden.") end end
     end,connect)
+    if text=="×" then runtime.closeGlyph(b) end
     return b
 end
 local function humanoid()
@@ -1046,8 +1075,13 @@ launcher.TextColor3 = C.accent; launcher.TextSize = 14; stroke(launcher)
 local dock=make("CanvasGroup",{Name="ISBDock",BackgroundTransparency=.14,BackgroundColor3=C.bg,AnchorPoint=Vector2.new(0.5,1),
     Position=UDim2.new(0.5,0,1,0),Size=UDim2.fromOffset(600,56)},host)
 round(dock,28); runtime.glassSurface(dock,28); stroke(dock)
-local dockClock=label(dock,"--:--",13,C.text,UDim2.fromOffset(18,9),UDim2.fromOffset(56,21))
-runtime.dockDate=label(dock,os.date("%d.%m.%y"),10,C.muted,UDim2.fromOffset(18,30),UDim2.fromOffset(56,16))
+runtime.dockClockPanel=make("Frame",{Name="DockClockPanel",BackgroundColor3=C.panel,BackgroundTransparency=.28,Position=UDim2.fromOffset(10,8),Size=UDim2.fromOffset(64,40)},dock)
+round(runtime.dockClockPanel,13)
+make("UIStroke",{Color=C.muted,Thickness=1,Transparency=.9},runtime.dockClockPanel)
+local dockClock=label(runtime.dockClockPanel,os.date("%H:%M"),13,C.text,UDim2.fromOffset(0,3),UDim2.fromOffset(64,19))
+dockClock.Font=Enum.Font.BuilderSansBold; dockClock.TextXAlignment=Enum.TextXAlignment.Center
+runtime.dockDate=label(runtime.dockClockPanel,os.date("%d.%m."),10,C.muted,UDim2.fromOffset(0,22),UDim2.fromOffset(64,14))
+runtime.dockDate.TextXAlignment=Enum.TextXAlignment.Center
 local dockHint=make("CanvasGroup",{Name="DockTooltip",Visible=false,BackgroundTransparency=.08,BackgroundColor3=C.panel,GroupTransparency=1,GroupColor3=Color3.fromRGB(255,255,255),AnchorPoint=Vector2.new(.5,1),Position=UDim2.new(.5,0,1,-72),Size=UDim2.fromOffset(244,64),ZIndex=8},host)
 round(dockHint,18); runtime.glassSurface(dockHint,18); stroke(dockHint)
 local hintIcon=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,20),Size=UDim2.fromOffset(24,24),ZIndex=9},dockHint)
@@ -1358,6 +1392,10 @@ end
 local pageRevision=0
 selectPage=function(name)
     if not dockVisible then return end
+    for _,control in pairs(navButtons) do
+        if runtime.pressResets[control] then runtime.pressResets[control]() end
+    end
+    hideDockHint()
     pageRevision=pageRevision+1
     local revision=pageRevision
     if page==name then setOpen(not opened); return end
@@ -2647,6 +2685,7 @@ end
 function runtime.quickButton(parent,text,pos,size,fn)
     local b=make("TextLabel",{Text=text,Font=Enum.Font.BuilderSansBold,TextSize=12,TextColor3=C.text,BackgroundColor3=C.card,Position=pos,Size=size},parent); round(b,12)
     runtime.bindPress(b,function() playUISound("tap"); fn() end,runtime.quickConnect)
+    if text=="×" then runtime.closeGlyph(b) end
     return b
 end
 function runtime.buildQuickPanel()
@@ -2656,7 +2695,7 @@ function runtime.buildQuickPanel()
     round(runtime.quickPanel,18); runtime.glassSurface(runtime.quickPanel,18); stroke(runtime.quickPanel)
     runtime.quickScale=runtime.quickPanel:FindFirstChildOfClass("UIScale") or make("UIScale",{Scale=statusScale.Scale},runtime.quickPanel)
     local heading=label(runtime.quickPanel,"ISB / ROLEPLAY",14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-62,0,24)); heading.Font=Enum.Font.BuilderSansBold
-    runtime.quickButton(runtime.quickPanel,"×",UDim2.new(1,-42,0,12),UDim2.fromOffset(28,26),function() runtime.quickPanel.Visible=false end)
+    runtime.quickButton(runtime.quickPanel,"×",UDim2.new(1,-42,0,10),UDim2.fromOffset(28,28),function() runtime.quickPanel.Visible=false end)
     local targetButton=runtime.quickButton(runtime.quickPanel,runtime.quickTarget and runtime.quickTarget.DisplayName or "Automatisch · Nächster Spieler",UDim2.fromOffset(14,48),UDim2.new(1,-28,0,32),function() runtime.quickTargets.Visible=not runtime.quickTargets.Visible end)
     runtime.quickTargetButton=targetButton
     runtime.quickActionButtons={}
@@ -3243,7 +3282,7 @@ connect(Run.RenderStepped,function(dt)
     if runtime.inventoryTimer>=.5 then runtime.inventoryTimer=0; runtime.updateInventoryClearance() end
     frames=frames+1; fpsTime=fpsTime+dt; visualTimer=visualTimer+dt
     if fpsTime>=1 then
-        dockClock.Text=os.date("%H:%M"); runtime.dockDate.Text=os.date("%d.%m.%y")
+        dockClock.Text=os.date("%H:%M"); runtime.dockDate.Text=os.date("%d.%m.")
         local ok,ping=pcall(function() return player:GetNetworkPing()*1000 end)
         session.fps=math.floor(frames/fpsTime+0.5); runtime.updateFPSLimit(fpsTime); session.ping=ok and math.floor(ping+0.5) or nil
         metrics.Text=string.format('%d / %s Spieler  ·  <font color="%s">%s ms</font>  ·  <font color="%s">%d FPS</font>',#Players:GetPlayers(),tostring(Players.MaxPlayers or "—"),runtime.metricTint(session.ping,"ping"),session.ping and tostring(session.ping) or "--",runtime.metricTint(session.fps,"fps"),session.fps)
@@ -3471,7 +3510,7 @@ function runtime.startWelcomeIntro()
     round(welcome,28); runtime.glassSurface(welcome,28); stroke(welcome)
     local greeting=label(welcome,"Hey "..player.DisplayName,18,C.text,UDim2.fromOffset(22,17),UDim2.new(1,-44,0,24))
     greeting.TextTransparency=1; greeting.ZIndex=31
-    local stages={}; local ordered={dockClock}
+    local stages={}; local ordered={runtime.dockClockPanel}
     for _,name in ipairs(navNames) do table.insert(ordered,navButtons[name]) end
     table.insert(ordered,profile)
     indicator.Visible=false
