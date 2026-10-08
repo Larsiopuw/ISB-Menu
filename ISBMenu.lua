@@ -1,7 +1,7 @@
--- ISB Menu 2.6.5 | Own-game universal client toolkit
+-- ISB Menu 2.6.6 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.5",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.6",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -798,7 +798,7 @@ local function applyMovement()
         if not originals[h].jumpOwned then originals[h].JumpPower=h.JumpPower; originals[h].JumpHeight=h.JumpHeight end
         originals[h].jumpOwned=true
         if h.UseJumpPower then h.JumpPower = state.jumpValue
-        else h.JumpHeight = state.jumpValue * state.jumpValue / (2 * math.max(workspace.Gravity, 1)) end
+        else local height=state.jumpValue * state.jumpValue / (2 * math.max(workspace.Gravity, 1)); if h.JumpHeight~=height then h.JumpHeight=height end end
     end
 end
 runtime.flightSounds={}; runtime.flightConnections={}
@@ -1205,6 +1205,52 @@ do
     local core=optionalService("CoreGui")
     if core then table.insert(runtime.inventoryRoots,core) end
 end
+runtime.inventoryCache={}; runtime.inventoryDirty=true
+function runtime.rebuildInventoryCache()
+    table.clear(runtime.inventoryCache)
+    for _,source in ipairs(runtime.inventoryRoots) do
+        local record={source=source,screens={},containers={}}
+        local ok,objects=pcall(function() return source:GetDescendants() end)
+        if ok then for _,obj in ipairs(objects) do
+            if source==playerGui and obj:IsA("ScreenGui") and obj~=gui then table.insert(record.screens,obj) end
+            if obj:IsA("GuiObject") then
+                local own,named=false,false; local ancestor=obj
+                while ancestor and ancestor~=source do
+                    if ancestor==gui then own=true; break end
+                    local name=ancestor.Name:lower()
+                    if name:find("hotbar",1,true) or name:find("backpack",1,true) or name:find("inventory",1,true) or name:find("quickbar",1,true) or name:find("toolbelt",1,true) then named=true end
+                    ancestor=ancestor.Parent
+                end
+                if named then
+                    if not own then
+                        local slots={}; for _,slot in ipairs(obj:GetDescendants()) do
+                            if slot:IsA("ImageLabel") or slot:IsA("ImageButton") or slot:IsA("TextLabel") or slot:IsA("TextButton") then table.insert(slots,slot) end
+                        end
+                        table.insert(record.containers,{object=obj,slots=slots})
+                    end
+                end
+            end
+        end end
+        table.insert(runtime.inventoryCache,record)
+    end
+    runtime.inventoryDirty=false
+end
+function runtime.inventoryChanged(obj)
+    if not obj then runtime.inventoryDirty=true; return end
+    local relevant=obj:IsA("ScreenGui"); local ancestor=obj
+    while ancestor do
+        if ancestor==gui or ancestor==runtime.voiceMicGui then return end
+        local name=ancestor.Name:lower()
+        if name:find("hotbar",1,true) or name:find("backpack",1,true) or name:find("inventory",1,true) or name:find("quickbar",1,true) or name:find("toolbelt",1,true) then relevant=true end
+        ancestor=ancestor.Parent
+    end
+    if relevant then runtime.inventoryDirty=true end
+end
+for _,source in ipairs(runtime.inventoryRoots) do
+    connect(source.DescendantAdded,runtime.inventoryChanged)
+    if source.DescendantRemoving then connect(source.DescendantRemoving,runtime.inventoryChanged) end
+    connect(source.ChildAdded,runtime.inventoryChanged)
+end
 function runtime.updateInventoryClearance()
     local camera=workspace.CurrentCamera
     if not camera then return end
@@ -1212,14 +1258,16 @@ function runtime.updateInventoryClearance()
     local clearance,order=18,90
     local half=300*scale.Scale
     local center=settings.alignment=="Left" and 12+half or (settings.alignment=="Right" and viewport.X-12-half or viewport.X*.5)
-    for _,source in ipairs(runtime.inventoryRoots) do
-        local ok,objects=pcall(function() return source:GetDescendants() end)
-        if ok then
-            for _,obj in ipairs(objects) do
-                if source==playerGui and obj:IsA("ScreenGui") and obj~=gui and obj~=runtime.voiceMicGui and obj.Enabled~=false then
-                    order=math.max(order,math.min(2147483646,(obj.DisplayOrder or 0)+1))
-                end
-                if obj:IsA("GuiObject") then
+    if runtime.inventoryDirty then runtime.rebuildInventoryCache() end
+    for _,record in ipairs(runtime.inventoryCache) do
+        local source=record.source
+        for _,screen in ipairs(record.screens) do
+            if screen.Parent and screen~=runtime.voiceMicGui and screen.Enabled~=false then order=math.max(order,math.min(2147483646,(screen.DisplayOrder or 0)+1)) end
+        end
+        do
+            for _,candidate in ipairs(record.containers) do
+                local obj=candidate.object
+                if obj.Parent then
                     local valid,top=pcall(function()
                         local visible,named=true,false
                         local ancestor=obj
@@ -1233,8 +1281,8 @@ function runtime.updateInventoryClearance()
                         end
                         if not visible or not named then return nil end
                         local occupied=false
-                        for _,slot in ipairs(obj:GetDescendants()) do
-                            if slot:IsA("GuiObject") and slot.Visible then
+                        for _,slot in ipairs(candidate.slots) do
+                            if slot.Parent and slot.Visible then
                                 local shown=true; local parent=slot.Parent
                                 while parent and parent~=obj do
                                     if parent:IsA("GuiObject") and not parent.Visible then shown=false; break end
@@ -2343,13 +2391,32 @@ runtime.roleplayModes={
     {id="hug",name="Umarmen",part="Torso",offset={0,.05,-1.35},rotation=math.pi,animation="93667149408515"},
     {id="carry",name="Tragen",part="Torso",offset={.5,-.5,-1.2},animation="95469914338674"},
 }
+function runtime.characterParts()
+    local char=player.Character
+    if runtime.partsCharacter~=char then
+        if runtime.partsConnection then runtime.partsConnection:Disconnect(); runtime.partsConnection=nil end
+        runtime.partsCharacter=char; runtime.parts={}
+        if char then
+            for _,obj in ipairs(char:GetDescendants()) do if obj:IsA("BasePart") then table.insert(runtime.parts,obj) end end
+            runtime.partsConnection=connect(char.DescendantAdded,function(obj) if obj:IsA("BasePart") then table.insert(runtime.parts,obj) end end)
+        end
+    end
+    return runtime.parts or {}
+end
+function runtime.disableCharacterCollisions()
+    for _,part in ipairs(runtime.characterParts()) do
+        if part.Parent then
+            if collisions[part]==nil then collisions[part]=part.CanCollide end
+            if part.CanCollide then part.CanCollide=false end
+        end
+    end
+end
 function runtime.stopRoleplay()
     pcall(function() Run:UnbindFromRenderStep("ISBRoleplayFollow") end)
     local owned=runtime.roleplay; runtime.roleplay=nil
     if not owned then return end
     if owned.track then pcall(function() owned.track:Stop(.15); owned.track:Destroy() end) end
     if owned.animation then owned.animation:Destroy() end
-    if owned.repCaptured then pcall(function() sethiddenproperty(owned.root,"PhysicsRepRootPart",owned.repOriginal) end) end
     if owned.seatedCaptured then pcall(function() owned.h:SetStateEnabled(Enum.HumanoidStateType.Seated,owned.seatedEnabled) end) end
     if owned.h and owned.h.Parent then
         owned.h.PlatformStand=owned.platformStand; owned.h.AutoRotate=owned.autoRotate
@@ -2386,10 +2453,16 @@ function runtime.roleplayFrame(owned,part,dt,rendered)
     end
     local position=frame.Position or part.Position
     local mode=owned.mode
-    if mode.id=="head" or mode.id=="piggy" or mode.id=="piggy2" then
-        local target=mode.id=="head" and (position+Vector3.new(0,1,0)) or (position-frame.LookVector*1.1+Vector3.new(0,.2,0))
-        local look=mode.id=="head" and position or target+frame.LookVector
-        return CFrame.new(target,look)
+    if mode.id=="head" then
+        -- A downward look needs an explicit, horizontal up vector to avoid
+        -- the singular default-up orientation when sitting directly above a head.
+        local forward=Vector3.new(frame.LookVector.X,0,frame.LookVector.Z)
+        if forward.Magnitude<.001 then forward=Vector3.new(0,0,-1) end
+        return CFrame.lookAt(position+Vector3.new(0,1,0),position,forward.Unit)
+    end
+    if mode.id=="piggy" or mode.id=="piggy2" then
+        local target=position-frame.LookVector*1.1+Vector3.new(0,.2,0)
+        return CFrame.new(target,target+frame.LookVector)
     end
     local offset=mode.offset
     if mode.id=="hug" then
@@ -2409,10 +2482,6 @@ function runtime.startRoleplay(mode)
     if state.fly then state.fly=false; stopFly() end
     local owned={target=target,mode=mode,h=h,root=r,platformStand=h.PlatformStand,autoRotate=h.AutoRotate}
     pcall(function() owned.seatedEnabled=h:GetStateEnabled(Enum.HumanoidStateType.Seated); owned.seatedCaptured=true; h:SetStateEnabled(Enum.HumanoidStateType.Seated,false) end)
-    if type(gethiddenproperty)=="function" and type(sethiddenproperty)=="function" then
-        local ok,value=pcall(gethiddenproperty,r,"PhysicsRepRootPart")
-        if ok then owned.repCaptured=true; owned.repOriginal=value end
-    end
     runtime.roleplay=owned; h.PlatformStand=true; h.AutoRotate=false
     Run:BindToRenderStep("ISBRoleplayFollow",Enum.RenderPriority.Last.Value+1,function()
         if not alive or runtime.roleplay~=owned then return end
@@ -2879,12 +2948,7 @@ connect(UIS.WindowFocusReleased,function()
 end)
 connect(Run.Stepped,function()
     if state.noclip and player.Character then
-        for _,part in ipairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                if collisions[part]==nil then collisions[part]=part.CanCollide end
-                part.CanCollide=false
-            end
-        end
+        runtime.disableCharacterCollisions()
     end
 end)
 if Run.PostSimulation then connect(Run.PostSimulation,function()
@@ -2904,12 +2968,15 @@ connect(Run.PreSimulation,function(dt)
         local targetH=owned.target.Character and owned.target.Character:FindFirstChildOfClass("Humanoid")
         if not owned.target.Parent or not part or not r or humanoid()~=owned.h or owned.h.Health<=0 or not targetH or targetH.Health<=0 then runtime.stopRoleplay()
         else
-            for _,obj in ipairs(player.Character:GetDescendants()) do if obj:IsA("BasePart") then if collisions[obj]==nil then collisions[obj]=obj.CanCollide end; obj.CanCollide=false end end
+            runtime.disableCharacterCollisions()
             -- Keep our character's replication root. Linking it to another
             -- avatar can prevent that avatar's client from seeing us.
             if owned.track then pcall(function()
                 if not owned.track.IsPlaying then owned.track:Play(.05,1,1) end
-                if owned.frozenPose then owned.track:AdjustSpeed(0); owned.track.TimePosition=2 end
+                if owned.frozenPose then
+                    if owned.track.Speed~=0 then owned.track:AdjustSpeed(0) end
+                    if math.abs(owned.track.TimePosition-2)>.001 then owned.track.TimePosition=2 end
+                end
             end) end
             r.CFrame=runtime.roleplayFrame(owned,part,dt)
             r.AssemblyLinearVelocity=part.AssemblyLinearVelocity or Vector3.zero; r.AssemblyAngularVelocity=part.AssemblyAngularVelocity or Vector3.zero; owned.h.PlatformStand=true; owned.h.AutoRotate=false
@@ -2969,7 +3036,7 @@ connect(Run.RenderStepped,function(dt)
         if runtime.media.volumeTick>=.08 then runtime.media.volumeTick=0; runtime.commitMediaVolume() end
     else runtime.media.volumeTick=0 end
     runtime.detailTick=(runtime.detailTick or 0)+dt
-    if runtime.detailTick>=.25 then runtime.detailTick=0; if runtime.refreshDetails then runtime.refreshDetails() end end
+    if runtime.detailTick>=.25 then runtime.detailTick=0; if opened and page=="Spieler" and runtime.selectedPlayer then runtime.refreshDetails() end end
     runtime.media.pollTime=runtime.media.pollTime+dt
     if opened and page=="Musik" and runtime.media.pollTime>=1 then runtime.media.pollTime=0; runtime.mediaPoll() end
 

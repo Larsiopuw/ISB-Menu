@@ -1,4 +1,4 @@
-# ISB Menu 2.6.5 · by Larsiopuw
+# ISB Menu 2.6.6 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,16 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Änderungen in 2.6.6
+
+Performance: Inventarleisten werden zwischengespeichert. Vollständige GUI-Suchen erfolgen beim Start und nach relevanten Strukturänderungen, nicht mehr zweimal pro Sekunde. Unveränderte Inventarleisten prüfen nur die bekannten Elemente. Eigene Körperteile werden für Noclip/Roleplay einmal erfasst und bei hinzugefügten Teilen ergänzt. Detailwerte werden nur in der geöffneten Detailansicht aktualisiert; unveränderte Sprunghöhe und eingefrorene Animation werden nicht ständig neu geschrieben.
+
+Auf dem Kopf: dieselbe TL-Animation und Pose bei Sekunde 2; die senkrechte Blickrichtung erhält eine eindeutige horizontale Ausrichtung vom Ziel. So wird die mehrdeutige Rotation bei einem Blick exakt nach unten vermieden. Die Optik ist noch im Spiel zu bestätigen.
+
+Der Benutzer bestätigt, dass auch TL aus Sicht des Mitspielers verzögert folgt. Lokale Render-Korrekturen erzeugen keine gemeinsame serverseitige Verbindung. Eine garantiert feste Verbindung für alle Clients benötigt Unterstützung des Spiels auf dem Server; das Menü stellt dafür keine Wirkung vor, die es nicht liefern kann. [Roblox-Netzwerkeigentum](https://create.roblox.com/docs/physics/network-ownership). Es wird kein fremder PhysicsRepRootPart zugewiesen.
+
+1717 simulierte Prüfungen bestanden, einschließlich eines GUI-Baums mit 1000 unbeteiligten Elementen ohne wiederholte Vollsuche, wiederholtem Kollisionsabgleich ohne Charakter-Vollsuche und stabiler Kopf-Ausrichtung. Luau kompiliert auf -O0/-O1/-O2. Die tatsächliche Framezeit im Spiel und die Kopf-Pose sind noch live zu prüfen.
 
 ## Änderungen in 2.6.5
 
