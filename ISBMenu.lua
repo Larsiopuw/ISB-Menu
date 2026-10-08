@@ -1,7 +1,7 @@
--- ISB Menu 2.6.11 | Own-game universal client toolkit
+-- ISB Menu 2.6.12 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.11",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.12",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -595,7 +595,7 @@ local function stroke(obj)
     if obj:IsA("CanvasGroup") then
         target=make("Frame",{Name="GlassEdge",BackgroundTransparency=1,Size=UDim2.new(1,-4,1,-4),Position=UDim2.fromOffset(2,2),ZIndex=0},obj)
         local corner=obj:FindFirstChildOfClass("UICorner")
-        make("UICorner",{CornerRadius=corner and UDim.new(corner.CornerRadius.Scale,math.max(0,corner.CornerRadius.Offset-2)) or UDim.new(0,16)},target)
+        make("UICorner",{CornerRadius=corner and UDim.new(corner.CornerRadius.Scale,math.max(0,corner.CornerRadius.Offset-.5)) or UDim.new(0,16)},target)
     end
     make("UIStroke", {Color = C.line, Thickness = 1, Transparency = 0.45}, target)
 end
@@ -608,11 +608,11 @@ end
 -- Quiet content surfaces match the preview without changing hit geometry.
 function runtime.contentSurface(group,radius)
     group.BackgroundTransparency=1
-    local surface=make("Frame",{Name="ContentSurface",Active=false,BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Position=UDim2.fromOffset(2,2),Size=UDim2.new(1,-4,1,-4),ZIndex=0},group)
-    round(surface,(radius or 17)-2)
+    local surface=make("Frame",{Name="ContentSurface",Active=false,BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1),ZIndex=0},group)
+    round(surface,(radius or 17)-.5)
     make("UIGradient",{Rotation=145,Color=ColorSequence.new(Color3.fromRGB(48,57,67),Color3.fromRGB(37,43,51))},surface)
-    local edge=make("Frame",{Name="ContentEdge",Active=false,BackgroundTransparency=1,Position=UDim2.fromOffset(2,2),Size=UDim2.new(1,-4,1,-4),ZIndex=0},group)
-    round(edge,(radius or 17)-2)
+    local edge=make("Frame",{Name="ContentEdge",Active=false,BackgroundTransparency=1,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1),ZIndex=0},group)
+    round(edge,(radius or 17)-.5)
     make("UIStroke",{Color=Color3.fromRGB(165,190,220),Thickness=1,Transparency=.91},edge)
 end
 runtime.tweens=setmetatable({},{__mode="k"})
@@ -640,8 +640,8 @@ function runtime.bindPress(obj,callback,register)
     local face=make(obj.ClassName,{Name="ButtonFace",Active=false,Selectable=false,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromScale(1,1),ZIndex=obj.ZIndex or 1},obj)
     local faceScale=make("UIScale",{Name="ButtonFaceScale",Scale=1},face)
     round(face,10)
-    local controlOutline=make("Frame",{Name="ControlOutline",Active=false,BackgroundTransparency=1,Position=UDim2.fromOffset(2,2),Size=UDim2.new(1,-4,1,-4),ZIndex=obj.ZIndex or 1},face)
-    round(controlOutline,8)
+    local controlOutline=make("Frame",{Name="ControlOutline",Active=false,BackgroundTransparency=1,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1),ZIndex=obj.ZIndex or 1},face)
+    round(controlOutline,9.5)
     local controlEdge=make("UIStroke",{Name="ControlEdge",ApplyStrokeMode=Enum.ApplyStrokeMode.Border,Color=Color3.fromRGB(176,197,227),Thickness=1,Transparency=.92},controlOutline)
     register(obj:GetPropertyChangedSignal("BackgroundTransparency"),function() controlEdge.Transparency=obj.BackgroundTransparency>=.95 and 1 or .92 end)
     controlEdge.Transparency=obj.BackgroundTransparency>=.95 and 1 or .92
@@ -660,18 +660,18 @@ function runtime.bindPress(obj,callback,register)
     local parentCorner=obj:FindFirstChildOfClass("UICorner")
     if parentCorner then
         face:FindFirstChildOfClass("UICorner").CornerRadius=parentCorner.CornerRadius
-        round(controlOutline,math.max(0,parentCorner.CornerRadius.Offset-2))
+        round(controlOutline,math.max(0,parentCorner.CornerRadius.Offset-.5))
         register(parentCorner:GetPropertyChangedSignal("CornerRadius"),function()
             face:FindFirstChildOfClass("UICorner").CornerRadius=parentCorner.CornerRadius
-            round(controlOutline,math.max(0,parentCorner.CornerRadius.Offset-2))
+            round(controlOutline,math.max(0,parentCorner.CornerRadius.Offset-.5))
         end)
     end
     -- Animate decoration and contents; the interactive rectangle stays still.
     local glow=make("Frame",{Name="ButtonMotion",Active=false,Selectable=false,BackgroundColor3=C.accent,BackgroundTransparency=1,
         AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.new(1,-8,1,-8),ZIndex=obj.ZIndex or 1},obj)
-    round(glow,10)
-    -- The outline belongs to the face and sits a full pixel inside it.
-    glow.Parent=face; glow.Size=UDim2.new(1,-4,1,-4); glow.ZIndex=(obj.ZIndex or 1)+1
+    round(glow,9.5)
+    -- The outline belongs to the face and tracks its visible edge with a half-pixel stroke inset.
+    glow.Parent=face; glow.Size=UDim2.new(1,-1,1,-1); glow.ZIndex=(obj.ZIndex or 1)+1
     local edge=make("UIStroke",{Color=C.accent,Thickness=1,Transparency=1},glow)
     local function contents(child)
         if child~=face and child~=glow and child:IsA("GuiObject") and child.Name~="MicHint" then child.Parent=face end
@@ -688,7 +688,7 @@ function runtime.bindPress(obj,callback,register)
         local corner=obj:FindFirstChildOfClass("UICorner")
         if corner then
             face:FindFirstChildOfClass("UICorner").CornerRadius=corner.CornerRadius
-            glow:FindFirstChildOfClass("UICorner").CornerRadius=UDim.new(corner.CornerRadius.Scale,math.max(0,corner.CornerRadius.Offset-2))
+            glow:FindFirstChildOfClass("UICorner").CornerRadius=UDim.new(corner.CornerRadius.Scale,math.max(0,corner.CornerRadius.Offset-.5))
         end
         local navigation=obj.Name:sub(1,3)=="Nav"
         local copying=obj.Name:sub(1,5)=="Copy_"
@@ -718,7 +718,7 @@ function runtime.bindPress(obj,callback,register)
             if (child:IsA("ImageLabel") or child.Name=="ButtonGlyph") and child.Name~="ScriptThumbnail" then
                 local iconScale=iconScales[child]
                 if not iconScale then iconScale=make("UIScale",{Name="ButtonIconMotion",Scale=1},child); iconScales[child]=iconScale end
-                animate(iconScale,{Scale=enabled and (down and .94 or (hovered and (copying and 1 or (child.Name=="ButtonGlyph" and 1.32 or 1.12)) or 1)) or 1})
+                animate(iconScale,{Scale=(navigation and 1) or (enabled and (down and .94 or (hovered and (copying and 1 or (child.Name=="ButtonGlyph" and 1.32 or 1.12)) or 1)) or 1)})
             end
         end
     end
@@ -1025,12 +1025,13 @@ function runtime.updateStatusLayout()
     runtime.statusExecutor.Size=UDim2.fromOffset(executorWidth,22)
     statusBar.Size=UDim2.fromOffset(98+metricWidth+20+executorWidth+14,44)
     local camera=workspace.CurrentCamera
-    if camera then statusScale.Scale=math.min(1,math.max(.1,(camera.ViewportSize.X-12)/statusBar.Size.X.Offset)) end
+    if camera then statusScale.Scale=math.min(settings.uiScale/100,math.max(.1,(camera.ViewportSize.X-12)/statusBar.Size.X.Offset)) end
     if runtime.quickPanel then
         runtime.quickPanel.Size=UDim2.fromOffset(statusBar.Size.X.Offset,348)
         runtime.quickPanel.Position=UDim2.new(1,-6,0,6+44*statusScale.Scale+8)
         runtime.quickScale.Scale=statusScale.Scale
     end
+    if runtime.fitAuxiliary then runtime.fitAuxiliary() end
 end
 metrics.RichText=true
 function runtime.metricTint(value,kind)
@@ -1070,7 +1071,7 @@ local navNames = {"Start", "Bewegung", "Spieler", "Server", "Darstellung", "Skri
 local navAssetNames={"home","user","users","server-stack","eye","code-bracket-square","musical-note","star","cog-6-tooth"}
 local function drawIcon(parent,kind)
     local icon=imageIcon(parent,navAssetNames[kind],20,UDim2.fromOffset(8,8),C.muted)
-    if icon then return {{obj=icon,property="ImageColor3"}} end
+    if icon then icon.Name="NavigationGlyph"; icon.Position=UDim2.fromScale(.5,.5); return {{obj=icon,property="ImageColor3"}} end
     kind=({1,2,3,7,4,6,5,6,7})[kind] or 7
     local holder=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(8,8),Size=UDim2.fromOffset(20,20)},parent)
     local parts={}
@@ -1192,19 +1193,35 @@ notify = function(message,heading,iconName)
     end)
 end
 local backdropBlur=make("BlurEffect",{Name="ISBMenuBlur",Size=0,Enabled=true},Lighting)
+function runtime.fitAuxiliary()
+    local camera=workspace.CurrentCamera; if not camera then return end
+    local viewport=camera.ViewportSize; local requested=settings.uiScale/100
+    for _,surface in ipairs(gui:GetChildren()) do
+        if surface:IsA("GuiObject") and surface~=host then
+            local widgetScale=surface:FindFirstChildOfClass("UIScale")
+            if not widgetScale then widgetScale=make("UIScale",{Name="InterfaceScale",Scale=1},surface) end
+            local width,height=surface.Size.X.Offset,surface.Size.Y.Offset
+            widgetScale.Scale=math.min(requested,width>0 and math.max(.1,(viewport.X-24)/width) or requested,height>0 and math.max(.1,(viewport.Y-24)/height) or requested)
+            if surface==notificationStack then surface.Size=UDim2.fromOffset(300,(viewport.Y-24)/widgetScale.Scale) end
+        end
+    end
+    if runtime.quickPanel then runtime.quickPanel.Position=UDim2.new(1,-6,0,14+44*statusScale.Scale) end
+end
+connect(gui.ChildAdded,function(child) if child:IsA("GuiObject") then runtime.fitAuxiliary() end end)
 local function fit()
     local camera = workspace.CurrentCamera
     if not camera then return end
     local size = camera.ViewportSize
-    statusScale.Scale=math.min(1,math.max(.1,(size.X-12)/statusBar.Size.X.Offset))
+    statusScale.Scale=math.min(settings.uiScale/100,math.max(.1,(size.X-12)/statusBar.Size.X.Offset))
     scale.Scale = math.min(settings.uiScale/100, math.max(0.1, (size.X-24)/600), math.max(0.1, (size.Y-(runtime.dockClearance or 18)-82)/552))
-    quickBaseScale=math.min(1,math.max(.1,(size.X-24)/520),math.max(.1,(size.Y-24)/108))
+    quickBaseScale=math.min(settings.uiScale/100,math.max(.1,(size.X-24)/520),math.max(.1,(size.Y-24)/108))
     if quickScale then quickScale.Scale=quickBaseScale end
     local anchor=settings.alignment=="Left" and 0 or (settings.alignment=="Right" and 1 or .5)
     host.AnchorPoint=Vector2.new(anchor,1)
     local position=UDim2.new(anchor,anchor==0 and 12 or (anchor==1 and -12 or 0),1,-(runtime.dockClearance or 18))
     if runtime.dockFitReady then animate(host,{Position=position}) else host.Position=position; runtime.dockFitReady=true end
     notificationStack.Size=UDim2.new(0,math.min(300,math.max(120,size.X-24)),1,-24)
+    runtime.fitAuxiliary()
 end
 fit()
 runtime.inventoryRoots={playerGui}
@@ -1364,7 +1381,7 @@ end
 local quickSearch=make("CanvasGroup",{Name="QuickSearch",Visible=false,BackgroundColor3=C.panel,GroupColor3=Color3.fromRGB(255,255,255),GroupTransparency=1,
     AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(520,108),ZIndex=30},gui)
 round(quickSearch,22); runtime.glassSurface(quickSearch,22); stroke(quickSearch)
-quickScale=make("UIScale",{Scale=quickBaseScale},quickSearch)
+quickScale=quickSearch:FindFirstChildOfClass("UIScale") or make("UIScale",{Scale=quickBaseScale},quickSearch)
 imageIcon(quickSearch,"magnifying-glass",22,UDim2.fromOffset(20,23),C.text)
 local quickInput=make("TextBox",{Name="QuickSearchInput",Text="",PlaceholderText="Scripts suchen …",ClearTextOnFocus=false,BackgroundTransparency=1,
     TextXAlignment=Enum.TextXAlignment.Left,TextColor3=C.text,PlaceholderColor3=C.muted,Font=Enum.Font.BuilderSans,TextSize=17,
@@ -2632,7 +2649,7 @@ function runtime.buildQuickPanel()
     if runtime.quickPanel then runtime.quickPanel:Destroy() end
     runtime.quickPanel=make("CanvasGroup",{Name="ISBQuickPanel",Visible=false,BackgroundColor3=C.panel,BackgroundTransparency=.08,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-6,0,58),Size=UDim2.fromOffset(statusBar.Size.X.Offset,348),ClipsDescendants=true},gui)
     round(runtime.quickPanel,18); runtime.glassSurface(runtime.quickPanel,18); stroke(runtime.quickPanel)
-    runtime.quickScale=make("UIScale",{Scale=statusScale.Scale},runtime.quickPanel)
+    runtime.quickScale=runtime.quickPanel:FindFirstChildOfClass("UIScale") or make("UIScale",{Scale=statusScale.Scale},runtime.quickPanel)
     local heading=label(runtime.quickPanel,"ISB / ROLEPLAY",14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-62,0,24)); heading.Font=Enum.Font.BuilderSansBold
     runtime.quickButton(runtime.quickPanel,"×",UDim2.new(1,-42,0,12),UDim2.fromOffset(28,26),function() runtime.quickPanel.Visible=false end)
     local targetButton=runtime.quickButton(runtime.quickPanel,runtime.quickTarget and runtime.quickTarget.DisplayName or "Automatisch · Nächster Spieler",UDim2.fromOffset(14,48),UDim2.new(1,-28,0,32),function() runtime.quickTargets.Visible=not runtime.quickTargets.Visible end)
@@ -2761,10 +2778,10 @@ function runtime.drawPlayerCard(other,index)
                 local tint=runtime.markerColor(isFriend,isStaff)
                 f.Name=isStaff and "StaffPlayerCard" or "FriendPlayerCard"
                 f:FindFirstChild("ContentSurface"):Destroy(); f:FindFirstChild("ContentEdge"):Destroy()
-                local glow=make("Frame",{Name="RelationshipGlow",BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Position=UDim2.fromOffset(2,2),Size=UDim2.new(1,-4,1,-4),ZIndex=0},f)
-                round(glow,15)
+                local glow=make("Frame",{Name="RelationshipGlow",BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1),ZIndex=0},f)
+                round(glow,16.5)
                 make("UIGradient",{Rotation=0,Color=ColorSequence.new(C.card:Lerp(tint,.25),C.card:Lerp(tint,.04))},glow)
-                local edge=make("Frame",{Name="RelationshipEdge",BackgroundTransparency=1,Position=UDim2.fromOffset(2,2),Size=UDim2.new(1,-4,1,-4),ZIndex=0},f); round(edge,15)
+                local edge=make("Frame",{Name="RelationshipEdge",BackgroundTransparency=1,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1),ZIndex=0},f); round(edge,16.5)
                 make("UIStroke",{Color=tint,Thickness=1,Transparency=.5},edge)
                 local badge=label(f,isStaff and "ADMIN" or "FREUND",10,tint,UDim2.new(1,-98,0,14),UDim2.fromOffset(82,20))
                 badge.Name="RelationshipBadge"; badge.TextXAlignment=Enum.TextXAlignment.Right; badge.Font=Enum.Font.BuilderSansBold

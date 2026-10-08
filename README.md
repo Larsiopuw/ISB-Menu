@@ -1,4 +1,4 @@
-# ISB Menu 2.6.11 · by Larsiopuw
+# ISB Menu 2.6.12 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,14 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Änderungen in 2.6.12
+
+Gemeinsame Konturen: sichtbare Flächen und Rahmen benutzen dieselbe Geometrie und Rundung. Ein 1-px-Rahmen liegt mit 0.5-px-Inset direkt an der bewegten Fläche. Das gilt auch für Freund-/Admin-Karten. Dock-Symbole bleiben im relativen Mittelpunkt des animierten Bereichs; die zweite unabhängige Icon-Vergrößerung entfällt.
+
+Menügröße skaliert jetzt alle Bildschirm-Oberflächen: Workspace, Status, Quick-Roleplay, Fluganzeige, Schnellsuche und Benachrichtigungen. Neu erstellte Fenster übernehmen den Wert; vorhandene UIScale-Instanzen werden wiederverwendet. Kleine Bildschirme begrenzen die Größe weiterhin auf den verfügbaren Platz. Weltbezogene Namensanzeigen behalten ihre eigene Entfernungsskalierung.
+
+1781 simulierte Prüfungen und Luau -O0/-O1/-O2 bestanden. Status/Roleplay bei 75 Prozent sowie Rahmengeometrie und Dock-Mittelpunkt geprüft. Optik in Roblox noch durch den Benutzer zu bestätigen.
 
 ## Änderungen in 2.6.11
 
