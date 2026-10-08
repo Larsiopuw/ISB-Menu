@@ -1,7 +1,7 @@
--- ISB Menu 2.6.13 | Own-game universal client toolkit
+-- ISB Menu 2.6.14 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.13",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.14",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -640,9 +640,8 @@ function runtime.bindPress(obj,callback,register)
     local face=make(obj.ClassName,{Name="ButtonFace",Active=false,Selectable=false,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromScale(1,1),ZIndex=obj.ZIndex or 1},obj)
     local faceScale=make("UIScale",{Name="ButtonFaceScale",Scale=1},face)
     round(face,10)
-    local controlOutline=make("Frame",{Name="ControlOutline",Active=false,BackgroundTransparency=1,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1),ZIndex=obj.ZIndex or 1},face)
-    round(controlOutline,9.5)
-    local controlEdge=make("UIStroke",{Name="ControlEdge",ApplyStrokeMode=Enum.ApplyStrokeMode.Border,Color=Color3.fromRGB(176,197,227),Thickness=1,Transparency=.92},controlOutline)
+    -- A single border uses the rendered face's own corner, including during motion.
+    local controlEdge=make("UIStroke",{Name="ControlEdge",ApplyStrokeMode=Enum.ApplyStrokeMode.Border,Color=Color3.fromRGB(176,197,227),Thickness=1,Transparency=.92},face)
     register(obj:GetPropertyChangedSignal("BackgroundTransparency"),function() controlEdge.Transparency=obj.BackgroundTransparency>=.95 and 1 or .92 end)
     controlEdge.Transparency=obj.BackgroundTransparency>=.95 and 1 or .92
     local properties={"BackgroundColor3","BackgroundTransparency","BorderSizePixel"}
@@ -660,19 +659,17 @@ function runtime.bindPress(obj,callback,register)
     local parentCorner=obj:FindFirstChildOfClass("UICorner")
     if parentCorner then
         face:FindFirstChildOfClass("UICorner").CornerRadius=parentCorner.CornerRadius
-        round(controlOutline,math.max(0,parentCorner.CornerRadius.Offset-.5))
         register(parentCorner:GetPropertyChangedSignal("CornerRadius"),function()
             face:FindFirstChildOfClass("UICorner").CornerRadius=parentCorner.CornerRadius
-            round(controlOutline,math.max(0,parentCorner.CornerRadius.Offset-.5))
         end)
     end
     -- Animate decoration and contents; the interactive rectangle stays still.
     local glow=make("Frame",{Name="ButtonMotion",Active=false,Selectable=false,BackgroundColor3=C.accent,BackgroundTransparency=1,
         AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.new(1,-8,1,-8),ZIndex=obj.ZIndex or 1},obj)
-    round(glow,9.5)
-    -- The outline belongs to the face and tracks its visible edge with a half-pixel stroke inset.
-    glow.Parent=face; glow.Size=UDim2.new(1,-1,1,-1); glow.ZIndex=(obj.ZIndex or 1)+1
-    local edge=make("UIStroke",{Color=C.accent,Thickness=1,Transparency=1},glow)
+    round(glow,12)
+    -- The fill shares the exact face geometry; the only border lives on the face.
+    glow.Parent=face; glow.Size=UDim2.fromScale(1,1); glow.ZIndex=(obj.ZIndex or 1)+1
+    local edge=controlEdge
     local function contents(child)
         if child~=face and child~=glow and child:IsA("GuiObject") and child.Name~="MicHint" then child.Parent=face end
     end
@@ -684,11 +681,11 @@ function runtime.bindPress(obj,callback,register)
     local iconScales=setmetatable({},{__mode="k"})
     local function pose(down)
         local enabled=not settings.reducedMotion
-        glow.BackgroundColor3=C.accent; edge.Color=C.accent
+        glow.BackgroundColor3=C.accent; edge.Color=hovered and C.accent or Color3.fromRGB(176,197,227)
         local corner=obj:FindFirstChildOfClass("UICorner")
         if corner then
             face:FindFirstChildOfClass("UICorner").CornerRadius=corner.CornerRadius
-            glow:FindFirstChildOfClass("UICorner").CornerRadius=UDim.new(corner.CornerRadius.Scale,math.max(0,corner.CornerRadius.Offset-.5))
+            glow:FindFirstChildOfClass("UICorner").CornerRadius=corner.CornerRadius
         end
         local navigation=obj.Name:sub(1,3)=="Nav"
         local copying=obj.Name:sub(1,5)=="Copy_"
@@ -709,7 +706,7 @@ function runtime.bindPress(obj,callback,register)
         animate(faceScale,{Scale=factor})
         animate(face,{Position=UDim2.new(.5,0,.5,lift)})
         animate(glow,{BackgroundTransparency=scriptTile and 1 or (down and .78 or (hovered and .86 or 1))})
-        animate(edge,{Transparency=hovered and .35 or 1})
+        animate(edge,{Transparency=hovered and .35 or (obj.BackgroundTransparency>=.95 and 1 or .92)})
         if obj:IsA("TextLabel") and obj.Text~="" then
             fontBase=fontBase or obj.TextSize
             animate(obj,{TextSize=fontBase*(enabled and (hovered and not down and 1.08 or 1) or 1)})
@@ -1049,7 +1046,8 @@ launcher.TextColor3 = C.accent; launcher.TextSize = 14; stroke(launcher)
 local dock=make("CanvasGroup",{Name="ISBDock",BackgroundTransparency=.14,BackgroundColor3=C.bg,AnchorPoint=Vector2.new(0.5,1),
     Position=UDim2.new(0.5,0,1,0),Size=UDim2.fromOffset(600,56)},host)
 round(dock,28); runtime.glassSurface(dock,28); stroke(dock)
-local dockClock=label(dock,"--:--",13,C.text,UDim2.fromOffset(20,17),UDim2.fromOffset(54,22))
+local dockClock=label(dock,"--:--",13,C.text,UDim2.fromOffset(18,9),UDim2.fromOffset(56,21))
+runtime.dockDate=label(dock,os.date("%d.%m.%y"),10,C.muted,UDim2.fromOffset(18,30),UDim2.fromOffset(56,16))
 local dockHint=make("CanvasGroup",{Name="DockTooltip",Visible=false,BackgroundTransparency=.08,BackgroundColor3=C.panel,GroupTransparency=1,GroupColor3=Color3.fromRGB(255,255,255),AnchorPoint=Vector2.new(.5,1),Position=UDim2.new(.5,0,1,-72),Size=UDim2.fromOffset(244,64),ZIndex=8},host)
 round(dockHint,18); runtime.glassSurface(dockHint,18); stroke(dockHint)
 local hintIcon=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,20),Size=UDim2.fromOffset(24,24),ZIndex=9},dockHint)
@@ -1768,17 +1766,24 @@ function runtime.mediaPaint()
     refs.toggle.Text=data.playing and "Pause" or "Abspielen"
     runtime.mediaProgress()
     refs.auto.BackgroundColor3=runtime.media.selected=="" and C.accent:Lerp(C.panel,.8) or C.panel
+    refs.auto.TextColor3=runtime.media.selected=="" and C.accent or C.text
     if runtime.actionRefresh and runtime.actionRefresh.mediavolume and not activeSlider then runtime.actionRefresh.mediavolume() end
     local signature=""
     for _,source in ipairs(data.sources or {}) do signature=signature..tostring(source.id).."/"..tostring(source.name)..";" end
     if signature~=runtime.media.sourceSignature then
         runtime.media.sourceSignature=signature
         for _,child in ipairs(refs.sources:GetChildren()) do if child~=refs.auto then child:Destroy() end end
+        refs.sourceButtons={}
         for i,source in ipairs(data.sources or {}) do
-            if i<=4 then rowButton(refs.sources,tostring(source.name),UDim2.new(i/5,3,0,0),UDim2.new(.2,-6,0,28),function()
-                runtime.media.selected=source.id; runtime.media.volumePending=nil; runtime.media.lastVolumeSent=nil; runtime.media.pollTime=2
-            end) end
+            if i<=4 then local sourceButton=rowButton(refs.sources,tostring(source.name),UDim2.new(i/5,3,0,0),UDim2.new(.2,-6,0,28),function()
+                runtime.media.selected=source.id; runtime.media.volumePending=nil; runtime.media.lastVolumeSent=nil; runtime.media.pollTime=2; runtime.mediaPaint()
+            end); refs.sourceButtons[source.id]=sourceButton end
         end
+    end
+    for id,b in pairs(refs.sourceButtons or {}) do
+        local selected=runtime.media.selected==id
+        b.BackgroundColor3=selected and C.accent:Lerp(C.panel,.8) or C.panel
+        b.TextColor3=selected and C.accent or C.text
     end
     for command,b in pairs(refs.buttons) do
         local enabled=runtime.media.connected and data.available and data.controls and data.controls[command]
@@ -1959,7 +1964,7 @@ function runtime.drawSessionCard(includeJoin)
     local link="https://www.roblox.com/games/"..tostring(game.PlaceId)
     local job=tostring(game.JobId or "")
     local kind=(game.PrivateServerId and game.PrivateServerId~="") and "Privater Server" or "Öffentlicher Server"
-    local f=make("Frame",{Name="SessionCard",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,includeJoin and 306 or 270)},content); round(f,18); runtime.contentSurface(f,18)
+    local f=make("Frame",{Name="SessionCard",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,270)},content); round(f,18); runtime.contentSurface(f,18)
     local thumbnail=make("ImageLabel",{Name="GameIcon",BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,16),Size=UDim2.fromOffset(52,52),Image="rbxthumb://type=GameIcon&id="..tostring(game.GameId).."&w=150&h=150"},f); round(thumbnail,13)
     label(f,"Diese Sitzung",10,C.muted,UDim2.fromOffset(82,14),UDim2.new(1,-98,0,18))
     local name=label(f,session.placeName,16,C.text,UDim2.fromOffset(82,34),UDim2.new(1,-98,0,28)); name.Font=Enum.Font.BuilderSansBold; name.TextTruncate=Enum.TextTruncate.AtEnd
@@ -1974,7 +1979,7 @@ function runtime.drawSessionCard(includeJoin)
     copyField("Server-ID",job~="" and job or "Nicht verfügbar",UDim2.fromOffset(16,146),UDim2.new(1,-32,0,54))
     label(f,kind.."  ·  "..#Players:GetPlayers().." / "..tostring(Players.MaxPlayers or "—").." Spieler",11,C.muted,UDim2.fromOffset(16,208),UDim2.new(1,-32,0,20))
     rowButton(f,"Spiellink kopieren",UDim2.fromOffset(16,236),UDim2.fromOffset(150,26),function() copyText(link) end)
-    if includeJoin then rowButton(f,"Join-Script kopieren",UDim2.fromOffset(16,272),UDim2.fromOffset(168,26),function()
+    if includeJoin then rowButton(f,"Join-Script kopieren",UDim2.fromOffset(176,236),UDim2.fromOffset(168,26),function()
         copyText(string.format('game:GetService("TeleportService"):TeleportToPlaceInstance(%s, %q, game:GetService("Players").LocalPlayer)\n-- by Larsiopuw',tostring(game.PlaceId),job))
     end) end
 end
@@ -2745,9 +2750,9 @@ function runtime.drawPlayerDetails(other)
         if not ok then notify("Roblox-Freundschaftsdialog ist hier nicht verfügbar.","Freunde") end
     end)
     rowButton(controls,"Profil-Link",UDim2.fromOffset(164,0),UDim2.fromOffset(102,28),function() copyText("https://www.roblox.com/users/"..other.UserId.."/profile") end)
-    local tabs=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-    rowButton(tabs,"Namenshistorie",UDim2.new(),UDim2.fromOffset(144,28),function() runtime.profileTab="history"; runtime.profileRequest(other,"history"); render() end)
-    rowButton(tabs,"Outfits",UDim2.fromOffset(156,0),UDim2.fromOffset(100,28),function() runtime.profileTab="outfits"; runtime.profileRequest(other,"outfits"); render() end)
+    local tabs=controls
+    rowButton(tabs,"Namenshistorie",UDim2.fromOffset(276,0),UDim2.fromOffset(144,28),function() runtime.profileTab="history"; runtime.profileRequest(other,"history"); render() end)
+    rowButton(tabs,"Outfits",UDim2.fromOffset(430,0),UDim2.fromOffset(100,28),function() runtime.profileTab="outfits"; runtime.profileRequest(other,"outfits"); render() end)
     local cache=runtime.profileData[other.UserId] or {}; local result=cache[runtime.profileTab or "history"]
     if result then
         if result.loading then plainCard("Lädt …","Öffentliche Roblox-Daten werden abgerufen.",70)
@@ -3238,7 +3243,7 @@ connect(Run.RenderStepped,function(dt)
     if runtime.inventoryTimer>=.5 then runtime.inventoryTimer=0; runtime.updateInventoryClearance() end
     frames=frames+1; fpsTime=fpsTime+dt; visualTimer=visualTimer+dt
     if fpsTime>=1 then
-        dockClock.Text=os.date("%H:%M")
+        dockClock.Text=os.date("%H:%M"); runtime.dockDate.Text=os.date("%d.%m.%y")
         local ok,ping=pcall(function() return player:GetNetworkPing()*1000 end)
         session.fps=math.floor(frames/fpsTime+0.5); runtime.updateFPSLimit(fpsTime); session.ping=ok and math.floor(ping+0.5) or nil
         metrics.Text=string.format('%d / %s Spieler  ·  <font color="%s">%s ms</font>  ·  <font color="%s">%d FPS</font>',#Players:GetPlayers(),tostring(Players.MaxPlayers or "—"),runtime.metricTint(session.ping,"ping"),session.ping and tostring(session.ping) or "--",runtime.metricTint(session.fps,"fps"),session.fps)
