@@ -1,7 +1,7 @@
--- ISB Menu 2.6.4 | Own-game universal client toolkit
+-- ISB Menu 2.6.5 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.4",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.5",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -691,6 +691,7 @@ function runtime.bindPress(obj,callback,register)
             glow:FindFirstChildOfClass("UICorner").CornerRadius=UDim.new(corner.CornerRadius.Scale,math.max(0,corner.CornerRadius.Offset-2))
         end
         local navigation=obj.Name:sub(1,3)=="Nav"
+        local copying=obj.Name:sub(1,5)=="Copy_"
         local height=obj.AbsoluteSize.Y
         if height<=0 then
             height=obj.Size.Y.Offset
@@ -702,7 +703,7 @@ function runtime.bindPress(obj,callback,register)
             end
         end
         -- All controls move as one unit. Inner movement fits even flush clipping edges.
-        local factor=enabled and (down and .92 or (hovered and (navigation and 1.12 or .94) or 1)) or 1
+        local factor=enabled and (down and .92 or (hovered and (navigation and 1.12 or (copying and 1.08 or .94)) or 1)) or 1
         local lift=enabled and hovered and not down and (navigation and -4 or -math.min(2,height*.02)) or 0
         animate(faceScale,{Scale=factor})
         animate(face,{Position=UDim2.new(.5,0,.5,lift)})
@@ -716,7 +717,7 @@ function runtime.bindPress(obj,callback,register)
             if (child:IsA("ImageLabel") or child.Name=="ButtonGlyph") and child.Name~="ScriptThumbnail" then
                 local iconScale=iconScales[child]
                 if not iconScale then iconScale=make("UIScale",{Name="ButtonIconMotion",Scale=1},child); iconScales[child]=iconScale end
-                animate(iconScale,{Scale=enabled and (down and .94 or (hovered and (child.Name=="ButtonGlyph" and 1.32 or 1.12) or 1)) or 1})
+                animate(iconScale,{Scale=enabled and (down and .94 or (hovered and (copying and 1 or (child.Name=="ButtonGlyph" and 1.32 or 1.12)) or 1)) or 1})
             end
         end
     end
@@ -2032,6 +2033,34 @@ local function drawCharacter()
         if entry.category=="Bewegung" and entry.kind=="button" then drawAction(entry) end
     end
 end
+function runtime.applyFPSLimit(value)
+    if type(setfpscap)~="function" then notify("Dieser Executor kann kein FPS-Limit setzen.","FPS-Limit"); return end
+    if runtime.performanceOwned.fps==nil and type(getfpscap)=="function" then
+        local ok,old=pcall(getfpscap); if ok and type(old)=="number" then runtime.performanceOwned.fps=old end
+    end
+    local ok,result=pcall(setfpscap,value)
+    if not ok or result==false then notify("FPS-Limit wurde vom Executor abgelehnt: "..tostring(result),"FPS-Limit"); return end
+    runtime.fpsLimit={value=value,elapsed=0,checkAfter=2,reported=false}
+    settings.fpsCap=value; save()
+    if runtime.fpsStatus and runtime.fpsStatus.Parent then runtime.fpsStatus.Text="Limit "..value.." FPS · Wirkung wird geprüft …" end
+end
+function runtime.updateFPSLimit(dt)
+    local limit=runtime.fpsLimit; if not limit then return end
+    limit.elapsed=limit.elapsed+dt; limit.checkAfter=limit.checkAfter-dt
+    if limit.elapsed>=.5 then
+        limit.elapsed=0
+        local ok,current=pcall(function() return type(getfpscap)=="function" and getfpscap() or nil end)
+        if not ok or current~=limit.value then pcall(setfpscap,limit.value) end
+    end
+    if limit.checkAfter<=0 then
+        local achieved=session.fps<=limit.value*1.15+3
+        local text=achieved and ("Limit "..limit.value.." FPS · gemessen "..session.fps) or ("Limit "..limit.value.." angefordert · weiterhin "..session.fps.." FPS")
+        if runtime.fpsStatus and runtime.fpsStatus.Parent then runtime.fpsStatus.Text=text end
+        if not achieved and not limit.reported then
+            limit.reported=true; notify("Weiterhin "..session.fps.." FPS. Prüfe das FPS-Limit in Roblox und im Executor; der gesetzte Wert wird offenbar nicht wirksam.","FPS-Limit")
+        end
+    end
+end
 local function drawServers()
     local control=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,36)},content)
     rowButton(control,"Aktualisieren",UDim2.fromOffset(0,0),UDim2.fromOffset(108,30),function() table.clear(servers.history); fetchServers(nil) end)
@@ -2057,7 +2086,8 @@ local function drawServers()
                 if current or full then b.TextColor3=C.muted end
             end
         end
-        if #servers.data==0 and servers.loaded then plainCard("Keine öffentlichen Server gefunden","Private Server werden von dieser API nicht aufgelistet.",76) end
+        if #servers.data==0 and servers.loaded then plainCard("Keine öffentlichen Server gefunden","Private Server werden von dieser API nicht aufgelistet.",76)
+        elseif query~="" then plainCard("Serversuche","Filtert Server-ID und Spieleranzahl auf dieser geladenen Seite. Spielernamen und private Servercodes liefert die Roblox-Serverliste nicht.",76) end
     end
     local pagination=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
     rowButton(pagination,"Zurück",UDim2.fromOffset(0,0),UDim2.fromOffset(90,30),function()
@@ -2169,7 +2199,7 @@ local function drawScriptSearch()
             end)
             b.TextColor3=scriptSearch.discovery==name and C.accent or C.muted
         end
-        label(filters,scriptSearch.query=="" and "Entdecken" or "Suchergebnisse",10,C.muted,UDim2.new(1,-116,0,5),UDim2.fromOffset(116,20))
+        -- The active discovery pill already names this view; no floating duplicate label.
     end
     if scriptSearch.loading then plainCard("Wird geladen …",scriptSearch.provider,72); return end
     if scriptSearch.error then plainCard("Anbieter meldet einen Fehler",scriptSearch.error,94) end
@@ -2348,20 +2378,26 @@ function runtime.nearestRoleplayTarget(mode)
     end end
     return chosen
 end
-function runtime.roleplayFrame(owned,part,dt)
+function runtime.roleplayFrame(owned,part,dt,rendered)
+    local frame=part.CFrame
+    if rendered then
+        local ok,value=pcall(function() return part:GetRenderCFrame() end)
+        if ok and value then frame=value end
+    end
+    local position=frame.Position or part.Position
     local mode=owned.mode
     if mode.id=="head" or mode.id=="piggy" or mode.id=="piggy2" then
-        local target=mode.id=="head" and (part.Position+Vector3.new(0,1,0)) or (part.Position-part.CFrame.LookVector*1.1+Vector3.new(0,.2,0))
-        local look=mode.id=="head" and part.Position or target+part.CFrame.LookVector
+        local target=mode.id=="head" and (position+Vector3.new(0,1,0)) or (position-frame.LookVector*1.1+Vector3.new(0,.2,0))
+        local look=mode.id=="head" and position or target+frame.LookVector
         return CFrame.new(target,look)
     end
     local offset=mode.offset
     if mode.id=="hug" then
         owned.oscTime=(owned.oscTime or 0)+(dt or 1/60)*10
-        local target=part.CFrame*CFrame.new(0,.05,-1.35-math.sin(owned.oscTime)*.04)*CFrame.Angles(0,math.pi,0)
+        local target=frame*CFrame.new(0,.05,-1.35-math.sin(owned.oscTime)*.04)*CFrame.Angles(0,math.pi,0)
         return target
     end
-    return part.CFrame*CFrame.new(offset[1],offset[2],offset[3])*CFrame.Angles(0,mode.rotation or 0,0)
+    return frame*CFrame.new(offset[1],offset[2],offset[3])*CFrame.Angles(0,mode.rotation or 0,0)
 end
 function runtime.startRoleplay(mode)
     local target=runtime.quickTarget or runtime.nearestRoleplayTarget(mode)
@@ -2382,7 +2418,7 @@ function runtime.startRoleplay(mode)
         if not alive or runtime.roleplay~=owned then return end
         local part=runtime.roleplayPart(owned.target,owned.mode)
         if not owned.target.Parent or not part or root()~=owned.root then runtime.stopRoleplay(); return end
-        owned.root.CFrame=runtime.roleplayFrame(owned,part,0)
+        owned.root.CFrame=runtime.roleplayFrame(owned,part,0,true)
     end)
     for _,item in ipairs(runtime.quickActionButtons or {}) do if item.button.Parent then item.button.BackgroundColor3=item.mode==mode and C.accent:Lerp(C.panel,.7) or C.card end end
     local animator=h:FindFirstChildOfClass("Animator")
@@ -2508,9 +2544,9 @@ function runtime.drawPlayerDetails(other)
         for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") and child.Text==entry[2] then body=child end end
         runtime.detailRefs.fields[entry[1]]={entry=entry,label=body}
         local copy=rowButton(f,"",UDim2.new(1,-42,0,23),UDim2.fromOffset(30,28),function() copyText(entry[2]) end); copy.Name="Copy_"..entry[1]
-        local icon=make("Frame",{Name="ButtonGlyph",BackgroundTransparency=1,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(18,20)},copy)
-        for _,offset in ipairs({Vector2.new(3,3),Vector2.new(7,7)}) do
-            local glyph=make("Frame",{BackgroundColor3=C.line,Position=UDim2.fromOffset(offset.X,offset.Y),Size=UDim2.fromOffset(9,11)},icon)
+        local icon=make("Frame",{Name="ButtonGlyph",BackgroundTransparency=1,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(14,16)},copy)
+        for _,offset in ipairs({Vector2.new(1,1),Vector2.new(5,5)}) do
+            local glyph=make("Frame",{BackgroundColor3=C.panel,Position=UDim2.fromOffset(offset.X,offset.Y),Size=UDim2.fromOffset(8,10)},icon)
             round(glyph,2); make("UIStroke",{Color=C.text,Thickness=1.3},glyph)
         end
     end
@@ -2616,9 +2652,9 @@ render = function()
     pageTitle.Text=page == "Start" and "ISB Menu" or page
     subtitle.Text=descriptions[page] or "Eigene Erweiterungen"
     local remote=page=="Skripte" and not scriptSearch.localMode
-    local searchable=not (page=="Spieler" and runtime.selectedPlayer) and page~="Start" and page~="Musik" and page~="Einstellungen" and page~="Voice" and page~="Profil" and page~="Schnellaktionen"
+    local searchable=(page=="Spieler" and not runtime.selectedPlayer) or page=="Server" or page=="Skripte" or page=="Favoriten"
     search.Visible=searchable
-    search.PlaceholderText=page=="Spieler" and "Spieler suchen …" or (remote and "Skripte suchen …" or "Funktionen suchen …")
+    search.PlaceholderText=page=="Spieler" and "Spieler suchen …" or (page=="Server" and "Server-ID oder Spieleranzahl suchen …" or (page=="Favoriten" and "Favoriten suchen …" or (page=="Skripte" and "Skripte suchen …" or "Funktionen suchen …")))
     content.Position=UDim2.fromOffset(18,searchable and 104 or 60)
     content.Size=UDim2.new(1,-36,1,searchable and -124 or -80)
     local desired=remote and scriptSearch.query or query
@@ -2644,7 +2680,7 @@ render = function()
         drawDashboard(); updateDashboard()
     elseif page=="Bewegung" and query=="" then
         drawCharacter()
-    elseif page=="Server" and query=="" then
+    elseif page=="Server" then
         drawServers()
         if not servers.loaded and not servers.loading and not servers.error then fetchServers(nil) end
     elseif page=="Voice" then
@@ -2704,11 +2740,11 @@ render = function()
         elseif settingsSection=="Performance" then
             drawAction({id="effects",name="Effekte reduzieren",desc="Partikel, Trails, Beam und Post-Effekte lokal pausieren",kind="toggle",get=function() return settings.lowEffects end,fn=function() settings.lowEffects=not settings.lowEffects; features.applyPerformance(); save() end})
             drawAction(findAction("shadows"))
-            if type(setfpscap)=="function" and type(getfpscap)=="function" then
-                local cap=plainCard("FPS-Limit","Das vorherige Limit wird beim Beenden wiederhergestellt.",94)
+            if type(setfpscap)=="function" then
+                local cap=plainCard("FPS-Limit",type(getfpscap)=="function" and "Das vorherige Limit wird beim Beenden wiederhergestellt." or "Der Executor unterstützt das Setzen, aber nicht das Auslesen des bisherigen Limits.",126)
+                runtime.fpsStatus=label(cap,"Gemessen: "..session.fps.." FPS",11,C.muted,UDim2.fromOffset(16,94),UDim2.new(1,-32,0,22))
                 for i,value in ipairs({60,120,144,240}) do rowButton(cap,tostring(value),UDim2.fromOffset(16+(i-1)*72,58),UDim2.fromOffset(62,26),function()
-                    if runtime.performanceOwned.fps==nil then local ok,old=pcall(getfpscap); if ok then runtime.performanceOwned.fps=old end end
-                    local ok=pcall(setfpscap,value); if ok then settings.fpsCap=value; save(); notify("FPS-Limit: "..value,"Performance") end
+                    runtime.applyFPSLimit(value)
                 end) end
             end
             plainCard("Live-Messung",tostring(session.fps).." FPS  ·  "..tostring(session.ping or "—").." ms\nDie Statusleiste bleibt oben rechts sichtbar.",88)
@@ -2747,7 +2783,7 @@ render = function()
     else
         local count=0
         for _,action in ipairs(actions) do
-            local include=page~="Spieler" and (query ~= "" or action.category==page or (page=="Favoriten" and settings.favorites[action.id]))
+            local include=page~="Spieler" and ((page=="Favoriten" and settings.favorites[action.id]) or (page~="Favoriten" and (query ~= "" or action.category==page)))
             if include and matches(action.name .. " " .. action.desc .. " " .. action.category) then drawAction(action); count=count+1 end
         end
         if page=="Spieler" then drawPlayers() end
@@ -2851,6 +2887,16 @@ connect(Run.Stepped,function()
         end
     end
 end)
+if Run.PostSimulation then connect(Run.PostSimulation,function()
+    local owned=runtime.roleplay
+    if not owned or not owned.root.Parent then return end
+    local part=runtime.roleplayPart(owned.target,owned.mode)
+    if part and owned.target.Parent then
+        owned.root.CFrame=runtime.roleplayFrame(owned,part,0)
+        owned.root.AssemblyLinearVelocity=part.AssemblyLinearVelocity or Vector3.zero
+        owned.root.AssemblyAngularVelocity=part.AssemblyAngularVelocity or Vector3.zero
+    end
+end) end
 connect(Run.PreSimulation,function(dt)
     applyMovement()
     if runtime.roleplay then
@@ -2967,7 +3013,7 @@ connect(Run.RenderStepped,function(dt)
     if fpsTime>=1 then
         dockClock.Text=os.date("%H:%M")
         local ok,ping=pcall(function() return player:GetNetworkPing()*1000 end)
-        session.fps=math.floor(frames/fpsTime+0.5); session.ping=ok and math.floor(ping+0.5) or nil
+        session.fps=math.floor(frames/fpsTime+0.5); runtime.updateFPSLimit(fpsTime); session.ping=ok and math.floor(ping+0.5) or nil
         metrics.Text=string.format('%d / %s Spieler  ·  <font color="%s">%s ms</font>  ·  <font color="%s">%d FPS</font>',#Players:GetPlayers(),tostring(Players.MaxPlayers or "—"),runtime.metricTint(session.ping,"ping"),session.ping and tostring(session.ping) or "--",runtime.metricTint(session.fps,"fps"),session.fps)
         runtime.updateStatusLayout()
         if page=="Start" then updateDashboard() end
