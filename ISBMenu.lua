@@ -1,7 +1,7 @@
--- ISB Menu 2.6.10 | Own-game universal client toolkit
+-- ISB Menu 2.6.11 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.10",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.11",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -1566,8 +1566,8 @@ function runtime.rulerResetButton(parent,text,fn)
     button.TextSize=10
     round(button,10)
     button.Text=""
-    local caption=label(button,text,10,C.text,UDim2.fromOffset(31,0),UDim2.new(1,-39,1,0))
-    caption.Name="ResetCaption"; caption.TextSize=10; caption.TextXAlignment=Enum.TextXAlignment.Left
+    local caption=label(button,text,10,C.text,UDim2.fromOffset(29,-1),UDim2.new(1,-37,1,0))
+    caption.Name="ResetCaption"; caption.TextSize=11; caption.TextXAlignment=Enum.TextXAlignment.Center; caption.TextYAlignment=Enum.TextYAlignment.Center
     imageIcon(button,"arrow-path",14,UDim2.fromOffset(9,8),C.muted)
     return button
 end
@@ -1720,6 +1720,25 @@ function runtime.mediaRequest(path,body)
     assert(type(data)=="table" and (not result.StatusCode or (result.StatusCode>=200 and result.StatusCode<300)),type(data)=="table" and data.error or "Player antwortet nicht.")
     return data
 end
+function runtime.mediaPosition()
+    local data=runtime.media.state; local refs=runtime.mediaRefs
+    local duration=data.duration or 0
+    if refs and refs.seeking then return (refs.seekValue or 0)*duration end
+    local pending=runtime.media.seekPending
+    if pending and os.clock()>pending.untilTime then runtime.media.seekPending=nil; pending=nil end
+    local position=pending and pending.value or (data.position or 0)
+    local since=pending and pending.at or (runtime.media.receivedAt or os.clock())
+    if data.playing then position=position+math.max(0,os.clock()-since) end
+    return math.clamp(position,0,duration)
+end
+function runtime.mediaProgress()
+    local refs=runtime.mediaRefs
+    if not refs or not refs.times.Parent then return end
+    local duration=runtime.media.state.duration or 0; local position=runtime.mediaPosition()
+    local text=timeString(position).." / "..timeString(duration)
+    if refs.times.Text~=text then refs.times.Text=text end
+    refs.fill.Size=UDim2.fromScale(duration>0 and position/duration or 0,1)
+end
 function runtime.mediaPaint()
     local refs=runtime.mediaRefs
     if not refs or not refs.title.Parent then return end
@@ -1730,16 +1749,16 @@ function runtime.mediaPaint()
     if refs.cover.Image==nil then refs.cover.Image="" end
     refs.coverPlaceholder.Visible=refs.cover.Image==""
     refs.toggle.Text=data.playing and "Pause" or "Abspielen"
-    refs.times.Text=timeString(data.position or 0).." / "..timeString(data.duration or 0)
-    if not refs.seeking then refs.fill.Size=UDim2.fromScale((data.duration or 0)>0 and math.clamp((data.position or 0)/data.duration,0,1) or 0,1) end
+    runtime.mediaProgress()
+    refs.auto.BackgroundColor3=runtime.media.selected=="" and C.accent:Lerp(C.panel,.8) or C.panel
     if runtime.actionRefresh and runtime.actionRefresh.mediavolume and not activeSlider then runtime.actionRefresh.mediavolume() end
     local signature=""
     for _,source in ipairs(data.sources or {}) do signature=signature..tostring(source.id).."/"..tostring(source.name)..";" end
     if signature~=runtime.media.sourceSignature then
         runtime.media.sourceSignature=signature
-        for _,child in ipairs(refs.sources:GetChildren()) do child:Destroy() end
+        for _,child in ipairs(refs.sources:GetChildren()) do if child~=refs.auto then child:Destroy() end end
         for i,source in ipairs(data.sources or {}) do
-            if i<=4 then rowButton(refs.sources,tostring(source.name),UDim2.new((i-1)/4,3,0,0),UDim2.new(.25,-6,0,28),function()
+            if i<=4 then rowButton(refs.sources,tostring(source.name),UDim2.new(i/5,3,0,0),UDim2.new(.2,-6,0,28),function()
                 runtime.media.selected=source.id; runtime.media.volumePending=nil; runtime.media.lastVolumeSent=nil; runtime.media.pollTime=2
             end) end
         end
@@ -1790,7 +1809,12 @@ function runtime.mediaPoll()
             if playback and playback.source==data.selected and os.clock()<playback.untilTime then
                 if data.playing==playback.value then runtime.media.playbackPending=nil else data.playing=playback.value end
             else runtime.media.playbackPending=nil end
-            runtime.media.state=data
+            local seek=runtime.media.seekPending
+            if seek then
+                local expected=seek.value+(data.playing and math.max(0,os.clock()-seek.at) or 0)
+                if seek.source~=data.selected or seek.title~=data.title or math.abs((data.position or 0)-expected)<2 or os.clock()>seek.untilTime then runtime.media.seekPending=nil end
+            end
+            runtime.media.state=data; runtime.media.receivedAt=os.clock()
         else runtime.media.selected=""; runtime.media.state={}; runtime.media.volumePending=nil end
         runtime.mediaPaint()
     end)
@@ -1801,6 +1825,10 @@ function runtime.mediaCommand(command,value)
     if not data.controls or not data.controls[command] then notify("Dieser Player unterstützt diese Aktion derzeit nicht.","Musik"); return end
     local item={command=command,value=value,source=runtime.media.selected~="" and runtime.media.selected or data.selected}
     if #runtime.media.queue>=8 then notify("Player verarbeitet noch die vorherigen Aktionen.","Musik"); return end
+    if command=="seek" then
+        local pending={value=value,source=data.selected,title=data.title,at=os.clock(),untilTime=os.clock()+3}
+        item.seekPending=pending; runtime.media.seekPending=pending; runtime.mediaProgress()
+    end
     if command=="toggle" then
         local pending={value=not data.playing,original=data.playing,source=data.selected,untilTime=os.clock()+2}
         item.playbackPending=pending; runtime.media.playbackPending=pending
@@ -1816,6 +1844,7 @@ function runtime.mediaCommand(command,value)
             local nextCommand=table.remove(queue,1)
             local ok,result=pcall(runtime.mediaRequest,"/command",{command=nextCommand.command,value=nextCommand.value,source=nextCommand.source})
             if alive and (not ok or result.ok~=true) then
+                if nextCommand.seekPending and runtime.media.seekPending==nextCommand.seekPending then runtime.media.seekPending=nil; runtime.mediaProgress() end
                 if nextCommand.playbackPending and runtime.media.playbackPending==nextCommand.playbackPending then
                     runtime.media.state.playing=nextCommand.playbackPending.original; runtime.media.playbackPending=nil; runtime.mediaPaint()
                 end
@@ -1859,7 +1888,7 @@ function runtime.drawMediaPlayer()
         local data=runtime.media.state
         if not data.controls or not data.controls.seek then return end
         refs.seeking=true; content.ScrollingEnabled=false
-        local function update(x) refs.seekValue=math.clamp((x-rail.AbsolutePosition.X)/math.max(1,rail.AbsoluteSize.X),0,1); fill.Size=UDim2.fromScale(refs.seekValue,1) end
+        local function update(x) refs.seekValue=math.clamp((x-rail.AbsolutePosition.X)/math.max(1,rail.AbsoluteSize.X),0,1); runtime.mediaProgress() end
         update(input.Position.X)
         activeSlider={input=input,update=update}
     end)
@@ -1873,7 +1902,10 @@ function runtime.drawMediaPlayer()
         get=function() return math.floor((runtime.media.state.volume or 0)*1000+.5)/10 end,
         preview=runtime.previewMediaVolume,commit=runtime.commitMediaVolume,
         fn=function(v) runtime.previewMediaVolume(v); runtime.commitMediaVolume() end})
-    rowButton(f,"Automatisch",UDim2.new(1,-112,0,105),UDim2.fromOffset(94,22),function() runtime.media.selected=""; runtime.media.volumePending=nil; runtime.media.lastVolumeSent=nil; runtime.media.pollTime=0; runtime.mediaPoll() end)
+    refs.auto=rowButton(refs.sources,"Automatisch",UDim2.fromOffset(3,0),UDim2.new(.2,-6,0,28),function()
+        runtime.media.selected=""; runtime.media.volumePending=nil; runtime.media.seekPending=nil; runtime.media.lastVolumeSent=nil; runtime.media.pollTime=0; runtime.mediaPaint(); runtime.mediaPoll()
+    end)
+    refs.auto.Name="MediaAutomatic"; refs.auto.TextSize=11
     runtime.mediaPaint(); runtime.mediaPoll()
 end
 
@@ -3140,6 +3172,7 @@ end)
 local visualTimer, fpsTime, frames = 0,0,0
 local lastViewport, lastCamera = nil,nil
 connect(Run.RenderStepped,function(dt)
+    if opened and page=="Musik" then runtime.mediaProgress() end
     if opened and page=="Spieler" then runtime.fillPlayerRows() end
     if activeSlider and activeSlider.id=="mediavolume" then
         runtime.media.volumeTick=(runtime.media.volumeTick or 0)+dt

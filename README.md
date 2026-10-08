@@ -1,4 +1,4 @@
-# ISB Menu 2.6.10 · by Larsiopuw
+# ISB Menu 2.6.11 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,14 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Änderungen in 2.6.11
+
+Standardknöpfe: mittig ausgerichtete Beschriftung mit 11 px und optischer Höhenkorrektur. Reset-Symbol und Text behalten getrennte Bereiche.
+
+Musik: Automatisch sitzt mit gleicher Größe und Gestaltung neben den Windows-Quellen. Die aktive automatische Auswahl erhält eine Akzenttönung. Der Zeitbalken interpoliert den laufenden Titel zwischen Statusabfragen. Beim Ziehen wird die Minuten-/Sekundenanzeige direkt aktualisiert. Nach Loslassen bleibt das Ziel sichtbar, bis Windows es bestätigt; alte Statusantworten setzen den Balken nicht zurück. Ein Titel-/Quellenwechsel oder abgelehnter Befehl verwirft den ausstehenden Seek.
+
+1773 simulierte Interaktionsprüfungen und Luau -O0/-O1/-O2 bestanden, einschließlich Sekundenanzeige beim Drag, stabiler Position nach Release und verspäteter Seek-Bestätigung. Mehrfachsprung bleibt unverändert.
 
 ## Änderungen in 2.6.10
 
