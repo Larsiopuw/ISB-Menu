@@ -1,7 +1,7 @@
--- ISB Menu 2.6.15 | Own-game universal client toolkit
+-- ISB Menu 2.6.16 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.15",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.16",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -1075,9 +1075,7 @@ launcher.TextColor3 = C.accent; launcher.TextSize = 14; stroke(launcher)
 local dock=make("CanvasGroup",{Name="ISBDock",BackgroundTransparency=.14,BackgroundColor3=C.bg,AnchorPoint=Vector2.new(0.5,1),
     Position=UDim2.new(0.5,0,1,0),Size=UDim2.fromOffset(600,56)},host)
 round(dock,28); runtime.glassSurface(dock,28); stroke(dock)
-runtime.dockClockPanel=make("Frame",{Name="DockClockPanel",BackgroundColor3=C.panel,BackgroundTransparency=.28,Position=UDim2.fromOffset(10,8),Size=UDim2.fromOffset(64,40)},dock)
-round(runtime.dockClockPanel,13)
-make("UIStroke",{Color=C.muted,Thickness=1,Transparency=.9},runtime.dockClockPanel)
+runtime.dockClockPanel=make("Frame",{Name="DockClockPanel",BackgroundTransparency=1,Position=UDim2.fromOffset(10,8),Size=UDim2.fromOffset(64,40)},dock)
 local dockClock=label(runtime.dockClockPanel,os.date("%H:%M"),13,C.text,UDim2.fromOffset(0,3),UDim2.fromOffset(64,19))
 dockClock.Font=Enum.Font.BuilderSansBold; dockClock.TextXAlignment=Enum.TextXAlignment.Center
 runtime.dockDate=label(runtime.dockClockPanel,os.date("%d.%m."),10,C.muted,UDim2.fromOffset(0,22),UDim2.fromOffset(64,14))
