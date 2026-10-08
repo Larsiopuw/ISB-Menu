@@ -1,7 +1,7 @@
--- ISB Menu 2.6.21 | Own-game universal client toolkit
+-- ISB Menu 2.6.22 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.21",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.22",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -414,9 +414,20 @@ local function loadScriptSource(entry)
         if page=="Skripte" then render() end
     end)
 end
+function runtime.serverRequestReady()
+    if servers.loading then return false end
+    if os.clock()<(servers.retryAt or 0) then
+        if os.clock()-(servers.noticeAt or -100)>=3 then
+            servers.noticeAt=os.clock()
+            notify("Bitte warte kurz und versuche es danach erneut.","Rate Limit erreicht")
+        end
+        return false
+    end
+    return true
+end
 local function fetchServers(cursor)
-    if servers.loading then return end
-    servers.loading=true; servers.error=nil; servers.generation=servers.generation+1
+    if not runtime.serverRequestReady() then return end
+    servers.loading=true; servers.error=nil; servers.errorKind=nil; servers.generation=servers.generation+1
     local generation=servers.generation
     task.spawn(function()
         local ok,result=pcall(function()
@@ -440,7 +451,17 @@ local function fetchServers(cursor)
         if not alive or generation~=servers.generation then return end
         servers.loading=false; servers.loaded=true
         if ok then servers.data=result.rows; servers.cursor=cursor; servers.nextCursor=result.nextCursor
-        else servers.error=tostring(result):sub(1,160); logEvent("Serverliste",servers.error) end
+        else
+            local diagnostic=tostring(result)
+            logEvent("Serverliste",diagnostic:sub(1,160))
+            if diagnostic:match("HTTP%s+429") or diagnostic:lower():find("too many requests",1,true) then
+                servers.errorKind="rateLimit"; servers.retryAt=os.clock()+30
+                servers.error="Zu viele Anfragen. Bitte warte kurz und versuche es danach erneut."
+            else
+                servers.errorKind="unavailable"
+                servers.error="Die Serverliste konnte nicht geladen werden. Bitte versuche es später erneut."
+            end
+        end
         if page=="Server" and render then render() end
     end)
 end
@@ -2254,15 +2275,20 @@ function runtime.updateFPSLimit(dt)
 end
 local function drawServers()
     local control=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,36)},content)
-    rowButton(control,"Aktualisieren",UDim2.fromOffset(0,0),UDim2.fromOffset(108,30),function() table.clear(servers.history); fetchServers(nil) end)
+    rowButton(control,"Aktualisieren",UDim2.fromOffset(0,0),UDim2.fromOffset(108,30),function()
+        if not runtime.serverRequestReady() then return end
+        if os.clock()<(servers.refreshAt or 0) then return end
+        servers.refreshAt=os.clock()+2
+        table.clear(servers.history); fetchServers(nil)
+    end)
     rowButton(control,servers.sort=="Asc" and "Wenig Spieler" or "Viele Spieler",UDim2.fromOffset(118,0),UDim2.fromOffset(116,30),function()
-        if servers.loading then return end
+        if not runtime.serverRequestReady() then return end
         servers.sort=servers.sort=="Asc" and "Desc" or "Asc"; table.clear(servers.history); fetchServers(nil)
     end)
     rowButton(control,"Rejoin",UDim2.fromOffset(244,0),UDim2.fromOffset(82,30),rejoin)
     rowButton(control,"Serverhop",UDim2.fromOffset(336,0),UDim2.fromOffset(98,30),serverHop)
     if servers.loading then plainCard("Server werden geladen …","Öffentliche Roblox-Server für diesen Place.",74)
-    elseif servers.error then plainCard("Serverliste nicht verfügbar",servers.error,86)
+    elseif servers.error then plainCard(servers.errorKind=="rateLimit" and "Rate Limit erreicht" or "Serverliste nicht verfügbar",servers.error,86)
     else
         for _,entry in ipairs(servers.data) do
             if matches(entry.id.." "..tostring(entry.playing)) then
@@ -2284,10 +2310,10 @@ local function drawServers()
     local currentPage=#servers.history+1
     local totalPages=servers.loaded and not servers.loading and not servers.error and not servers.nextCursor and currentPage or nil
     runtime.pagination(pagination,"ServerPageCounter",currentPage,totalPages,function()
-        if servers.loading or #servers.history==0 then return end
+        if not runtime.serverRequestReady() or #servers.history==0 then return end
         local previous=table.remove(servers.history); fetchServers(previous~=false and previous or nil)
     end,function()
-        if servers.loading or not servers.nextCursor then return end
+        if not runtime.serverRequestReady() or not servers.nextCursor then return end
         table.insert(servers.history,servers.cursor or false); fetchServers(servers.nextCursor)
     end)
     runtime.drawSessionCard(true)
