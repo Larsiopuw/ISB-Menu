@@ -1,7 +1,7 @@
--- ISB Menu 2.6.19 | Own-game universal client toolkit
+-- ISB Menu 2.6.20 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.19",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.20",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -2359,6 +2359,10 @@ function features.scriptThumbnail(parent,entry)
         for _,target in ipairs(waiting) do if alive and target.Parent and ok then target.Image=asset end end
     end)
 end
+function runtime.formatCount(value)
+    local digits=string.format("%.0f",math.floor(math.max(0,tonumber(value) or 0)))
+    return (digits:reverse():gsub("(%d%d%d)","%1."):reverse():gsub("^%.",""))
+end
 function runtime.scriptVerifiedBadge(parent,position)
     local badge=make("Frame",{Name="ScriptVerifiedBadge",Active=false,BackgroundColor3=C.bg,BackgroundTransparency=.12,Position=position,Size=UDim2.fromOffset(104,22),ZIndex=3},parent)
     round(badge,11); make("UIStroke",{Color=C.good,Thickness=1,Transparency=.55},badge)
@@ -2438,7 +2442,7 @@ local function drawScriptSearch()
                 imageIcon(star,"star",17,UDim2.fromOffset(5,5),settings.scriptFavorites[entry.provider..":"..entry.slug] and C.accent or C.text)
                 local titleLabel=label(tile,entry.title,12,C.text,UDim2.fromOffset(14,86),UDim2.new(1,-28,0,34))
                 titleLabel.TextWrapped=true; titleLabel.TextYAlignment=Enum.TextYAlignment.Top
-                local gameLabel=label(tile,entry.game..(entry.views and "  ·  "..tostring(entry.views).." Aufrufe" or ""),10,C.muted,UDim2.fromOffset(14,132),UDim2.new(1,-28,0,16))
+                local gameLabel=label(tile,entry.game..(entry.views and "  ·  "..runtime.formatCount(entry.views).." Aufrufe" or ""),10,C.muted,UDim2.fromOffset(14,132),UDim2.new(1,-28,0,16))
                 gameLabel.TextTruncate=Enum.TextTruncate.AtEnd
                 if entry.verified then
                     runtime.scriptVerifiedBadge(art,UDim2.fromOffset(12,46))
@@ -2448,8 +2452,10 @@ local function drawScriptSearch()
     end
     local paging=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     rowButton(paging,"Zurück",UDim2.fromOffset(0,0),UDim2.fromOffset(90,30),function() if scriptSearch.page>1 then searchRemoteScripts(scriptSearch.page-1) end end)
-    label(paging,tostring(scriptSearch.page).." / "..tostring(scriptSearch.totalPages),11,C.muted,UDim2.fromOffset(105,4),UDim2.fromOffset(80,20))
-    rowButton(paging,"Weiter",UDim2.fromOffset(196,0),UDim2.fromOffset(90,30),function() if scriptSearch.page<scriptSearch.totalPages then searchRemoteScripts(scriptSearch.page+1) end end)
+    rowButton(paging,"Weiter",UDim2.fromOffset(98,0),UDim2.fromOffset(90,30),function() if scriptSearch.page<scriptSearch.totalPages then searchRemoteScripts(scriptSearch.page+1) end end)
+    local counter=label(paging,runtime.formatCount(scriptSearch.page).." / "..runtime.formatCount(scriptSearch.totalPages),11,C.muted,UDim2.fromOffset(198,0),UDim2.fromOffset(104,30))
+    counter.Name="ScriptPageCounter"; counter.TextXAlignment=Enum.TextXAlignment.Center
+    counter.BackgroundColor3=C.panel; counter.BackgroundTransparency=.45; round(counter,10)
     local footer=label(content,"Quelle: "..scriptSearch.provider,10,C.muted,UDim2.new(),UDim2.new(1,0,0,18))
 end
 function runtime.stopEmote()
