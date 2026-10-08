@@ -1,7 +1,7 @@
--- ISB Menu 2.6.7 | Own-game universal client toolkit
+-- ISB Menu 2.6.8 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.7",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.8",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -1558,6 +1558,17 @@ connect(UIS.InputBegan,function(input)
     end
     if not inside(runtime.flightStyleMenu) and not inside(runtime.flightStyleButton) then runtime.flightStyleMenu.Visible=false end
 end)
+function runtime.rulerResetButton(parent,text,fn)
+    local button=rowButton(parent,text,UDim2.new(1,-174,0,130),UDim2.fromOffset(158,30),fn)
+    button.Name="RulerResetButton"
+    button.BackgroundColor3=C.panel
+    button.BackgroundTransparency=.18
+    button.TextSize=11
+    round(button,10)
+    make("UIPadding",{PaddingLeft=UDim.new(0,27),PaddingRight=UDim.new(0,9)},button)
+    imageIcon(button,"arrow-path",14,UDim2.fromOffset(9,8),C.muted)
+    return button
+end
 function runtime.drawRuler(parent,action)
     local function formatValue(value)
         return string.format("%.2f",value):gsub("0+$",""):gsub("%.$","")
@@ -1575,11 +1586,11 @@ function runtime.drawRuler(parent,action)
     local marks={}
     for i=0,math.floor((action.max-action.min)/action.step) do
         local value=action.min+action.step*i
-        local major=value%(action.id=="fovvalue" and 5 or 10)==0
+        local major=action.id=="flyspeed" or value%(action.id=="fovvalue" and 5 or 10)==0
         local tick=make("Frame",{Name="RulerTick",BackgroundColor3=C.muted,BackgroundTransparency=major and .2 or .62,
             Size=UDim2.fromOffset(1,major and 18 or 10),AnchorPoint=Vector2.new(.5,0)},viewport)
         local caption
-        if value%(action.id=="fovvalue" and 10 or 20)==0 or value==action.min or value==action.max then caption=label(viewport,string.format("%g",math.floor(value*10+.5)/10),9,C.muted,UDim2.new(),UDim2.fromOffset(50,14));caption.TextXAlignment=Enum.TextXAlignment.Center end
+        if action.id=="flyspeed" or value%(action.id=="fovvalue" and 10 or 20)==0 or value==action.min or value==action.max then caption=label(viewport,string.format("%g",math.floor(value*10+.5)/10),9,C.muted,UDim2.new(),UDim2.fromOffset(50,14));caption.TextXAlignment=Enum.TextXAlignment.Center end
         table.insert(marks,{value=value,tick=tick,caption=caption})
     end
     local hint=label(parent,"",9,C.muted,UDim2.fromOffset(16,105),UDim2.new(1,-32,0,15))
@@ -1587,7 +1598,7 @@ function runtime.drawRuler(parent,action)
         valueBox.Text=formatValue(value)
         local selected=math.clamp(value,action.min,action.max)
         for _,mark in ipairs(marks) do
-            local x=.5+(mark.value-selected)/(action.max-action.min)
+            local x=action.id=="flyspeed" and (.5+(mark.value-selected)*48/math.max(viewport.AbsoluteSize.X,1)) or (.5+(mark.value-selected)/(action.max-action.min))
             local edgeDistance=math.min(x,1-x)
             local opacity=math.clamp(edgeDistance/.12,0,1)
             local base=mark.tick.Size.Y.Offset==18 and .2 or .62
@@ -1615,7 +1626,7 @@ function runtime.drawRuler(parent,action)
         local startX=input.Position.X
         local startValue=math.clamp(action.get(),action.min,action.max)
         activeSlider={id=action.id,input=input,finish=action.commit,update=function(x)
-            local value=startValue-(x-startX)/math.max(viewport.AbsoluteSize.X,1)*(action.max-action.min)
+            local value=action.id=="flyspeed" and (startValue-(x-startX)/48) or (startValue-(x-startX)/math.max(viewport.AbsoluteSize.X,1)*(action.max-action.min))
             local step=action.dragStep or action.step
             value=math.clamp(math.floor(value/step+.5)*step,action.min,action.max)
             apply(value,true)
@@ -1635,7 +1646,7 @@ function runtime.refreshControls()
     for _,refresh in pairs(runtime.actionRefresh or {}) do refresh() end
 end
 local function drawAction(action)
-    local f = card(action.name,action.desc,action.kind == "slider" and 132 or 58)
+    local f = card(action.name,action.desc,action.kind == "slider" and ((action.id=="volume" or action.id=="brightnessvalue") and 172 or 132) or 58)
     local children=f:GetChildren()
     for _,child in ipairs(children) do
         if child:IsA("TextLabel") then
@@ -1676,16 +1687,12 @@ local function drawAction(action)
         rowButton(f,"Start",UDim2.new(1,-112,0,13),UDim2.fromOffset(70,32),action.fn)
     else
         runtime.drawRuler(f,action)
-        local resetRow
-        if action.id=="volume" or action.id=="brightnessvalue" then
-            resetRow=make("Frame",{Name="RulerResetRow",BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
-        end
         if action.id=="volume" then
-            rowButton(resetRow,"Standard · 35 %",UDim2.fromOffset(0,0),UDim2.fromOffset(122,34),function()
+            runtime.rulerResetButton(f,"Standard · 35 %",function()
                 action.fn(35); save(); runtime.refreshControls()
             end)
         elseif action.id=="brightnessvalue" then
-            rowButton(resetRow,"Spielstandard",UDim2.fromOffset(0,0),UDim2.fromOffset(108,34),function()
+            runtime.rulerResetButton(f,"Spielstandard",function()
                 if state.fullbright then state.fullbright=false; applyLighting() end
                 local baseline=runtime.brightnessOriginal or Lighting.Brightness
                 Lighting.Brightness=baseline; runtime.brightnessOwned=baseline
@@ -2056,12 +2063,14 @@ local function drawCharacter()
         round(b,14); b.BackgroundColor3=tuning==item[1] and C.text or C.card; b.TextColor3=tuning==item[1] and C.bg or C.muted
     end
     rowButton(tabs,"Reset",UDim2.new(1,-70,0,0),UDim2.fromOffset(70,28),function()
-        for _,id in ipairs({"speed","jump","fov"}) do local action=findAction(id); if action.get() then action.fn() end end
+        local enable=({speedvalue="speed",jumpvalue="jump",fovvalue="fov"})[tuning]
+        if enable then local action=findAction(enable); if action.get() then action.fn() end end
         local h=humanoid()
-        state.speedValue=h and h.WalkSpeed or 16
-        state.jumpValue=h and (h.UseJumpPower and h.JumpPower or math.sqrt(2*workspace.Gravity*h.JumpHeight)) or 50
-        runtime.setFlightTier(1); state.fovValue=workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70
-        activeSlider=nil; save(); runtime.refreshControls(); notify("Regler und Charakterwerte zurückgesetzt.","Charakter")
+        if tuning=="speedvalue" then state.speedValue=h and h.WalkSpeed or 16
+        elseif tuning=="jumpvalue" then state.jumpValue=h and (h.UseJumpPower and h.JumpPower or math.sqrt(2*math.max(workspace.Gravity,1)*h.JumpHeight)) or 50
+        elseif tuning=="flyspeed" then runtime.setFlightTier(1)
+        elseif tuning=="fovvalue" then state.fovValue=workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70 end
+        activeSlider=nil; save(); runtime.refreshControls(); notify("Ausgewählten Regler zurückgesetzt.","Charakter")
     end)
     local selectedTuning=tuning
     local source=findAction(selectedTuning); local action=table.clone(source)
@@ -2231,6 +2240,13 @@ function features.scriptThumbnail(parent,entry)
         for _,target in ipairs(waiting) do if alive and target.Parent and ok then target.Image=asset end end
     end)
 end
+function runtime.scriptVerifiedBadge(parent,position)
+    local badge=make("Frame",{Name="ScriptVerifiedBadge",Active=false,BackgroundColor3=C.bg,BackgroundTransparency=.12,Position=position,Size=UDim2.fromOffset(104,22),ZIndex=3},parent)
+    round(badge,11); make("UIStroke",{Color=C.good,Thickness=1,Transparency=.55},badge)
+    imageIcon(badge,"shield-check",13,UDim2.fromOffset(7,4),C.good).ZIndex=4
+    local text=label(badge,"Verifiziert",11,C.good,UDim2.fromOffset(26,0),UDim2.new(1,-31,1,0)); text.ZIndex=4
+    return badge
+end
 local function drawScriptSearch()
     local controls=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
     for i,name in ipairs({"ScriptBlox","RoScripts"}) do
@@ -2260,22 +2276,30 @@ local function drawScriptSearch()
     if scriptSearch.error then plainCard("Anbieter meldet einen Fehler",scriptSearch.error,94) end
     if scriptSearch.selected then
         local selected=scriptSearch.selected
-        local detail=plainCard(selected.title,selected.game.."  ·  @"..selected.owner..(selected.key and "  ·  Key-System" or ""),112)
+        local detail=plainCard(selected.title,selected.game.."  ·  @"..selected.owner..(selected.key and "  ·  Key-System" or ""),selected.verified and 152 or 124)
+        for _,child in ipairs(detail:GetChildren()) do if child:IsA("TextLabel") then
+            if child.Text==selected.title then child.Size=UDim2.new(1,-64,0,36); child.TextWrapped=true; child.TextYAlignment=Enum.TextYAlignment.Top
+            else child.Position=UDim2.fromOffset(16,52); child.Size=UDim2.new(1,-32,0,26) end
+        end end
+        if selected.verified then runtime.scriptVerifiedBadge(detail,UDim2.fromOffset(16,80)) end
+        local controlsY=selected.verified and 112 or 86
         local bookmark=rowButton(detail,"",UDim2.new(1,-42,0,12),UDim2.fromOffset(28,28),function() features.scriptBookmark(selected) end)
         imageIcon(bookmark,"star",18,UDim2.fromOffset(5,5),settings.scriptFavorites[selected.provider..":"..selected.slug] and C.accent or C.muted)
-        rowButton(detail,"Zurück",UDim2.fromOffset(16,74),UDim2.fromOffset(84,28),function() scriptSearch.selected=nil; scriptSearch.source=nil; scriptSearch.error=nil; render() end)
-        rowButton(detail,"Kopieren",UDim2.fromOffset(110,74),UDim2.fromOffset(94,28),function() if scriptSearch.source then copyText(scriptSearch.source) end end)
-        rowButton(detail,"Ausführen",UDim2.fromOffset(214,74),UDim2.fromOffset(104,28),function()
+        rowButton(detail,"Zurück",UDim2.fromOffset(16,controlsY),UDim2.fromOffset(84,28),function() scriptSearch.selected=nil; scriptSearch.source=nil; scriptSearch.error=nil; render() end)
+        rowButton(detail,"Kopieren",UDim2.fromOffset(110,controlsY),UDim2.fromOffset(94,28),function() if scriptSearch.source then copyText(scriptSearch.source) end end)
+        rowButton(detail,"Ausführen",UDim2.fromOffset(214,controlsY),UDim2.fromOffset(104,28),function()
             if type(loadstring)~="function" or not scriptSearch.source then notify("Kein ausführbarer Quelltext verfügbar.","Scripts"); return end
             local chunk,err=loadstring(scriptSearch.source,selected.provider.."/"..selected.slug)
             if not chunk then notify(tostring(err):sub(1,160),"Script konnte nicht kompiliert werden"); return end
             task.spawn(function() local ok,message=pcall(chunk); if alive then notify(ok and "Script ausgeführt." or tostring(message):sub(1,160),selected.title) end end)
         end)
         if scriptSearch.source then
-            local preview=make("TextBox",{Text=scriptSearch.source:sub(1,12000),TextEditable=false,ClearTextOnFocus=false,MultiLine=true,
+            local sourceCard=make("Frame",{Name="ScriptSourceCard",BackgroundColor3=C.panel,Size=UDim2.new(1,0,0,160),ClipsDescendants=true},content)
+            round(sourceCard,12)
+            local viewport=make("ScrollingFrame",{Name="ScriptSourceViewport",BackgroundTransparency=1,BorderSizePixel=0,Position=UDim2.fromOffset(12,12),Size=UDim2.new(1,-24,1,-24),ClipsDescendants=true,CanvasSize=UDim2.new(),AutomaticCanvasSize=Enum.AutomaticSize.Y,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=4,ScrollBarImageColor3=C.muted},sourceCard)
+            make("TextBox",{Name="ScriptSourceText",Text=scriptSearch.source:sub(1,12000),TextEditable=false,ClearTextOnFocus=false,MultiLine=true,TextWrapped=true,
                 TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=Enum.TextYAlignment.Top,Font=Enum.Font.Code,TextSize=11,
-                TextColor3=C.muted,BackgroundColor3=C.panel,Size=UDim2.new(1,0,0,160)},content)
-            round(preview,12); make("UIPadding",{PaddingLeft=UDim.new(0,12),PaddingTop=UDim.new(0,12)},preview)
+                TextColor3=C.muted,BackgroundTransparency=1,Size=UDim2.new(1,-10,0,136),AutomaticSize=Enum.AutomaticSize.Y},viewport)
         end
         return
     end
@@ -2298,10 +2322,7 @@ local function drawScriptSearch()
                 local gameLabel=label(tile,entry.game..(entry.views and "  ·  "..tostring(entry.views).." Aufrufe" or ""),10,C.muted,UDim2.fromOffset(14,132),UDim2.new(1,-28,0,16))
                 gameLabel.TextTruncate=Enum.TextTruncate.AtEnd
                 if entry.verified then
-                    local badge=make("Frame",{Name="ScriptVerifiedBadge",Active=false,BackgroundColor3=C.bg,BackgroundTransparency=.12,Position=UDim2.fromOffset(12,46),Size=UDim2.fromOffset(104,22),ZIndex=3},art)
-                    round(badge,11); make("UIStroke",{Color=C.good,Thickness=1,Transparency=.55},badge)
-                    imageIcon(badge,"shield-check",13,UDim2.fromOffset(7,4),C.good).ZIndex=4
-                    local text=label(badge,"Verifiziert",11,C.good,UDim2.fromOffset(26,0),UDim2.new(1,-31,1,0)); text.ZIndex=4
+                    runtime.scriptVerifiedBadge(art,UDim2.fromOffset(12,46))
                 end
             end
         end
@@ -2326,13 +2347,28 @@ function runtime.playEmote(name)
     if animator then for _,track in ipairs(animator:GetPlayingAnimationTracks()) do if not before[track] then table.insert(runtime.emoteTracks,track) end end end
 end
 function runtime.setShader(value)
+    if runtime.shader==value then return end
     runtime.shader=value
     for _,effect in ipairs(runtime.shaderEffects or {}) do effect:Destroy() end
     runtime.shaderEffects={}
-    if value then
-        table.insert(runtime.shaderEffects,make("ColorCorrectionEffect",{Name="ISBColorGrade",Contrast=.08,Saturation=.08,Brightness=.02,TintColor=Color3.fromRGB(245,248,255)},Lighting))
-        table.insert(runtime.shaderEffects,make("BloomEffect",{Name="ISBSoftBloom",Intensity=.14,Size=24,Threshold=1.25},Lighting))
+    if runtime.shaderOriginal then
+        for property,original in pairs(runtime.shaderOriginal) do pcall(function() Lighting[property]=original end) end
+        runtime.shaderOriginal=nil
     end
+    if not value then return end
+    runtime.shaderOriginal={}
+    for _,property in ipairs({"Brightness","ClockTime","ExposureCompensation","Technology"}) do
+        local ok,original=pcall(function() return Lighting[property] end)
+        if ok then runtime.shaderOriginal[property]=original end
+    end
+    -- Original TL Basic Realistic Shaders profile, with owned cleanup.
+    for property,setting in pairs({Brightness=2.25,ClockTime=17.55,ExposureCompensation=.1,Technology=Enum.Technology.Future}) do
+        pcall(function() Lighting[property]=setting end)
+    end
+    table.insert(runtime.shaderEffects,make("ColorCorrectionEffect",{Name="ISBColorGrade",Brightness=0,Contrast=.1,Saturation=.25,TintColor=Color3.fromRGB(255,255,255)},Lighting))
+    table.insert(runtime.shaderEffects,make("BloomEffect",{Name="ISBSoftBloom",Enabled=true,Intensity=.3,Size=10,Threshold=.8},Lighting))
+    table.insert(runtime.shaderEffects,make("SunRaysEffect",{Name="ISBShaderSun",Enabled=true,Intensity=.1,Spread=.8},Lighting))
+    table.insert(runtime.shaderEffects,make("Sky",{Name="ISBShaderSky",SkyboxBk="rbxassetid://144933338",SkyboxDn="rbxassetid://144931530",SkyboxFt="rbxassetid://144933262",SkyboxLf="rbxassetid://144933244",SkyboxRt="rbxassetid://144933299",SkyboxUp="rbxassetid://144931564",SunAngularSize=5,StarCount=5000},Lighting))
 end
 runtime.voiceMicConnections={}
 function runtime.removeVoiceMic()
@@ -2722,7 +2758,7 @@ local function drawPlayers()
     end
 end
 addAction("antivoid","Bewegung","Anti-Void","Zum letzten Bodenpunkt zurück, bevor du die Fallgrenze erreichst","toggle",function() runtime.antiVoid=not runtime.antiVoid; runtime.safeGround=nil end,function() return runtime.antiVoid end)
-addAction("shader","Darstellung","Licht-Preset","Dezente Farben und Bloom · nur lokale Effekte","toggle",function() runtime.setShader(not runtime.shader) end,function() return runtime.shader end)
+addAction("shader","Darstellung","Shader","Realistische Farben, Sonnenstrahlen und Himmel · TL-Profil","toggle",function() runtime.setShader(not runtime.shader) end,function() return runtime.shader end)
 render = function()
     if not alive then return end
     local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
@@ -2849,9 +2885,9 @@ render = function()
         end
         local placement=plainCard("Position","Dock und Fenster gemeinsam ausrichten.",108)
         for i,item in ipairs({{"Links","Left"},{"Mitte","Center"},{"Rechts","Right"}}) do rowButton(placement,item[1],UDim2.fromOffset(16+(i-1)*116,68),UDim2.fromOffset(106,28),function() settings.alignment=item[2]; runtime.updateInventoryClearance(); fit(); save(); render() end) end
-        local sizeCard=plainCard("Menügröße","Größe in Prozent",162)
+        local sizeCard=plainCard("Menügröße","Größe in Prozent",172)
         runtime.drawRuler(sizeCard,{id="uiscale",name="Menügröße",desc="Größe in Prozent",kind="slider",min=50,max=120,step=5,get=function() return settings.uiScale end,fn=function(v) settings.uiScale=math.clamp(v,50,120); fit(); save() end})
-        rowButton(sizeCard,"Standard · 100 %",UDim2.new(1,-164,0,130),UDim2.fromOffset(148,26),function() settings.uiScale=100; fit(); save(); render() end)
+        runtime.rulerResetButton(sizeCard,"Standard · 100 %",function() settings.uiScale=100; fit(); save(); runtime.refreshControls() end)
         drawAction({id="notifications",name="Benachrichtigungen",desc="Hinweise unten rechts anzeigen",kind="toggle",get=function() return settings.notifications end,fn=function() settings.notifications=not settings.notifications; save() end})
         drawAction({id="autoopen",name="Beim Start öffnen",desc="Fenster beim nächsten Start automatisch öffnen",kind="toggle",get=function() return settings.autoOpen end,fn=function() settings.autoOpen=not settings.autoOpen; save() end})
         drawAction({id="uisounds",name="Interface-Sounds",desc="Dezente Klänge bei Öffnen, Schließen und Klicks",kind="toggle",get=function() return settings.sounds end,fn=function() settings.sounds=not settings.sounds; save() end})
@@ -2892,14 +2928,22 @@ end)
 connect(search.FocusLost,function(enterPressed)
     if enterPressed and page=="Skripte" and not scriptSearch.localMode then searchRemoteScripts(1) end
 end)
+function runtime.finishExtraJump()
+    local jump=runtime.extraJump; runtime.extraJump=nil
+    if not jump or not state.infiniteJump or state.fly or runtime.roleplay or humanoid()~=jump.h or root()~=jump.root or jump.h.Health<=0 or jump.h.PlatformStand or jump.h.Sit then return end
+    local velocity=jump.root.AssemblyLinearVelocity or Vector3.zero
+    jump.root.AssemblyLinearVelocity=Vector3.new(velocity.X,jump.power,velocity.Z)
+end
 connect(UIS.JumpRequest,function()
     local h=humanoid()
     local r=root()
-    if state.infiniteJump and not state.fly and not UIS:GetFocusedTextBox() and h and r and h.Health>0 then
+    if state.infiniteJump and not state.fly and not runtime.roleplay and not UIS:GetFocusedTextBox() and h and r and h.Health>0 and not h.PlatformStand and not h.Sit then
         if os.clock()-(runtime.lastExtraJump or -1)<.12 then return end
         runtime.lastExtraJump=os.clock()
+        if h:GetState()==Enum.HumanoidStateType.Jumping then h:ChangeState(Enum.HumanoidStateType.Freefall) end
         h:ChangeState(Enum.HumanoidStateType.Jumping)
         local power=h.UseJumpPower and h.JumpPower or math.sqrt(2*math.max(workspace.Gravity,1)*h.JumpHeight)
+        runtime.extraJump={h=h,root=r,power=power}
         local velocity=r.AssemblyLinearVelocity or Vector3.zero
         r.AssemblyLinearVelocity=Vector3.new(velocity.X,power,velocity.Z)
     end
@@ -2965,6 +3009,7 @@ connect(Run.Stepped,function()
     end
 end)
 if Run.PostSimulation then connect(Run.PostSimulation,function()
+    runtime.finishExtraJump()
     local owned=runtime.roleplay
     if not owned or not owned.root.Parent then return end
     local part=runtime.roleplayPart(owned.target,owned.mode)
@@ -3038,6 +3083,7 @@ connect(Run.PreSimulation,function(dt)
     end
 end)
 connect(Run.Heartbeat,function()
+    if not Run.PostSimulation then runtime.finishExtraJump() end
     runtime.movementPending=false
     applyMovement()
 end)

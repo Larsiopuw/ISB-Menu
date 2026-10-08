@@ -1,4 +1,4 @@
-# ISB Menu 2.6.7 · by Larsiopuw
+# ISB Menu 2.6.8 · by Larsiopuw
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 
@@ -9,6 +9,20 @@ Der Executor-Name steht jetzt zusätzlich ganz rechts in der Statusleiste. Lange
 Benachrichtigungen stehen zwölf Pixel vom unteren rechten Bildschirmrand. Das Dock reserviert automatisch Platz über sichtbaren, erkennbaren Inventar-/Hotbar-Leisten. Nicht zugängliche oder unbekannt benannte Sonderinventare können nicht zuverlässig erkannt werden. Die Sitzungsdetails zeigen Spielname, Place-ID, Universe-ID, Serverart, Job-ID und Spiellink getrennt; Link und Server-ID sind kopierbar.
 
 Neu in 2.4.3: Die Statusleiste wächst mit ihren Texten. Sitzungsdaten stehen in anklickbaren Kopierfeldern neben dem Roblox-Spielicon; der rohe Spiellink wird nicht zusätzlich angezeigt. Namensanzeigen nutzen kompakte Karten. FOV gibt es unter Bewegung mit eigenem Reset. Buchstabenkürzel und ihre Erfassung folgen dem Tastaturlayout (einschließlich deutschem Z/Y); bei fehlender Layout-API gilt QWERTZ als Ersatz. Freund- und Admin-Austritte werden gemeldet, erneute Admin-Prüfungen erzeugen keine doppelten Beitrittsmeldungen.
+
+## Änderungen in 2.6.8
+
+Bewegung: Reset setzt nur den ausgewählten Regler zurück. Die vier Flugstufen bleiben GLIDE 55, NORMAL 110, FAST 140 und TURBO 250 studs/s; ein Stufenwechsel benötigt jetzt 48 Pixel Zugweg. Alle vier Stufen sind beschriftet. Mehrfachsprung stellt den Sprungimpuls einmal nach dem Physikschritt wieder her, auch bei R15 und JumpHeight-Steuerung, ohne dauerhaft nach oben zu drücken.
+
+Helligkeit, Musiklautstärke und Menügröße haben denselben kompakten Standardknopf mit Reset-Symbol innerhalb der Karte. Menügröße wird ohne Neuaufbau der Ansicht zurückgesetzt.
+
+Shader ersetzt das bisherige Licht-Preset durch das TL-Profil „Basic Realistic Shaders“: Helligkeit 2.25, Uhrzeit 17.55, Belichtung 0.1, Sättigung 0.25, Kontrast 0.1, Bloom 0.3/10/0.8 sowie Sonnenstrahlen und dieselben sechs Skybox-Assets. Future-Beleuchtung wird angewendet, wenn die Roblox-API es erlaubt. Abschalten entfernt eigene Effekte und stellt die zuvor geänderten Lichtwerte wieder her. Kein externer Shader-Code wird zur Laufzeit geladen. Die tatsächliche Darstellung hängt vom Spiel, seinen vorhandenen Effekten und den Grafikeinstellungen ab.
+
+Skript-Details zeigen die Anbieter-Verifizierung als dasselbe Schild-Badge wie die Ergebniskarten. Lange Titel erhalten Platz über den Metadaten; die Aktionsknöpfe stehen unter dem Badge.
+
+Quelltext bleibt in einer begrenzten Karte mit Innenabstand. Lange Loader-Zeilen umbrechen; längere Vorschauen scrollen vertikal innerhalb der Karte. Die Anzeige bleibt auf 12000 Zeichen begrenzt, während Kopieren und Ausführen weiterhin den vollständigen unveränderten Quelltext verwenden. 1740 simulierte Prüfungen und Luau -O0/-O1/-O2 bestanden, einschließlich langer Quelltextzeilen und vollständigem Kopieren.
+
+Benutzer bestätigt die Kopf-Pose sowie Hover und Verifiziert-Badge der Karten aus 2.6.7. Die unverändert verbleibende Verzögerung beim Mitspieler ist keine lokale Sitzanimationskorrektur; eine feste gemeinsame Verbindung benötigt Spielserver-Unterstützung.
 
 ## Änderungen in 2.6.7
 
