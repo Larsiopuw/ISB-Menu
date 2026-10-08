@@ -1,7 +1,7 @@
--- ISB Menu 2.6.9 | Own-game universal client toolkit
+-- ISB Menu 2.6.10 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.9",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.10",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -1559,13 +1559,15 @@ connect(UIS.InputBegan,function(input)
     if not inside(runtime.flightStyleMenu) and not inside(runtime.flightStyleButton) then runtime.flightStyleMenu.Visible=false end
 end)
 function runtime.rulerResetButton(parent,text,fn)
-    local button=rowButton(parent,text,UDim2.new(1,-281,0,11),UDim2.fromOffset(132,30),fn)
+    local button=rowButton(parent,"",UDim2.new(1,-281,0,11),UDim2.fromOffset(132,30),fn)
     button.Name="RulerResetButton"
     button.BackgroundColor3=C.panel
     button.BackgroundTransparency=.18
     button.TextSize=10
     round(button,10)
-    make("UIPadding",{PaddingLeft=UDim.new(0,27),PaddingRight=UDim.new(0,9)},button)
+    button.Text=""
+    local caption=label(button,text,10,C.text,UDim2.fromOffset(31,0),UDim2.new(1,-39,1,0))
+    caption.Name="ResetCaption"; caption.TextSize=10; caption.TextXAlignment=Enum.TextXAlignment.Left
     imageIcon(button,"arrow-path",14,UDim2.fromOffset(9,8),C.muted)
     return button
 end
@@ -1784,6 +1786,10 @@ function runtime.mediaPoll()
                 if not (activeSlider and activeSlider.id=="mediavolume") and data.volume and math.abs(data.volume-pending.value)<.005 then runtime.media.volumePending=nil
                 else data.volume=pending.value end
             else runtime.media.volumePending=nil end
+            local playback=runtime.media.playbackPending
+            if playback and playback.source==data.selected and os.clock()<playback.untilTime then
+                if data.playing==playback.value then runtime.media.playbackPending=nil else data.playing=playback.value end
+            else runtime.media.playbackPending=nil end
             runtime.media.state=data
         else runtime.media.selected=""; runtime.media.state={}; runtime.media.volumePending=nil end
         runtime.mediaPaint()
@@ -1794,6 +1800,12 @@ function runtime.mediaCommand(command,value)
     if not runtime.media.connected or not data.available then notify("Starte ISBMediaBridge und öffne einen Medienplayer.","Musik"); return end
     if not data.controls or not data.controls[command] then notify("Dieser Player unterstützt diese Aktion derzeit nicht.","Musik"); return end
     local item={command=command,value=value,source=runtime.media.selected~="" and runtime.media.selected or data.selected}
+    if #runtime.media.queue>=8 then notify("Player verarbeitet noch die vorherigen Aktionen.","Musik"); return end
+    if command=="toggle" then
+        local pending={value=not data.playing,original=data.playing,source=data.selected,untilTime=os.clock()+2}
+        item.playbackPending=pending; runtime.media.playbackPending=pending
+        data.playing=pending.value; runtime.mediaPaint()
+    end
     local queue=runtime.media.queue
     if (command=="volume" or command=="seek") and #queue>0 and queue[#queue].command==command and queue[#queue].source==item.source then queue[#queue]=item
     elseif #queue<8 then table.insert(queue,item) end
@@ -1802,10 +1814,14 @@ function runtime.mediaCommand(command,value)
     task.spawn(function()
         while alive and #queue>0 do
             local nextCommand=table.remove(queue,1)
-            local ok,result=pcall(runtime.mediaRequest,"/command",nextCommand)
-            if alive and (not ok or result.ok~=true) then notify(ok and tostring(result.error or "Aktion nicht angenommen.") or tostring(result):sub(1,150),"Musik") end
+            local ok,result=pcall(runtime.mediaRequest,"/command",{command=nextCommand.command,value=nextCommand.value,source=nextCommand.source})
+            if alive and (not ok or result.ok~=true) then
+                if nextCommand.playbackPending and runtime.media.playbackPending==nextCommand.playbackPending then
+                    runtime.media.state.playing=nextCommand.playbackPending.original; runtime.media.playbackPending=nil; runtime.mediaPaint()
+                end
+                notify(ok and tostring(result.error or "Aktion nicht angenommen.") or tostring(result):sub(1,150),"Musik") end
         end
-        runtime.media.commanding=false; runtime.media.pollTime=2
+        runtime.media.commanding=false; runtime.media.pollTime=0; if alive then runtime.mediaPoll() end
     end)
 end
 function runtime.previewMediaVolume(value)
@@ -1835,7 +1851,7 @@ function runtime.drawMediaPlayer()
     runtime.mediaRefs=refs
     for i,item in ipairs({{"previous","Zurück"},{"toggle","Abspielen"},{"next","Weiter"}}) do
         local b=rowButton(f,item[2],UDim2.new((i-1)/3,18-(i-1)*12,0,137),UDim2.new(1/3,-24,0,34),function() runtime.mediaCommand(item[1]) end)
-        refs.buttons[item[1]]=b; if item[1]=="toggle" then refs.toggle=b end
+        refs.buttons[item[1]]=b; if item[1]=="toggle" then refs.toggle=b; b.Name="MediaPlaybackButton" end
     end
     refs.sources=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(15,188),Size=UDim2.new(1,-30,0,28)},f)
     rowConnect(rail.InputBegan,function(input)
