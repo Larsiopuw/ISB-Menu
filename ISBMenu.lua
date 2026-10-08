@@ -1,7 +1,7 @@
--- ISB Menu 2.6.22 | Own-game universal client toolkit
+-- ISB Menu 2.6.23 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.22",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.23",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -1226,19 +1226,32 @@ notify = function(message,heading,iconName)
     if not settings.notifications then return end
     playUISound(heading:find("beigetreten",1,true) and "join" or (heading:find("verlassen",1,true) and "leave" or "notice"))
     while #notices>=3 do local old=table.remove(notices,1); old:Destroy() end
-    local height=message=="" and 44 or 58+math.max(0,math.ceil(#message/38)-1)*14
+    local height=44
     local notice=make("CanvasGroup",{BackgroundTransparency=1,GroupColor3=Color3.fromRGB(255,255,255),Size=UDim2.new(1,0,0,height),GroupTransparency=1,ZIndex=20},notificationStack)
     round(notice,20)
     local surface=make("Frame",{Name="NoticeSurface",BorderSizePixel=0,BackgroundColor3=Color3.fromRGB(255,255,255),Size=UDim2.fromScale(1,1)},notice)
     round(surface,20)
     make("UIGradient",{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(42,50,64),C.panel)},surface)
-    local icon=imageIcon(notice,iconName or "check-circle",20,UDim2.fromOffset(20,math.floor((height-20)/2)),C.text)
+    local icon=imageIcon(notice,iconName or "check-circle",20,UDim2.fromOffset(20,12),C.text)
+    if icon then icon.Name="NoticeIcon"; icon.Position=UDim2.new(0,30,.5,0) end
     local left=icon and 58 or 20
-    local head=label(notice,heading,14,C.text,UDim2.fromOffset(left,13),UDim2.new(1,-left-18,0,19))
-    head.Font=Enum.Font.BuilderSansMedium
+    local width=math.max(80,notificationStack.Size.X.Offset-left-18)
+    local bodyHeight=0
     if message~="" then
-        local body=label(notice,message,12,C.muted,UDim2.fromOffset(left,33),UDim2.new(1,-left-18,0,height-41))
-        body.TextWrapped=true; body.TextYAlignment=Enum.TextYAlignment.Top
+        bodyHeight=math.max(16,math.ceil(#message/math.max(1,math.floor(width/6.6)))*16)
+        if runtime.textService then
+            local ok,bounds=pcall(function() return runtime.textService:GetTextSize(message,12,Enum.Font.BuilderSansMedium,Vector2.new(width,10000)) end)
+            if ok then bodyHeight=math.max(16,math.ceil(bounds.Y)) end
+        end
+    end
+    local blockHeight=20+(message~="" and 4+bodyHeight or 0)
+    height=blockHeight+24; notice.Size=UDim2.new(1,0,0,height)
+    local textBlock=make("Frame",{Name="NoticeContent",BackgroundTransparency=1,AnchorPoint=Vector2.new(0,.5),Position=UDim2.new(0,left,.5,0),Size=UDim2.new(1,-left-18,0,blockHeight)},notice)
+    local head=label(textBlock,heading,14,C.text,UDim2.new(),UDim2.new(1,0,0,20))
+    head.Font=Enum.Font.BuilderSansMedium; head.TextTruncate=Enum.TextTruncate.AtEnd
+    if message~="" then
+        local body=label(textBlock,message,12,C.muted,UDim2.fromOffset(0,24),UDim2.new(1,0,0,bodyHeight))
+        body.TextWrapped=true; body.TextYAlignment=Enum.TextYAlignment.Center
     end
     table.insert(notices,notice); animate(notice,{GroupTransparency=0})
     task.delay(5,function()
