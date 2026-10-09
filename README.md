@@ -1,4 +1,13 @@
-# ISB Menu 2.6.38 · by Larsiopuw
+# ISB Menu 2.6.39 · by Larsiopuw
+
+## Änderungen in 2.6.39
+
+Wegpunkte pro Spiel speichern, umbenennen und löschen. Teleport oder Freecam direkt am Wegpunkt starten. Klickbare Versionsanzeige im Startmenü mit scrollbarer Änderungshistorie; neueste Version zuerst. Versionsangaben im Skript vereinheitlicht.
+
+Bis zu 50 Wegpunkte je Roblox-Place. Namen mit bis zu 40 Zeichen; Speichern unter gleichem Namen aktualisiert die Position. Datei-Zugriff speichert Wegpunkte dauerhaft in den vorhandenen Einstellungen, sonst gelten sie für die Sitzung. Unzulässige Dateidaten werden beim Laden verworfen. Die Funktionen sind vom Startmenü und unter Bewegung erreichbar.
+
+![Wegpunkte mit Beispieldaten in der Designvorschau](ISB-Wegpunkte-v2.6.39.png)
+![Scrollbare Änderungshistorie in der Designvorschau](ISB-Changelog-v2.6.39.png)
 
 ## Änderungen in 2.6.38
 

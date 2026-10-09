@@ -1,7 +1,7 @@
--- ISB Menu 2.6.29 | Own-game universal client toolkit
+-- ISB Menu 2.6.39 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.29",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.39",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -99,7 +99,7 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {flightStyle="Fly", favorites = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
+local settings = {flightStyle="Fly", favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -119,6 +119,7 @@ if type(readfile) == "function" then
         if data.discovery=="Neu" or data.discovery=="Favoriten" then settings.discovery=data.discovery end
         settings.volume=math.clamp(tonumber(data.volume) or 35,0,1000)
         if type(data.values)=="table" then settings.values=data.values end
+        if type(data.waypoints)=="table" then settings.waypoints=data.waypoints end
         if type(data.scriptFavorites)=="table" then
             local count=0
             for key,entry in pairs(data.scriptFavorites) do
@@ -1203,6 +1204,9 @@ task.spawn(function()
 end)
 local pageTitle = label(header, "Übersicht", 17, C.text, UDim2.fromOffset(51,16), UDim2.new(1,-154,0,22))
 pageTitle.Font = Enum.Font.BuilderSansBold
+runtime.versionButton=make("TextLabel",{Name="VersionButton",Text="v"..CONFIG.Version,Font=Enum.Font.BuilderSansMedium,TextSize=12,TextColor3=C.accent,BackgroundColor3=C.panel,Position=UDim2.fromOffset(159,13),Size=UDim2.fromOffset(88,28)},header)
+round(runtime.versionButton,10)
+runtime.bindPress(runtime.versionButton,function() selectPage("Änderungen") end,connect)
 local subtitle = label(window, "Dein Spiel. Dein Werkzeug.", 12, C.muted, UDim2.fromOffset(23,116), UDim2.new(1,-46,0,20))
 subtitle.Visible=false
 local search = make("TextBox", {Text = "", PlaceholderText = "Funktionen und Spieler suchen …", ClearTextOnFocus = false,
@@ -2066,6 +2070,183 @@ local function plainCard(name,description,height)
     for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-32,0,child.Text==name and 24 or 36) end end
     return f
 end
+function runtime.waypointList()
+    settings.waypoints=settings.waypoints or {}
+    local key=tostring(game.PlaceId)
+    if type(settings.waypoints[key])~="table" then settings.waypoints[key]={} end
+    return settings.waypoints[key]
+end
+function runtime.waypointName(text)
+    text=tostring(text or ""):gsub("[%c]"," "):match("^%s*(.-)%s*$")
+    if utf8.len(text)==nil then return nil end
+    local ending=utf8.offset(text,41)
+    if ending then text=text:sub(1,ending-1) end
+    return text~="" and text or nil
+end
+function runtime.saveWaypoint(text)
+    local name=runtime.waypointName(text)
+    if not name then notify("Bitte einen Namen für den Wegpunkt eingeben.","Wegpunkte"); return end
+    local part=root(); local h=humanoid()
+    if not runtime.freecam and (not part or not h or h.Health<=0) then notify("Charakter ist gerade nicht verfügbar.","Wegpunkte"); return end
+    local frame=runtime.freecam and runtime.freecam.camera.CFrame or part.CFrame
+    local position,look=frame.Position,frame.LookVector
+    local list=runtime.waypointList(); local existing
+    for i,entry in ipairs(list) do if entry.name==name then existing=i; break end end
+    if not existing and #list>=50 then notify("Maximal 50 Wegpunkte pro Spiel. Lösche zuerst einen Eintrag.","Wegpunkte"); return end
+    list[existing or #list+1]={name=name,position={position.X,position.Y,position.Z},look={look.X,look.Y,look.Z}}
+    local stored=save(true)
+    notify(stored and (existing and "Wegpunkt aktualisiert." or "Wegpunkt gespeichert.") or "Wegpunkt für diese Sitzung gespeichert · Dateispeicherung nicht verfügbar.","Wegpunkte")
+    render()
+end
+function runtime.renameWaypoint(entry,text)
+    local name=runtime.waypointName(text)
+    if not name then notify("Bitte einen Namen eingeben.","Wegpunkte"); return end
+    for _,other in ipairs(runtime.waypointList()) do if other~=entry and other.name==name then notify("Dieser Name wird bereits verwendet.","Wegpunkte"); return end end
+    entry.name=name; save(true); runtime.editWaypoint=nil; render()
+end
+function runtime.deleteWaypoint(entry)
+    local list=runtime.waypointList()
+    for i,other in ipairs(list) do if other==entry then table.remove(list,i); save(true); render(); return end end
+end
+function runtime.visitWaypoint(entry,freecam)
+    local position=Vector3.new(table.unpack(entry.position))
+    local look=Vector3.new(table.unpack(entry.look)).Unit
+    local frame=CFrame.lookAt(position,position+look)
+    if freecam then
+        if not runtime.freecam then runtime.toggleFreecam() end
+        local owned=runtime.freecam
+        if not owned then notify("Kamera ist gerade nicht verfügbar.","Wegpunkte"); return end
+        owned.position=position; owned.pitch,owned.yaw=frame:ToOrientation(); owned.skipMouse=true
+        if runtime.attachFreecamCamera() then owned.camera.CFrame=frame; owned.camera.Focus=frame*CFrame.new(0,0,-16) end
+        setOpen(false)
+        return
+    end
+    local part=root(); local h=humanoid()
+    if not part or not h or h.Health<=0 then notify("Charakter ist gerade nicht verfügbar.","Wegpunkte"); return end
+    if runtime.freecam then runtime.stopFreecam(false) end
+    if state.fly then state.fly=false; stopFly() end
+    restoreCamera(); runtime.stopRoleplay()
+    local forward=Vector3.new(look.X,0,look.Z)
+    if forward.Magnitude<.0001 then forward=Vector3.new(0,0,-1) end
+    part.CFrame=CFrame.lookAt(position,position+forward.Unit)
+    part.AssemblyLinearVelocity=Vector3.zero; part.AssemblyAngularVelocity=Vector3.zero
+    runtime.safeGround=nil
+    local camera=workspace.CurrentCamera
+    if camera then
+        -- Keep the character as the camera focus after changing position.
+        local focus=position+Vector3.new(0,2,0)
+        local distance=math.max(.5,(camera.CFrame.Position-camera.Focus.Position).Magnitude)
+        camera.CFrame=CFrame.lookAt(focus-look*distance,focus); camera.Focus=CFrame.new(focus)
+    end
+    notify("Wegpunkt erreicht: "..entry.name,"Wegpunkte"); render()
+end
+function runtime.drawWaypoints()
+    local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
+    rowButton(back,"← Start",UDim2.new(),UDim2.fromOffset(90,28),function() selectPage("Start") end)
+    local list=runtime.waypointList()
+    local intro=plainCard("Deine Wegpunkte",session.placeName.." · "..#list.." / 50 gespeichert",84)
+    label(intro,"Nur Positionen aus diesem Spiel werden angezeigt.",11,C.muted,UDim2.fromOffset(16,58),UDim2.new(1,-32,0,18))
+    local form=plainCard("Position speichern",runtime.freecam and "Speichert die aktuelle Freecam-Position und Blickrichtung." or "Speichert die aktuelle Charakterposition und Blickrichtung.",132)
+    local input=make("TextBox",{Name="WaypointName",Text="",PlaceholderText="Name, z. B. Treffpunkt",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=13,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,85),Size=UDim2.new(1,-164,0,32)},form)
+    round(input,10); make("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10)},input)
+    rowButton(form,"Speichern",UDim2.new(1,-136,0,85),UDim2.fromOffset(120,32),function() runtime.saveWaypoint(input.Text) end)
+    if #list==0 then plainCard("Noch keine Wegpunkte","Gib oben einen Namen ein und speichere deine erste Position.",88) end
+    for index,entry in ipairs(list) do
+        local tile=plainCard(entry.name,string.format("X %.1f · Y %.1f · Z %.1f",table.unpack(entry.position)),runtime.editWaypoint==entry and 180 or 132)
+        tile.Name="WaypointCard"; tile.LayoutOrder=index+3
+        for _,child in ipairs(tile:GetChildren()) do if child:IsA("TextLabel") then child.TextTruncate=Enum.TextTruncate.AtEnd end end
+        for i,action in ipairs({{"Teleport",function() runtime.visitWaypoint(entry,false) end},{"Freecam",function() runtime.visitWaypoint(entry,true) end},{"Umbenennen",function() if runtime.editWaypoint==entry then runtime.editWaypoint=nil else runtime.editWaypoint=entry end; render() end},{"Löschen",function() runtime.deleteWaypoint(entry) end}}) do
+            rowButton(tile,action[1],UDim2.new((i-1)/4,16-(i-1)*5.5,0,84),UDim2.new(.25,-15.5,0,32),action[2])
+        end
+        if runtime.editWaypoint==entry then
+            local rename=make("TextBox",{Name="WaypointRename",Text=entry.name,ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=13,TextColor3=C.text,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,133),Size=UDim2.new(1,-164,0,32)},tile); round(rename,10)
+            rowButton(tile,"Übernehmen",UDim2.new(1,-136,0,133),UDim2.fromOffset(120,32),function() runtime.renameWaypoint(entry,rename.Text) end)
+        end
+    end
+end
+function runtime.drawChangelog()
+    local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
+    rowButton(back,"← Start",UDim2.new(),UDim2.fromOffset(90,28),function() selectPage("Start") end)
+    for index,entry in ipairs(runtime.changelog) do
+        local tile=make("Frame",{Name="ChangelogEntry",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=index},content)
+        round(tile,16); runtime.contentSurface(tile,16)
+        make("UIPadding",{PaddingTop=UDim.new(0,14),PaddingBottom=UDim.new(0,16),PaddingLeft=UDim.new(0,16),PaddingRight=UDim.new(0,16)},tile)
+        make("UIListLayout",{Padding=UDim.new(0,8),SortOrder=Enum.SortOrder.LayoutOrder},tile)
+        local heading=label(tile,"Version "..entry.version..(index==1 and "  ·  Aktuell" or ""),15,index==1 and C.accent or C.text,UDim2.new(),UDim2.new(1,0,0,22)); heading.LayoutOrder=1; heading.Font=Enum.Font.BuilderSansBold
+        local body=label(tile,entry.text,13,C.muted,UDim2.new(),UDim2.new(1,0,0,0)); body.LayoutOrder=2; body.AutomaticSize=Enum.AutomaticSize.Y; body.TextWrapped=true; body.TextYAlignment=Enum.TextYAlignment.Top
+    end
+end
+-- by Larsiopuw
+
+function runtime.validateWaypoints()
+    local cleaned={}
+    for key,list in pairs(settings.waypoints) do
+        if type(key)=="string" and #key<=20 and key:match("^%d+$") and type(list)=="table" then
+            local valid={}
+            for _,entry in ipairs(list) do
+                if type(entry)=="table" and type(entry.name)=="string" and type(entry.position)=="table" and type(entry.look)=="table" then
+                    local name=runtime.waypointName(entry.name); local numbers=true
+                    for i=1,3 do
+                        for _,values in ipairs({entry.position,entry.look}) do
+                            local v=values[i]; if type(v)~="number" or v~=v or math.abs(v)>10000000 then numbers=false end
+                        end
+                    end
+                    if name and numbers and Vector3.new(table.unpack(entry.look,1,3)).Magnitude>.0001 then
+                        table.insert(valid,{name=name,position={table.unpack(entry.position,1,3)},look={table.unpack(entry.look,1,3)}})
+                        if #valid>=50 then break end
+                    end
+                end
+            end
+            cleaned[key]=valid
+        end
+    end
+    settings.waypoints=cleaned
+end
+runtime.validateWaypoints()
+runtime.changelog={
+    {version="2.6.39",text="Wegpunkte pro Spiel speichern, umbenennen und löschen. Teleport oder Freecam direkt am Wegpunkt starten. Klickbare Versionsanzeige im Startmenü mit scrollbarer Änderungshistorie; neueste Version zuerst. Versionsangaben im Skript vereinheitlicht."},
+    {version="2.6.38",text="Beim Ablegen des Spielerinfo-Items oder Ausrüsten eines anderen Items wird die Spielerinfo rechts geschlossen. Erneutes Ausrüsten öffnet die vorherige Auswahl nicht automatisch; ein neuer Klick auf einen Spieler öffnet seine Informationen."},
+    {version="2.6.37",text="Freecam bleibt bei Fenster-Fokusverlust, Charakterwechsel und Austausch der Roblox-Kamera aktiv. Bei Fokusverlust pausieren Bewegung und Maussteuerung; beim Zurückkehren geht es an derselben Kameraposition weiter. Ein Kamera-Reset durch das Spiel beendet Freecam nicht mehr. L beendet weiterhin manuell, N teleportiert und beendet."},
+    {version="2.6.36",text="N richtet nach dem Freecam-Teleport auch die normale Roblox-Kamera nach dem zuletzt verwendeten Freecam-Blick aus, einschließlich Blickhöhe. Der vorherige Zoomabstand und die übliche Fokusposition relativ zum Charakter bleiben erhalten. L ohne Teleport stellt weiterhin die vorherige Kamera wieder her."},
+    {version="2.6.35",text="N übernimmt beim Teleportieren die horizontale Blickrichtung der Freecam. Der Charakter bleibt aufrecht, auch wenn die Kamera nach oben oder unten blickt. Die genaue Kameraposition sowie das automatische Beenden von Freecam bleiben erhalten."},
+    {version="2.6.34",text="L schaltet Freecam ein und aus. WASD bewegt die Kamera, E/Q hebt oder senkt sie, Standardtempo 120 Studs/s, Shift erhöht es auf 360 Studs/s. Die Maus dreht die Ansicht. N teleportiert den eigenen Charakter an die Kameraposition und beendet Freecam sofort; danach sind normale Kamera und Steuerung aktiv. Freecam steht auch unter Darstellung und der Keybind ist unter Tasten änderbar. Die vorherige Kamera und Maussteuerung werden beim Beenden, Fokusverlust, Respawn und Cleanup wiederhergestellt. Normale Charakter-Steuertasten werden während Freecam abgefangen; bestehender Flug wird pausiert."},
+    {version="2.6.33",text="Bei Menüposition Rechts stehen Benachrichtigungen unten links. Bei Links und Mitte stehen sie weiterhin unten rechts. Der gesamte Stapel wechselt beim Umstellen sofort mit; Menüskalierung und 12 Pixel Abstand zum Bildschirmrand bleiben erhalten."},
+    {version="2.6.32",text="Spielerinfo: zusammenhängender Profilkopf mit Avatar, Namen und farbig hinterlegtem Beziehungs-Badge. Zehn dezente Informationsflächen mit einheitlicher Rundung, Innenabständen und stärker betonten Werten statt freistehendem Text. Die drei oberen Aktionen teilen sich eine gemeinsame Layout-Zeile mit exakt gleicher Breite und 10 Pixel Abstand. Bestehende Funktionen bleiben erhalten."},
+    {version="2.6.31",text="Spielerinfo: Plus/Premium-Mitgliedschaft über HasRobloxSubscription mit MembershipType-Fallback; fehlende Daten werden als nicht verfügbar angezeigt. Ergänzt: genaues öffentliches Erstellungsdatum, Freundesanzahl und frühere Namen mit asynchronem Cache; direkte Aktionen für Freundschaft, Outfits und Namenshistorie. Mitgliedschaft bleibt bei HTTP-Fehlern verfügbar. Die rechte Karte skaliert mit dem Menü und bleibt bei kleinen Fenstern im Bild. Ausgerüstetes Tool markiert den Spieler unter der Maus mit einer Akzentkontur, respektiert verdeckende Geometrie und entfernt die eigene Markierung beim Ablegen, Zielwechsel, Respawn, Verlassen oder Cleanup. Fremder Spieler-Ping wird nicht geschätzt: Roblox GetNetworkPing ist clientseitig nur für LocalPlayer verfügbar."},
+    {version="2.6.30",text="Neues Inventar-Item ISB Spielerinfo mit eigenem ISB-Icon: ausrüsten und einen anderen Spieler anklicken. Rechts öffnet sich seine Spielerkarte mit Avatar, Verifizierung, Beziehung, Benutzer-ID, Accountalter, Team, Gesundheit, Entfernung und Gruppenrolle. Profil-Link kopieren oder vollständige Details öffnen. Das Item kehrt nach einem Respawn zurück und wird bei erneutem Laden nicht dupliziert. Die Karte skaliert mit der Menügröße und schließt sich per X oder Escape. Bei eigenen Inventarsystemen kann das Spiel die Roblox-Hotbar ausblenden; das Item liegt im lokalen Backpack."},
+    {version="2.6.29",text="Admin- und Freund-Karten zeichnen die Kontur direkt auf einer gemeinsamen abgerundeten Fläche als innenliegenden UIStroke mit fester 1.25-Pixel-Dicke. Unterschiedliche Rasterung zweier verschachtelter Farbflächen beeinflusst die Rahmenbreite nicht mehr. Ein Pixel Abstand zur CanvasGroup-Schnittkante bleibt erhalten."},
+    {version="2.6.28",text="Admin- und Freund-Karten verwenden einen gleichmäßigen innenliegenden Farbrand mit passender Rundung. Die Kontur wird nicht mehr als außenliegender UIStroke an der CanvasGroup-Schnittkante gezeichnet."},
+    {version="2.6.27",text="Die Einrichtungskarte im Musik-Tab verschwindet automatisch bei erfolgreicher Bridge-Verbindung, auch ohne aktiven Medienplayer. Bei Verbindungsverlust erscheint sie wieder; beim erneuten Verbinden verschwindet sie ohne erneutes Laden des Menüs."},
+    {version="2.6.26",text="Im Musik-Tab steht Einrichtungsbefehl kopieren. Einmal in Windows PowerShell einfügen: die Bridge wird ohne Administratorrechte heruntergeladen, anhand einer festen SHA-256 geprüft, lokal installiert und bei jeder Windows-Anmeldung gestartet. Installer und EXE stammen aus festgelegten GitHub-Commits. Real wird automatisch erkannt; für andere Executor-Workspaces ist -ClientWorkspace verfügbar. Keine Browser-Erweiterung erforderlich."},
+    {version="2.6.25",text="Die YouTube-Browsererweiterung wurde entfernt. Externe Windows-Musiksteuerung ist optional und setzt die lokale ISBMediaBridge.exe voraus. Das Roblox-Skript allein hat keinen Zugriff auf Spotify oder Browser-Player außerhalb des Spiels. Ohne bereitgestellte Zeitdaten erscheint ein verständlicher Hinweis statt 00:00 / 00:00. Alle anderen Menüfunktionen bleiben ohne Zusatzprogramm nutzbar."},
+    {version="2.6.23",text="Benachrichtigungen: Symbol und kompletter Textblock sind vertikal mittig ausgerichtet. Die Kartenhöhe richtet sich nach der gemessenen Texthöhe mit gleichmäßigen Abständen oben und unten, auch bei mehrzeiligen Meldungen."},
+    {version="2.6.22",text="Die Serverliste zeigt bei HTTP 429 eine verständliche Rate-Limit-Meldung und pausiert Anfragen für 30 Sekunden. Der Aktualisieren-Knopf begrenzt schnelle Wiederholungen auf eine Anfrage je zwei Sekunden. Andere Ladefehler zeigen ebenfalls einen verständlichen Hinweis statt interner Fehlermeldungen. Abgewiesene Klicks verändern die aktuelle Seite nicht."},
+    {version="2.6.21",text="Skript-Hub und Serverliste teilen dieselbe kompakte Seitennavigation: Zurück, Seitenanzeige, Weiter. Bei einer einzigen Serverseite steht 1 / 1. Solange weitere Cursor-Seiten existieren und die Gesamtzahl unbekannt ist, zeigt der Nenner eine Ellipse."},
+    {version="2.6.20",text="Skript-Hub: Zurück und Weiter stehen mit kleinem Abstand direkt nebeneinander; die Seitenanzeige folgt als dezentes Feld. Aufrufzahlen und Seitenzahlen erhalten deutsche Tausenderpunkte."},
+    {version="2.6.19",text="Der blaue Roblox-Haken erscheint auch direkt hinter dem Namen in der Spieler-Detailansicht. Lange Namen behalten Platz für Haken und Avatar."},
+    {version="2.6.18",text="Spieler mit blauem Roblox-Haken zeigen diesen auch direkt hinter dem Namen, einschließlich verifizierter Freunde und Admins. Lange Namen werden gekürzt und behalten Platz für das Symbol."},
+    {version="2.6.17",text="Alle Hauptmenüs zeichnen ihre Kontur direkt auf der sichtbaren WindowSurface mit übereinstimmender Größe und Rundung. Beim Welcome-Intro begleitet ein kurzer, dezenter Ton jeden erscheinenden Dock-Button mit leicht steigender Tonhöhe. Der Ton wird vor der Sequenz vorbereitet und respektiert ausgeschaltete Sounds sowie reduzierte Animationen."},
+    {version="2.6.16",text="Uhrzeit und Datum behalten ihre Anordnung und Typografie. Die zusätzliche Hintergrundfläche und Umrandung sind entfernt."},
+    {version="2.6.15",text="Die Glaskontur sitzt direkt auf der sichtbaren Fläche, auch im Roleplay-Menü. Schließen-Buttons verwenden ein zentriertes, aus zwei Linien gezeichnetes X."},
+    {version="2.6.14",text="Buttonkonturen liegen direkt auf der bewegten Fläche und verwenden deren Rundung. Spiellink und Join-Script teilen eine Zeile, ebenso die vier Aktionen in Spielerdetails. Alle Musikquellen erhalten beim Auswählen dieselbe unmittelbare Akzentmarkierung. Ein dezentes Datum unter der Dock-Uhr nutzt den vorhandenen Platz."},
+    {version="2.6.13",text="Die gemeinsame GlassEdge-Kontur folgt nun ebenfalls dem halben Pixel Randabstand der sichtbaren Fläche; die bisherige 2-px-Geometrie ließ unter der Statuskontur einen Streifen stehen. Das betrifft auch andere Glasflächen."},
+    {version="2.6.12",text="Gemeinsame Konturen: sichtbare Flächen und Rahmen benutzen dieselbe Geometrie und Rundung. Ein 1-px-Rahmen liegt mit 0.5-px-Inset direkt an der bewegten Fläche. Das gilt auch für Freund-/Admin-Karten. Dock-Symbole bleiben im relativen Mittelpunkt des animierten Bereichs; die zweite unabhängige Icon-Vergrößerung entfällt."},
+    {version="2.6.11",text="Standardknöpfe: mittig ausgerichtete Beschriftung mit 11 px und optischer Höhenkorrektur. Reset-Symbol und Text behalten getrennte Bereiche."},
+    {version="2.6.10",text="Standardknöpfe: Icon und Beschriftung haben getrennte Bereiche mit acht Pixeln Abstand. Gemeinsames UIPadding wurde entfernt, damit es das Icon nicht in den Text verschiebt. Beide Inhalte bleiben im animierten Button-Face."},
+    {version="2.6.9",text="Standardknöpfe sitzen neben dem Zahlenfeld im oberen Kartenbereich. Helligkeit, Lautstärke und Menügröße benötigen dadurch keine zusätzliche leere Zeile. Shader-Texte und Kommentare verwenden neutrale Namen."},
+    {version="2.6.8",text="Bewegung: Reset setzt nur den ausgewählten Regler zurück. Die vier Flugstufen bleiben GLIDE 55, NORMAL 110, FAST 140 und TURBO 250 studs/s; ein Stufenwechsel benötigt jetzt 48 Pixel Zugweg. Alle vier Stufen sind beschriftet. Mehrfachsprung stellt den Sprungimpuls einmal nach dem Physikschritt wieder her, auch bei R15 und JumpHeight-Steuerung, ohne dauerhaft nach oben zu drücken."},
+    {version="2.6.7",text="Auf dem Kopf hält den Avatar jetzt aufrecht und übernimmt die horizontale Blickrichtung des Ziels. Der bisherige senkrechte Abwärtsblick drehte den ganzen Charakter auf den Bauch. Animationsasset und eingefrorene Pose bei Sekunde 2 bleiben erhalten. Die tatsächliche Sitzhöhe hängt vom Avatar ab und die Optik benötigt noch Bestätigung im Spiel."},
+    {version="2.6.6",text="Performance: Inventarleisten werden zwischengespeichert. Vollständige GUI-Suchen erfolgen beim Start und nach relevanten Strukturänderungen, nicht mehr zweimal pro Sekunde. Unveränderte Inventarleisten prüfen nur die bekannten Elemente. Eigene Körperteile werden für Noclip/Roleplay einmal erfasst und bei hinzugefügten Teilen ergänzt. Detailwerte werden nur in der geöffneten Detailansicht aktualisiert; unveränderte Sprunghöhe und eingefrorene Animation werden nicht ständig neu geschrieben."},
+    {version="2.6.5",text="Kopierbuttons in Spieler-Details animieren Fläche, Kontur und Symbol gemeinsam; das Symbol wird nicht zusätzlich aufgeblasen. Wiederholtes Hover wird geprüft. Bewegung und Darstellung haben keine Suchleiste mehr. Die Serversuche filtert die geladene Seite nach Server-ID und Spielerzahl; die öffentliche Serverliste liefert keine Spielernamen oder privaten Einladungscodes. Favoriten durchsucht ausschließlich gespeicherte Funktionen. Skripte verwendet die gestalteten Filter Beliebt / Neu / Favoriten ohne frei stehendes Entdecken-Label."},
+    {version="2.6.4",text="Executor-Kompatibilität: Die Begrüßung wird in einer eigenen Funktion aufgebaut. Der unoptimierte Luau-Compiler überschritt in 2.6.3 beim Aufbau der Begrüßung die Grenze von 200 lokalen Registern; Optimierungsstufe 1 und 2 waren nicht betroffen. 2.6.4 kompiliert nun auf allen drei Stufen (-O0, -O1 und -O2). 1707 simulierte Interaktions-/Lifecycle-Prüfungen bestehen weiterhin."},
+    {version="2.6.3",text="Die vier Flugstufen übernehmen die festen Geschwindigkeiten und Namen der Flugreferenz: GLIDE 55, NORMAL 110, FAST 140 und TURBO 250 studs/s. Q und der Knopf in der Flugleiste schalten die Stufen zyklisch. Der Flight-Regler wählt nun die Stufe 1–4; ein alter gespeicherter Basiswert verändert die Originalgeschwindigkeiten nicht mehr. Reset setzt Stufe 1. Flugleiste und Animationen verwenden dieselbe Stufentabelle, einschließlich der Originalfarben. Die bestehende ISB-Flugphysik mit weicher Beschleunigung bleibt erhalten."},
+    {version="2.6.2",text="Die Flugleiste bietet Fly, Mysterious, Villain Fly, Superman und Halloween Fly aus der Flugreferenz. Der Standardstyle heißt Fly; der Dropdown-Pfeil wird aus Formen gezeichnet. Frühere gespeicherte TLFly-Auswahlen werden übernommen. Die Auswahl bleibt gespeichert und kann während des Fluges geändert werden. Stufe 1 verwendet die Gleitpose, Stufe 2 die ruhige Flugpose; Stufen 3/4 wechseln abhängig von der tatsächlich erreichten Geschwindigkeit zur Vorwärtspose. Stufe 4 verwendet bei Styles mit zusätzlichem Clip die schnelle Alternativpose. Übergänge blenden weich über. Q und die bisherigen vier Geschwindigkeitsfaktoren bleiben erhalten."},
+    {version="2.6.1",text="Button-Konturen liegen innerhalb der bewegten Fläche mit zwei Pixeln Abstand. Scrollinhalte haben Sicherheitsabstände oben und links. Freund- und Admin-Flächen sowie ihre Konturen übernehmen denselben Radius und Abstand wie die Karten; doppelte Standardflächen entfallen. Die Renderflächen der gestaffelten Begrüßung reservieren Platz für Hover-Vergrößerung und Anhebung."},
+    {version="2.6.0",text="Freunde erhalten blaue, Spiel-Admins rote Karten samt Kennzeichnung. Bei blauem Akzent erscheinen normale ESP-Markierungen goldgelb; Freunde bleiben blau und Admins rot. Roleplay folgt dem Ziel direkt nach der Charakteraktualisierung ohne die bisherige Lerp-Verzögerung. Zielgeschwindigkeit wird übernommen; die bereits bestätigte Avatar-Sichtbarkeit bleibt erhalten. Das Verhalten bei bewegten Zielen benötigt weiterhin einen Test mit einem anderen Spieler."},
+    {version="2.5.8",text="Die obere Aktivitätskapsel wurde nach dem Live-Test auf Benutzerwunsch vollständig entfernt. Musik, Timer und Stoppuhr liegen im normalen Musikmenü. Beide Uhren laufen unabhängig weiter; jede hat Pause/Weiter und Zurücksetzen. Helligkeit lässt sich in Darstellung einstellen. Die Begrüßung „Hey, <Anzeigename>.“ blendet am Dock ein und geht danach in die Navigation über; reduzierte Bewegung wird berücksichtigt."},
+    {version="2.4",text="- Neue Rollskala für Speed, Jump, Flight, FOV und Musiklautstärke. Teilstriche und Zahlen bewegen sich unter einer festen Mittelmarkierung; kein verschiebbarer Punkt und keine Fülllinie. Nach links ziehen erhöht den Wert, nach rechts verringert ihn. Der gesamte sichtbare Skalenbereich ist der Griff. Während des Ziehens pausiert das Scrollen des Panels.\n- Die Zahl ist ein editierbares Feld. Eingaben oberhalb des voreingestellten Skalenbereichs sind möglich; Komma und Dezimalpunkt werden akzeptiert. Beim nächsten Ziehen kehrt der Regler in den voreingestellten Bereich zurück.\n- Manuelle Bereiche: Speed/Jump/Flight 0–10.000, FOV 1–120 Grad, Lautstärke 0–1.000 Prozent. Ungültige oder nicht endliche Eingaben werden abgewiesen. Skala: Speed 8–120, Jump 20–150, Flight 5–150, FOV 40–110, Lautstärke 0–100.\n- Flugbewegung mit kontinuierlicher, kritisch gedämpfter Beschleunigung und Bremsung vor dem Physikschritt. Gleiche Zielgeschwindigkeit bei unterschiedlichen Physikraten; weichere Übergänge und höhere Orientierungsresponsivität.\n- Lauf-/Schrittgeräusche des eigenen Charakters werden während des Fluges gezielt stummgeschaltet; ursprüngliche Lautstärken werden beim Ausschalten, Respawn und Beenden wiederhergestellt. Auch neu angelegte Schrittgeräusche werden berücksichtigt. Andere Musik bleibt unverändert.\n- F/Z/E/V schalten die Funktionen um. Alle sieben Belegungen sind in Einstellungen → Tasten änderbar und werden gespeichert. Doppelte Belegungen werden abgewiesen; Textfelder und bereits verarbeitete Eingaben lösen keine Aktionen aus.\n- Ersatzzeiger aus 2.3.1 vollständig entfernt. Das Menü zeichnet keinen eigenen Mauszeiger und ändert weder MouseIcon noch MouseIconEnabled. Interaktive Text-/Bildflächen ersetzen native GuiButtons, um deren Handzeiger-Wechsel zu umgehen. Klick, Touch, Hover und Tastaturauswahl bleiben bedienbar; Fokusverlust verwirft einen begonnenen Klick."},
+    {version="2.3",text="- Glossy Dark mit Lichtverläufen und enthaltenen Rahmen; Akzent einstellbar.\n- Hinweiskarten erscheinen nur bei geschlossenem Panel und geschlossener Schnellsuche. Bei offenen Panels reagiert nur das Dock-Symbol auf Hover.\n- Statusleiste ignoriert den Roblox-GUI-Abstand und sitzt direkt oben rechts.\n- Profil mit Avatar, Rolle, Kontoalter, UserId, Sammlung, Executor, Version, Place/Universe, Sitzung und Speicherstatus.\n- Profilwerkzeuge zum Kopieren von Sitzungsdaten und Exportieren der Einstellungen. Owner/Admin erhalten lokale Diagnose-, Benachrichtigungs- und Erkennungswerkzeuge.\n- Automatisches Speichern von Einstellungen, Tasten, Reglerwerten, Lautstärke, Erkennung, Performance, Anbieter und Favoriten.\n- Skripte laden direkt beim Öffnen: Beliebt, Neu oder Favoriten. Karten mit Titel, Spiel, Aufrufen und Vorschaubild, soweit verfügbar.\n- Overhead-Anbindung und zugehöriges Server-Skript entfernt."},
+}
 function runtime.drawSessionCard(includeJoin)
     local link="https://www.roblox.com/games/"..tostring(game.PlaceId)
     local job=tostring(game.JobId or "")
@@ -2198,6 +2379,7 @@ local function drawDashboard()
     rowButton(f,"Serverliste",UDim2.fromOffset(0,260),UDim2.fromOffset(114,30),function() selectPage("Server") end)
     rowButton(f,"Rejoin",UDim2.fromOffset(124,260),UDim2.fromOffset(96,30),rejoin)
     rowButton(f,"Voice",UDim2.fromOffset(230,260),UDim2.fromOffset(96,30),function() page="Voice"; query=""; render(); refreshVoice() end)
+    rowButton(f,"Wegpunkte",UDim2.fromOffset(336,260),UDim2.fromOffset(110,30),function() selectPage("Wegpunkte") end)
 end
 local function updateDashboard()
     local fields=dashboardRefs
@@ -3221,6 +3403,9 @@ render = function()
     local revision=runtime.renderRevision
     clearRows()
     pageTitle.Text=page == "Start" and "ISB Menu" or page
+    pageTitle.Size=page=="Start" and UDim2.fromOffset(104,22) or UDim2.new(1,-154,0,22)
+    runtime.versionButton.Visible=page=="Start"
+    runtime.versionButton.TextColor3=C.accent; runtime.versionButton.BackgroundColor3=C.panel
     subtitle.Text=descriptions[page] or "Eigene Erweiterungen"
     local remote=page=="Skripte" and not scriptSearch.localMode
     local searchable=(page=="Spieler" and not runtime.selectedPlayer) or page=="Server" or page=="Skripte" or page=="Favoriten"
@@ -3243,14 +3428,20 @@ render = function()
         b.BackgroundColor3=name == page and C.card or C.panel
         for _,part in ipairs(navIcons[name]) do part.obj[part.property]=name==page and C.accent or C.muted end
     end
-    indicator.Visible=page~="Profil" and page~="Voice"
+    indicator.Visible=page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="Änderungen"
     if runtime.statusIcon then runtime.statusIcon.ImageColor3=C.accent end
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
     if page == "Start" then
         drawDashboard(); updateDashboard()
+    elseif page=="Wegpunkte" then
+        runtime.drawWaypoints()
+    elseif page=="Änderungen" then
+        runtime.drawChangelog()
     elseif page=="Bewegung" and query=="" then
         drawCharacter()
+        local shortcuts=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+        rowButton(shortcuts,"Wegpunkte",UDim2.new(),UDim2.fromOffset(120,30),function() selectPage("Wegpunkte") end)
     elseif page=="Server" then
         drawServers()
         if not servers.loaded and not servers.loading and not servers.error then fetchServers(nil) end
