@@ -1283,7 +1283,7 @@ function runtime.fitAuxiliary()
         local top=14+44*statusScale.Scale
         runtime.inspectorPanel.Position=UDim2.new(1,-6,0,top)
         local scale=runtime.inspectorPanel:FindFirstChildOfClass("UIScale")
-        if scale then scale.Scale=math.min(scale.Scale,math.max(.1,(viewport.Y-top-12)/374)) end
+        if scale then scale.Scale=math.min(scale.Scale,math.max(.1,(viewport.Y-top-12)/runtime.inspectorPanel.Size.Y.Offset)) end
     end
 end
 connect(gui.ChildAdded,function(child) if child:IsA("GuiObject") then runtime.fitAuxiliary() end end)
@@ -2934,6 +2934,82 @@ function runtime.hideInspector()
     runtime.inspectedPlayer=nil
     if runtime.inspectorPanel then runtime.inspectorPanel.Visible=false end
 end
+runtime.inspectorProfiles={}
+function runtime.inspectorMembership(other)
+    local ok,subscribed=pcall(function() return other.HasRobloxSubscription end)
+    local legacyOK,legacy=pcall(function() return other.MembershipType end)
+    if (ok and subscribed==true) or (legacyOK and legacy==Enum.MembershipType.Premium) then return "Ja" end
+    if (ok and subscribed==false) or (legacyOK and legacy==Enum.MembershipType.None) then return "Nein" end
+    return "Nicht verfügbar"
+end
+function runtime.requestInspectorProfile(other)
+    local cache=runtime.inspectorProfiles[other.UserId] or {}; runtime.inspectorProfiles[other.UserId]=cache
+    for _,kind in ipairs({"account","friends","history"}) do
+        local entry=cache[kind]
+        if not entry or (not entry.loading and os.clock()-(entry.updated or 0)>(entry.error and 30 or 300)) then
+            local pending={loading=true}; cache[kind]=pending
+            task.spawn(function()
+                local url=kind=="account" and ("https://users.roblox.com/v1/users/"..other.UserId)
+                    or kind=="friends" and ("https://friends.roblox.com/v1/users/"..other.UserId.."/friends/count")
+                    or ("https://users.roblox.com/v1/users/"..other.UserId.."/username-history?limit=10&sortOrder=Desc")
+                local ok,data=pcall(requestJSON,url)
+                local valid=ok and type(data)=="table" and ((kind=="account" and data.id==other.UserId and type(data.created)=="string")
+                    or (kind=="friends" and type(data.count)=="number" and data.count>=0)
+                    or (kind=="history" and type(data.data)=="table"))
+                if not alive or cache[kind]~=pending then return end
+                cache[kind]={data=valid and data or nil,error=not valid,updated=os.clock()}
+                if valid and kind=="history" then
+                    local profile=runtime.profileData[other.UserId] or {}; runtime.profileData[other.UserId]=profile
+                    if not profile.history then profile.history={data=data.data} end
+                end
+                runtime.refreshInspector()
+            end)
+        end
+    end
+end
+function runtime.inspectorPublicValues(other)
+    local cache=runtime.inspectorProfiles[other.UserId] or {}
+    local account,friends,history=cache.account,cache.friends,cache.history
+    local joined=account and account.loading and "Lädt …" or "Nicht verfügbar"
+    local age=tostring(other.AccountAge or "—").." Tage"
+    if account and account.data then
+        local year,month,day=account.data.created:match("^(%d%d%d%d)%-(%d%d)%-(%d%d)")
+        if year then joined=day.."."..month.."."..year end
+        local ok,days=pcall(function() return math.floor((DateTime.now().UnixTimestamp-DateTime.fromIsoDate(account.data.created).UnixTimestamp)/86400) end)
+        if ok and days>=0 then age=tostring(days).." Tage" end
+    end
+    local count=friends and friends.data and tostring(friends.data.count) or friends and friends.loading and "Lädt …" or "Nicht verfügbar"
+    local aliases=history and history.loading and "Lädt …" or "Nicht verfügbar"
+    if history and history.data then
+        local names={}; for _,entry in ipairs(history.data.data) do if type(entry.name)=="string" then table.insert(names,entry.name) end end
+        aliases=#names==0 and "Keine" or table.concat(names,", ")
+    end
+    return age,joined,count,aliases
+end
+function runtime.inspectorTarget()
+    if not runtime.inspectorTool or runtime.inspectorTool.Parent~=player.Character or not runtime.inspectorMouse then return nil end
+    local target=runtime.inspectorMouse.Target
+    while target and target~=workspace do
+        if target:IsA("Model") then
+            local other=Players:GetPlayerFromCharacter(target)
+            if other then return other~=player and other.Parent and other or nil end
+        end
+        target=target.Parent
+    end
+end
+function runtime.clearInspectorHover()
+    runtime.inspectorHoverPlayer=nil
+    if runtime.inspectorHighlight then runtime.inspectorHighlight:Destroy(); runtime.inspectorHighlight=nil end
+end
+function runtime.updateInspectorHover()
+    local other=runtime.inspectorTarget()
+    if not other or not other.Character or not other.Character.Parent then runtime.clearInspectorHover(); return end
+    if runtime.inspectorHoverPlayer~=other or not runtime.inspectorHighlight or runtime.inspectorHighlight.Adornee~=other.Character then
+        runtime.clearInspectorHover(); runtime.inspectorHoverPlayer=other
+        runtime.inspectorHighlight=make("Highlight",{Name="ISBInspectorHover",Adornee=other.Character,DepthMode=Enum.HighlightDepthMode.Occluded,FillTransparency=1,OutlineTransparency=0,OutlineColor=C.accent},other.Character)
+    end
+    runtime.inspectorHighlight.OutlineColor=C.accent
+end
 function runtime.refreshInspector()
     local other=runtime.inspectedPlayer; local panel=runtime.inspectorPanel
     if not other or not panel or not panel.Visible then return end
@@ -2941,11 +3017,13 @@ function runtime.refreshInspector()
     local h=other.Character and other.Character:FindFirstChildOfClass("Humanoid")
     local a=other.Character and other.Character:FindFirstChild("HumanoidRootPart")
     local b=player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    local values={tostring(other.UserId),tostring(other.AccountAge or "—").." Tage",other.Team and other.Team.Name or "Kein Team",
+    local age,joined,count,aliases=runtime.inspectorPublicValues(other)
+    local values={tostring(other.UserId),age,other.Team and other.Team.Name or "Kein Team",
         h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verfügbar",
         a and b and string.format("%.0f Studs",(a.Position-b.Position).Magnitude) or "Nicht verfügbar",
-        runtime.groupRoles[other] or "Player"}
+        runtime.groupRoles[other] or "Player",runtime.inspectorMembership(other),joined,count,aliases}
     for i,value in ipairs(values) do runtime.inspectorFields[i].Text=value end
+    runtime.inspectorFields[7].TextColor3=values[7]=="Ja" and C.good or C.muted
     runtime.inspectorRelation.Text=runtime.gameStaff[other] and "ADMIN" or session.friends[other.UserId] and "FREUND" or "SPIELER"
     runtime.inspectorRelation.TextColor3=runtime.markerColor(session.friends[other.UserId],runtime.gameStaff[other]) or C.muted
 end
@@ -2955,7 +3033,7 @@ function runtime.showInspector(other)
     if runtime.inspectorPanel then runtime.inspectorPanel:Destroy() end
     if runtime.quickPanel then runtime.quickPanel.Visible=false end
     runtime.inspectedPlayer=other
-    local panel=make("CanvasGroup",{Name="ISBPlayerInspector",BackgroundTransparency=.08,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-6,0,58),Size=UDim2.fromOffset(360,374),ClipsDescendants=true},gui)
+    local panel=make("CanvasGroup",{Name="ISBPlayerInspector",BackgroundTransparency=.08,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-6,0,58),Size=UDim2.fromOffset(360,516),ClipsDescendants=true},gui)
     runtime.inspectorPanel=panel; round(panel,18); runtime.glassSurface(panel,18); stroke(panel)
     local heading=label(panel,"ISB / SPIELERINFO",14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-62,0,24)); heading.Font=Enum.Font.BuilderSansBold
     runtime.inspectorButton(panel,"×",UDim2.new(1,-42,0,10),UDim2.fromOffset(28,28),runtime.hideInspector)
@@ -2966,21 +3044,34 @@ function runtime.showInspector(other)
     label(header,"@"..other.Name,11,C.muted,UDim2.fromOffset(64,36),UDim2.new(1,-64,0,18))
     runtime.inspectorRelation=label(header,"",10,C.muted,UDim2.fromOffset(0,62),UDim2.new(1,0,0,16))
     runtime.inspectorFields={}
-    for i,title in ipairs({"Benutzer-ID","Accountalter","Team","Gesundheit","Entfernung","Gruppenrolle"}) do
-        local cell=make("Frame",{BackgroundTransparency=1,Position=UDim2.new((i-1)%2*.5,16,0,140+math.floor((i-1)/2)*51),Size=UDim2.new(.5,-24,0,44)},panel)
+    local info=make("ScrollingFrame",{Name="InspectorInformation",BackgroundTransparency=1,BorderSizePixel=0,Position=UDim2.fromOffset(0,132),Size=UDim2.new(1,0,0,268),CanvasSize=UDim2.fromOffset(0,264),ScrollBarThickness=3,ScrollBarImageColor3=C.accent,ScrollingDirection=Enum.ScrollingDirection.Y},panel)
+    for i,title in ipairs({"Benutzer-ID","Accountalter","Team","Gesundheit","Entfernung","Gruppenrolle","Plus / Premium","Erstellt am","Freunde","Frühere Namen"}) do
+        local cell=make("Frame",{BackgroundTransparency=1,Position=UDim2.new((i-1)%2*.5,16-((i-1)%2)*8,0,8+math.floor((i-1)/2)*51),Size=UDim2.new(.5,-24,0,44)},info)
         label(cell,title,10,C.muted,UDim2.new(),UDim2.new(1,0,0,16))
         local value=label(cell,"",13,C.text,UDim2.fromOffset(0,18),UDim2.new(1,0,0,22)); value.TextWrapped=false; value.TextTruncate=Enum.TextTruncate.AtEnd
-        runtime.inspectorFields[i]=value
+        value.Name="InspectorValue"..i; runtime.inspectorFields[i]=value
     end
-    runtime.inspectorButton(panel,"Profil-Link",UDim2.fromOffset(16,300),UDim2.new(.5,-22,0,34),function() copyText("https://www.roblox.com/users/"..other.UserId.."/profile") end)
-    runtime.inspectorButton(panel,"Alle Details",UDim2.new(.5,6,0,300),UDim2.new(.5,-22,0,34),function()
+    runtime.inspectorButton(panel,session.friends[other.UserId] and "Befreundet" or "Freund anfragen",UDim2.fromOffset(16,412),UDim2.new(1/3,-20,0,30),function()
+        if not other.Parent or session.friends[other.UserId] then return end
+        local ok=pcall(function() game:GetService("StarterGui"):SetCore("PromptSendFriendRequest",other) end)
+        if not ok then notify("Roblox-Freundschaftsdialog ist hier nicht verfügbar.","Freunde") end
+    end)
+    for i,entry in ipairs({{"Outfits","outfits"},{"Namen","history"}}) do
+        runtime.inspectorButton(panel,entry[1],UDim2.new(i/3,6,0,412),UDim2.new(1/3,-22,0,30),function()
+            if not other.Parent then runtime.hideInspector(); return end
+            setDockVisible(true); page="Spieler"; query=""; runtime.selectedPlayer=other; runtime.profileTab=entry[2]; runtime.profileRequest(other,entry[2]); render(); setOpen(true); runtime.hideInspector()
+        end)
+    end
+    runtime.inspectorButton(panel,"Profil-Link",UDim2.fromOffset(16,452),UDim2.new(.5,-22,0,34),function() copyText("https://www.roblox.com/users/"..other.UserId.."/profile") end)
+    runtime.inspectorButton(panel,"Alle Details",UDim2.new(.5,6,0,452),UDim2.new(.5,-22,0,34),function()
         if not other.Parent then runtime.hideInspector(); return end
         setDockVisible(true); page="Spieler"; query=""; runtime.selectedPlayer=other; runtime.profileTab=nil; render(); setOpen(true); runtime.hideInspector()
     end)
-    label(panel,"Item ausrüsten · anderen Spieler anklicken",10,C.muted,UDim2.fromOffset(16,344),UDim2.new(1,-32,0,18))
-    runtime.refreshInspector(); runtime.fitAuxiliary()
+    label(panel,"Item ausrüsten · anderen Spieler anklicken",10,C.muted,UDim2.fromOffset(16,492),UDim2.new(1,-32,0,18))
+    runtime.refreshInspector(); runtime.fitAuxiliary(); runtime.requestInspectorProfile(other)
 end
 function runtime.destroyInspectorTool()
+    runtime.clearInspectorHover()
     for _,connection in ipairs(runtime.inspectorToolConnections or {}) do connection:Disconnect() end
     runtime.inspectorToolConnections={}; runtime.inspectorMouse=nil
     if runtime.inspectorTool then runtime.inspectorTool:Destroy(); runtime.inspectorTool=nil end
@@ -2994,17 +3085,11 @@ function runtime.ensureInspectorTool()
     local tool=make("Tool",{Name="ISB Spielerinfo",ToolTip="ISB · Ausrüsten und einen Spieler anklicken",RequiresHandle=false,CanBeDropped=false,TextureId=iconAsset("isb-inspect") or ""},backpack)
     runtime.inspectorTool=tool
     table.insert(runtime.inspectorToolConnections,tool.Equipped:Connect(function(mouse) runtime.inspectorMouse=mouse or player:GetMouse() end))
-    table.insert(runtime.inspectorToolConnections,tool.Unequipped:Connect(function() runtime.inspectorMouse=nil end))
+    table.insert(runtime.inspectorToolConnections,tool.Unequipped:Connect(function() runtime.inspectorMouse=nil; runtime.clearInspectorHover() end))
     table.insert(runtime.inspectorToolConnections,tool.Activated:Connect(function()
         if not alive or tool.Parent~=player.Character or not runtime.inspectorMouse then return end
-        local target=runtime.inspectorMouse.Target
-        while target and target~=workspace do
-            if target:IsA("Model") then
-                local other=Players:GetPlayerFromCharacter(target)
-                if other then runtime.showInspector(other); return end
-            end
-            target=target.Parent
-        end
+        local other=runtime.inspectorTarget()
+        if other then runtime.showInspector(other) end
     end))
 end
 connect(player.ChildAdded,function(child) if child:IsA("Backpack") then task.defer(runtime.ensureInspectorTool) end end)
@@ -3448,6 +3533,7 @@ end)
 local visualTimer, fpsTime, frames = 0,0,0
 local lastViewport, lastCamera = nil,nil
 connect(Run.RenderStepped,function(dt)
+    runtime.updateInspectorHover()
     if opened and page=="Musik" then runtime.mediaProgress() end
     if opened and page=="Spieler" then runtime.fillPlayerRows() end
     if activeSlider and activeSlider.id=="mediavolume" then
@@ -3582,6 +3668,7 @@ end
 connect(Players.PlayerAdded,function(other) features.detectGameStaff(other,true); refreshPlayers() end)
 connect(Players.PlayerRemoving,function(other)
     if runtime.inspectedPlayer==other then runtime.hideInspector() end
+    if runtime.inspectorHoverPlayer==other then runtime.clearInspectorHover() end
     if runtime.roleplay and runtime.roleplay.target==other then runtime.stopRoleplay() end
     if runtime.quickTarget==other then runtime.quickTarget=nil; if runtime.quickPanel and runtime.quickPanel.Visible then runtime.buildQuickPanel(); runtime.quickPanel.Visible=true end end
     if session.friends[other.UserId] then notify(other.DisplayName.." hat den Server verlassen.","Freund verlassen","users") end

@@ -1,4 +1,8 @@
-# ISB Menu 2.6.30 · by Larsiopuw
+# ISB Menu 2.6.31 · by Larsiopuw
+
+## Änderungen in 2.6.31
+
+Spielerinfo: Plus/Premium-Mitgliedschaft über HasRobloxSubscription mit MembershipType-Fallback; fehlende Daten werden als nicht verfügbar angezeigt. Ergänzt: genaues öffentliches Erstellungsdatum, Freundesanzahl und frühere Namen mit asynchronem Cache; direkte Aktionen für Freundschaft, Outfits und Namenshistorie. Mitgliedschaft bleibt bei HTTP-Fehlern verfügbar. Die rechte Karte skaliert mit dem Menü und bleibt bei kleinen Fenstern im Bild. Ausgerüstetes Tool markiert den Spieler unter der Maus mit einer Akzentkontur, respektiert verdeckende Geometrie und entfernt die eigene Markierung beim Ablegen, Zielwechsel, Respawn, Verlassen oder Cleanup. Fremder Spieler-Ping wird nicht geschätzt: Roblox GetNetworkPing ist clientseitig nur für LocalPlayer verfügbar.
 
 ## Änderungen in 2.6.30
 
