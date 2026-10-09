@@ -1,4 +1,8 @@
-# ISB Menu 2.6.39 · by Larsiopuw
+# ISB Menu 2.6.40 · by Larsiopuw
+
+## Änderungen in 2.6.40
+
+Versionsbutton sitzt acht Pixel hinter dem gemessenen Menütitel. Changelog-Karten berechnen ihre Höhe aus dem Text; dekorative Flächen beeinflussen das Layout nicht mehr. Leerflächen und übergroße Karten sind entfernt.
 
 ## Änderungen in 2.6.39
 

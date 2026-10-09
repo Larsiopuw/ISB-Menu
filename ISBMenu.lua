@@ -1,7 +1,7 @@
--- ISB Menu 2.6.39 | Own-game universal client toolkit
+-- ISB Menu 2.6.40 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.39",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.40",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -2164,20 +2164,57 @@ function runtime.drawWaypoints()
         end
     end
 end
+function runtime.layoutVersionButton()
+    local width=84
+    if pageTitle.Text=="ISB Menu" and pageTitle.TextBounds and pageTitle.TextBounds.X>0 then
+        width=math.ceil(pageTitle.TextBounds.X)
+    elseif runtime.textService then
+        local ok,bounds=pcall(function() return runtime.textService:GetTextSize("ISB Menu",pageTitle.TextSize,pageTitle.Font,Vector2.new(10000,24)) end)
+        if ok and bounds then width=math.ceil(bounds.X) end
+    end
+    pageTitle.Size=UDim2.fromOffset(width,22)
+    runtime.versionButton.Position=UDim2.fromOffset(51+width+8,13)
+end
+connect(pageTitle:GetPropertyChangedSignal("TextBounds"),function()
+    if page=="Start" then runtime.layoutVersionButton() end
+end)
+function runtime.changelogTextHeight(text,width)
+    if runtime.textService then
+        local ok,bounds=pcall(function() return runtime.textService:GetTextSize(text,13,Enum.Font.BuilderSansMedium,Vector2.new(width,100000)) end)
+        if ok and bounds and bounds.Y>0 then return math.ceil(bounds.Y)+4 end
+    end
+    local lines=0
+    for paragraph in (text.."\n"):gmatch("(.-)\n") do
+        lines=lines+math.max(1,math.ceil((utf8.len(paragraph) or #paragraph)*7/width))
+    end
+    return lines*18+4
+end
 function runtime.drawChangelog()
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
     rowButton(back,"← Start",UDim2.new(),UDim2.fromOffset(90,28),function() selectPage("Start") end)
-    for index,entry in ipairs(runtime.changelog) do
-        local tile=make("Frame",{Name="ChangelogEntry",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=index},content)
-        round(tile,16); runtime.contentSurface(tile,16)
-        make("UIPadding",{PaddingTop=UDim.new(0,14),PaddingBottom=UDim.new(0,16),PaddingLeft=UDim.new(0,16),PaddingRight=UDim.new(0,16)},tile)
-        make("UIListLayout",{Padding=UDim.new(0,8),SortOrder=Enum.SortOrder.LayoutOrder},tile)
-        local heading=label(tile,"Version "..entry.version..(index==1 and "  ·  Aktuell" or ""),15,index==1 and C.accent or C.text,UDim2.new(),UDim2.new(1,0,0,22)); heading.LayoutOrder=1; heading.Font=Enum.Font.BuilderSansBold
-        local body=label(tile,entry.text,13,C.muted,UDim2.new(),UDim2.new(1,0,0,0)); body.LayoutOrder=2; body.AutomaticSize=Enum.AutomaticSize.Y; body.TextWrapped=true; body.TextYAlignment=Enum.TextYAlignment.Top
+    local refs={}
+    local function resize()
+        local width=math.max(120,content.AbsoluteSize.X/math.max(.1,scale.Scale)-46)
+        for _,ref in ipairs(refs) do
+            if ref.tile.Parent then
+                local height=runtime.changelogTextHeight(ref.body.Text,width)
+                ref.body.Size=UDim2.new(1,-32,0,height)
+                ref.tile.Size=UDim2.new(1,0,0,44+height+16)
+            end
+        end
     end
+    for index,entry in ipairs(runtime.changelog) do
+        local tile=make("Frame",{Name="ChangelogEntry",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,80),LayoutOrder=index},content)
+        round(tile,16); runtime.contentSurface(tile,16)
+        local heading=label(tile,"Version "..entry.version..(index==1 and "  ·  Aktuell" or ""),15,index==1 and C.accent or C.text,UDim2.fromOffset(16,14),UDim2.new(1,-32,0,22)); heading.Font=Enum.Font.BuilderSansBold
+        local body=label(tile,entry.text,13,C.muted,UDim2.fromOffset(16,44),UDim2.new(1,-32,0,22)); body.TextWrapped=true; body.TextYAlignment=Enum.TextYAlignment.Top
+        table.insert(refs,{tile=tile,body=body})
+    end
+    resize()
+    rowConnect(content:GetPropertyChangedSignal("AbsoluteSize"),resize)
+    rowConnect(scale:GetPropertyChangedSignal("Scale"),resize)
+    task.defer(resize)
 end
--- by Larsiopuw
-
 function runtime.validateWaypoints()
     local cleaned={}
     for key,list in pairs(settings.waypoints) do
@@ -2204,6 +2241,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.40",text="Versionsbutton sitzt acht Pixel hinter dem gemessenen Menütitel. Changelog-Karten berechnen ihre Höhe aus dem Text; dekorative Flächen beeinflussen das Layout nicht mehr. Leerflächen und übergroße Karten sind entfernt."},
     {version="2.6.39",text="Wegpunkte pro Spiel speichern, umbenennen und löschen. Teleport oder Freecam direkt am Wegpunkt starten. Klickbare Versionsanzeige im Startmenü mit scrollbarer Änderungshistorie; neueste Version zuerst. Versionsangaben im Skript vereinheitlicht."},
     {version="2.6.38",text="Beim Ablegen des Spielerinfo-Items oder Ausrüsten eines anderen Items wird die Spielerinfo rechts geschlossen. Erneutes Ausrüsten öffnet die vorherige Auswahl nicht automatisch; ein neuer Klick auf einen Spieler öffnet seine Informationen."},
     {version="2.6.37",text="Freecam bleibt bei Fenster-Fokusverlust, Charakterwechsel und Austausch der Roblox-Kamera aktiv. Bei Fokusverlust pausieren Bewegung und Maussteuerung; beim Zurückkehren geht es an derselben Kameraposition weiter. Ein Kamera-Reset durch das Spiel beendet Freecam nicht mehr. L beendet weiterhin manuell, N teleportiert und beendet."},
@@ -3403,7 +3441,7 @@ render = function()
     local revision=runtime.renderRevision
     clearRows()
     pageTitle.Text=page == "Start" and "ISB Menu" or page
-    pageTitle.Size=page=="Start" and UDim2.fromOffset(104,22) or UDim2.new(1,-154,0,22)
+    if page=="Start" then runtime.layoutVersionButton() else pageTitle.Size=UDim2.new(1,-154,0,22) end
     runtime.versionButton.Visible=page=="Start"
     runtime.versionButton.TextColor3=C.accent; runtime.versionButton.BackgroundColor3=C.panel
     subtitle.Text=descriptions[page] or "Eigene Erweiterungen"
