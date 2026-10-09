@@ -1,4 +1,8 @@
-# ISB Menu 2.6.32 · by Larsiopuw
+# ISB Menu 2.6.33 · by Larsiopuw
+
+## Änderungen in 2.6.33
+
+Bei Menüposition Rechts stehen Benachrichtigungen unten links. Bei Links und Mitte stehen sie weiterhin unten rechts. Der gesamte Stapel wechselt beim Umstellen sofort mit; Menüskalierung und 12 Pixel Abstand zum Bildschirmrand bleiben erhalten.
 
 ## Änderungen in 2.6.32
 

@@ -1299,6 +1299,9 @@ local function fit()
     host.AnchorPoint=Vector2.new(anchor,1)
     local position=UDim2.new(anchor,anchor==0 and 12 or (anchor==1 and -12 or 0),1,-(runtime.dockClearance or 18))
     if runtime.dockFitReady then animate(host,{Position=position}) else host.Position=position; runtime.dockFitReady=true end
+    local noticeLeft=settings.alignment=="Right"
+    notificationStack.AnchorPoint=Vector2.new(noticeLeft and 0 or 1,1)
+    notificationStack.Position=UDim2.new(noticeLeft and 0 or 1,noticeLeft and 12 or -12,1,-12)
     notificationStack.Size=UDim2.new(0,math.min(300,math.max(120,size.X-24)),1,-24)
     runtime.fitAuxiliary()
 end
