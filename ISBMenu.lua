@@ -3746,14 +3746,21 @@ function runtime.attachFreecamCamera()
     local owned=runtime.freecam; local camera=workspace.CurrentCamera
     if not owned or not camera then return false end
     if camera~=owned.camera then
-        if owned.camera.Parent then
+        pcall(function()
             owned.camera.CameraType=owned.kind; owned.camera.CameraSubject=owned.subject and owned.subject.Parent and owned.subject or humanoid()
             owned.camera.CFrame=owned.frame; owned.camera.Focus=owned.focus; owned.camera.FieldOfView=owned.fov
-        end
+        end)
+        owned.cameras=owned.cameras or {}
+        owned.cameras[owned.camera]={kind=owned.kind,subject=owned.subject,frame=owned.frame,focus=owned.focus,fov=owned.fov,focusOffset=owned.focusOffset}
         owned.camera=camera
-        if camera.CameraType~=Enum.CameraType.Scriptable then owned.kind=camera.CameraType end
-        owned.subject=camera.CameraSubject; owned.frame=camera.CFrame; owned.focus=camera.Focus; owned.fov=camera.FieldOfView
-        owned.focusOffset=camera.Focus.Position-(root() and root().Position or camera.Focus.Position)
+        local saved=owned.cameras[camera]
+        if saved then
+            owned.kind=saved.kind; owned.subject=saved.subject; owned.frame=saved.frame; owned.focus=saved.focus; owned.fov=saved.fov; owned.focusOffset=saved.focusOffset
+        else
+            if camera.CameraType~=Enum.CameraType.Scriptable then owned.kind=camera.CameraType end
+            owned.subject=camera.CameraSubject; owned.frame=camera.CFrame; owned.focus=camera.Focus; owned.fov=camera.FieldOfView
+            owned.focusOffset=camera.Focus.Position-(root() and root().Position or camera.Focus.Position)
+        end
     end
     camera.CameraType=Enum.CameraType.Scriptable
     return true
