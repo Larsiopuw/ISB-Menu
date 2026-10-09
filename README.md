@@ -1,4 +1,8 @@
-# ISB Menu 2.6.36 · by Larsiopuw
+# ISB Menu 2.6.37 · by Larsiopuw
+
+## Änderungen in 2.6.37
+
+Freecam bleibt bei Fenster-Fokusverlust, Charakterwechsel und Austausch der Roblox-Kamera aktiv. Bei Fokusverlust pausieren Bewegung und Maussteuerung; beim Zurückkehren geht es an derselben Kameraposition weiter. Ein Kamera-Reset durch das Spiel beendet Freecam nicht mehr. L beendet weiterhin manuell, N teleportiert und beendet.
 
 ## Änderungen in 2.6.36
 

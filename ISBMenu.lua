@@ -3461,9 +3461,12 @@ connect(UIS.InputEnded,function(input)
     end
 end)
 connect(UIS.WindowFocusReleased,function()
-    if runtime.stopFreecam then runtime.stopFreecam() end
+    if runtime.setFreecamSuspended then runtime.setFreecamSuspended(true) end
     local slider=activeSlider; activeSlider=nil; content.ScrollingEnabled=true
     if slider and slider.finish then slider.finish() end
+end)
+connect(UIS.WindowFocused,function()
+    if runtime.setFreecamSuspended then runtime.setFreecamSuspended(false) end
 end)
 connect(Run.Stepped,function()
     if state.noclip and player.Character then
@@ -3659,7 +3662,6 @@ connect(Run.RenderStepped,function(dt)
     end
 end)
 connect(player.CharacterRemoving,function()
-    if runtime.stopFreecam then runtime.stopFreecam(false) end
     runtime.safeGround=nil; runtime.stopEmote(); runtime.stopRoleplay()
     stopFly(); restoreCollisions()
     table.clear(originals)
@@ -3716,6 +3718,10 @@ function runtime.teleportFromFreecam()
     local owned=runtime.freecam; local part=root(); local h=humanoid()
     if not owned then return end
     if not part or not h or h.Health<=0 then notify("Charakter ist gerade nicht verfügbar.","Freecam"); return end
+    if workspace.CurrentCamera~=owned.camera then
+        if not runtime.attachFreecamCamera() then notify("Kamera ist gerade nicht verfügbar.","Freecam"); return end
+        owned.camera.CFrame=CFrame.new(owned.position)*CFrame.Angles(0,owned.yaw,0)*CFrame.Angles(owned.pitch,0,0)
+    end
     local destination=owned.camera.CFrame.Position
     local look=owned.camera.CFrame.LookVector
     local forward=Vector3.new(look.X,0,look.Z)
@@ -3730,11 +3736,34 @@ function runtime.teleportFromFreecam()
     runtime.stopFreecam(false)
     notify("An Kameraposition teleportiert · Freecam beendet","Freecam","eye")
 end
+function runtime.setFreecamSuspended(suspended)
+    local owned=runtime.freecam; if not owned then return end
+    owned.suspended=suspended; owned.skipMouse=true
+    UIS.MouseBehavior=suspended and owned.mouseBehavior or Enum.MouseBehavior.LockCenter
+    UIS.MouseIconEnabled=suspended and owned.mouseIcon or false
+end
+function runtime.attachFreecamCamera()
+    local owned=runtime.freecam; local camera=workspace.CurrentCamera
+    if not owned or not camera then return false end
+    if camera~=owned.camera then
+        if owned.camera.Parent then
+            owned.camera.CameraType=owned.kind; owned.camera.CameraSubject=owned.subject and owned.subject.Parent and owned.subject or humanoid()
+            owned.camera.CFrame=owned.frame; owned.camera.Focus=owned.focus; owned.camera.FieldOfView=owned.fov
+        end
+        owned.camera=camera
+        if camera.CameraType~=Enum.CameraType.Scriptable then owned.kind=camera.CameraType end
+        owned.subject=camera.CameraSubject; owned.frame=camera.CFrame; owned.focus=camera.Focus; owned.fov=camera.FieldOfView
+        owned.focusOffset=camera.Focus.Position-(root() and root().Position or camera.Focus.Position)
+    end
+    camera.CameraType=Enum.CameraType.Scriptable
+    return true
+end
 function runtime.updateFreecam(dt)
     local owned=runtime.freecam; if not owned then return end
-    if workspace.CurrentCamera~=owned.camera then runtime.stopFreecam(); return end
-    if UIS:GetFocusedTextBox() then return end
-    local delta=UIS:GetMouseDelta()
+    if not runtime.attachFreecamCamera() then return end
+    local paused=owned.suspended or UIS:GetFocusedTextBox()~=nil
+    local delta=not paused and not owned.skipMouse and UIS:GetMouseDelta() or Vector2.zero
+    owned.skipMouse=false
     owned.pitch=math.clamp(owned.pitch-delta.Y*.003,-math.pi/2+.01,math.pi/2-.01)
     owned.yaw=owned.yaw-delta.X*.003
     local rotation=CFrame.Angles(0,owned.yaw,0)*CFrame.Angles(owned.pitch,0,0)
@@ -3743,7 +3772,7 @@ function runtime.updateFreecam(dt)
         +Vector3.new(0,axis(Enum.KeyCode.E,Enum.KeyCode.Q),0)
     if direction.Magnitude>1 then direction=direction.Unit end
     local speed=UIS:IsKeyDown(Enum.KeyCode.LeftShift) and 360 or 120
-    owned.position=owned.position+direction*speed*math.min(dt or 1/60,.1)
+    if not paused then owned.position=owned.position+direction*speed*math.min(dt or 1/60,.1) end
     owned.camera.CFrame=CFrame.new(owned.position)*rotation
     owned.camera.Focus=owned.camera.CFrame*CFrame.new(0,0,-16)
 end
