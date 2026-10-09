@@ -1,4 +1,8 @@
-# ISB Menu 2.6.40 · by Larsiopuw
+# ISB Menu 2.6.41 · by Larsiopuw
+
+## Änderungen in 2.6.41
+
+Versionsnotizen als getrennte Stichpunkte mit einheitlichen Abständen, Versionsüberschrift und Trennlinie. Ältere Einträge sind ebenfalls strukturiert; Bezüge auf andere Menüs wurden entfernt.
 
 ## Änderungen in 2.6.40
 
