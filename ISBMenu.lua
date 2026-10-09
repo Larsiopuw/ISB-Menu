@@ -3101,7 +3101,7 @@ function runtime.ensureInspectorTool()
     local tool=make("Tool",{Name="ISB Spielerinfo",ToolTip="ISB · Ausrüsten und einen Spieler anklicken",RequiresHandle=false,CanBeDropped=false,TextureId=iconAsset("isb-inspect") or ""},backpack)
     runtime.inspectorTool=tool
     table.insert(runtime.inspectorToolConnections,tool.Equipped:Connect(function(mouse) runtime.inspectorMouse=mouse or player:GetMouse() end))
-    table.insert(runtime.inspectorToolConnections,tool.Unequipped:Connect(function() runtime.inspectorMouse=nil; runtime.clearInspectorHover() end))
+    table.insert(runtime.inspectorToolConnections,tool.Unequipped:Connect(function() runtime.inspectorMouse=nil; runtime.clearInspectorHover(); runtime.hideInspector() end))
     table.insert(runtime.inspectorToolConnections,tool.Activated:Connect(function()
         if not alive or tool.Parent~=player.Character or not runtime.inspectorMouse then return end
         local other=runtime.inspectorTarget()

@@ -1,4 +1,8 @@
-# ISB Menu 2.6.37 · by Larsiopuw
+# ISB Menu 2.6.38 · by Larsiopuw
+
+## Änderungen in 2.6.38
+
+Beim Ablegen des Spielerinfo-Items oder Ausrüsten eines anderen Items wird die Spielerinfo rechts geschlossen. Erneutes Ausrüsten öffnet die vorherige Auswahl nicht automatisch; ein neuer Klick auf einen Spieler öffnet seine Informationen.
 
 ## Änderungen in 2.6.37
 
