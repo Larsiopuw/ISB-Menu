@@ -3717,7 +3717,11 @@ function runtime.teleportFromFreecam()
     if not owned then return end
     if not part or not h or h.Health<=0 then notify("Charakter ist gerade nicht verfügbar.","Freecam"); return end
     local offset=owned.camera.CFrame.Position-part.Position
-    part.CFrame=part.CFrame+offset
+    local destination=owned.camera.CFrame.Position
+    local look=owned.camera.CFrame.LookVector
+    local forward=Vector3.new(look.X,0,look.Z)
+    if forward.Magnitude<.0001 then forward=Vector3.new(-math.sin(owned.yaw),0,-math.cos(owned.yaw)) end
+    part.CFrame=CFrame.lookAt(destination,destination+forward.Unit,Vector3.new(0,1,0))
     part.AssemblyLinearVelocity=Vector3.zero; part.AssemblyAngularVelocity=Vector3.zero
     owned.frame=owned.frame+offset; owned.focus=owned.focus+offset
     runtime.safeGround=nil

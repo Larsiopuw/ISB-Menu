@@ -1,4 +1,8 @@
-# ISB Menu 2.6.34 · by Larsiopuw
+# ISB Menu 2.6.35 · by Larsiopuw
+
+## Änderungen in 2.6.35
+
+N übernimmt beim Teleportieren die horizontale Blickrichtung der Freecam. Der Charakter bleibt aufrecht, auch wenn die Kamera nach oben oder unten blickt. Die genaue Kameraposition sowie das automatische Beenden von Freecam bleiben erhalten.
 
 ## Änderungen in 2.6.34
 
