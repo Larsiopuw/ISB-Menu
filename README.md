@@ -1,4 +1,8 @@
-# ISB Menu 2.6.29 · by Larsiopuw
+# ISB Menu 2.6.30 · by Larsiopuw
+
+## Änderungen in 2.6.30
+
+Neues Inventar-Item **ISB Spielerinfo** mit eigenem ISB-Icon: ausrüsten und einen anderen Spieler anklicken. Rechts öffnet sich seine Spielerkarte mit Avatar, Verifizierung, Beziehung, Benutzer-ID, Accountalter, Team, Gesundheit, Entfernung und Gruppenrolle. Profil-Link kopieren oder vollständige Details öffnen. Das Item kehrt nach einem Respawn zurück und wird bei erneutem Laden nicht dupliziert. Die Karte skaliert mit der Menügröße und schließt sich per X oder Escape. Bei eigenen Inventarsystemen kann das Spiel die Roblox-Hotbar ausblenden; das Item liegt im lokalen Backpack.
 
 Glossy Dark: dunkles Graphit, durchscheinende Flächen, weiche Lichtkanten und ein einstellbarer Akzent. Feste Navigation unten mittig, Statusleiste sechs Pixel von der oberen rechten Spielkante entfernt.
 

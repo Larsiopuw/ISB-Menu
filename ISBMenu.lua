@@ -33,6 +33,7 @@ SOFTWARE.
 
 ]]
 local ICON_DATA = {
+    ["isb-inspect"]="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",
     ["home"] = "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAEgklEQVR4nO2d4XHTQBBG15n8hw4IFRA6MBWQVEDowHSQDiAVABWQVICogNBB0kGowNyNtTAIYsnSrnS33/dmNJ4kztnSe75YjiwfCYHmSAg0DAAcBgAOAwCHAYDDAMBhAOAwAHAYADgMAJxjAWO73Z6ki9dpeZqW0/bbt2l5SMvNarW6EyBWAkISv04X7+WP9MfIMbxLITQCQPgAkvj8SP+SlrUcRpOW8xTCgwQmdABJfn60f5XddD+GLP9ViuBWghI2AAP5SugIQgZgKF8JG0G4ABzkKyEjCBWAo3wlXARhAhgh/7Psdvky+XffDPy9UBGECOBA+T/Tctbdz29fJ7hOy5MBY4SJoPoARshfPyauHasRoAiqDsBSfmfMRkAiqDYAD/mdsRsBiKDKADzld26jkeARVBfAHPI7t9VI4AiqCmBO+Z3bbCRoBNUEsIT8zm03EjCCKgJYUn7nPjQSLILiA3B+tv8xX6brvx14/XARFB3ADPIv2i8/oUZQbAAzylcgIygygAXkK3ARFBfAgvIVqAiKCqAA+QpMBMUEUJB8BSKCIgIoUL4SPoLFAyhYvhI6gkUDqEC+EjaCxQKoSL4SMoJFAqhQvhIugtkDqFi+EiqCWQMIIF8JE8FsAQSSr4SIYJYAAspXqo/APYDA8pWqI3ANAEC+Um0EbgEAyVeqjMAlAED5SnURmAcALF+pKgLTACj/N9VEYBYA5f9DFRGYBED5j1J8BJMDoPxeio5gUgCUP5hiIxgdAOUfTJERjAqA8kdTXAQHB0D5kykqgoMCoHwziolgcACUb04REQwKgPLdWDyC3gAo351FIxjymUGXQvmeXOiJKvpot+1adtu6j+zssnfMviukO7eVfih/Oi4zQRpzr2OLTw2jfBu8ZoK9DAng256fUb4t1hHsc7cbp+8K7XTz/T8/onw/LP4cDPLTOwO0A7yUv2u6Ecr35NCZIEeQnehskF2tTXYDp0L5kxg8E4zF+7Bwyp+OawSeh4VTvh1uEXgdFk759rhE4HFYOOX7YR6BRwBDXjkkI+l7Ze9QLF4JJBXDAMBhAOAwAHAYADgMABwGAA4DAIcBgMMAwIkawH1aztPyfDWRPEY71r0EJOL/ArKo0+TuQQxJq5UPs85H2DyTBeH/AvrZWMvPtGNuJBjHEo9G/Bh9IoZSCfcnwHqK7BJt/bgXAA4DAIcBgMMAwGEA4DAAcBgAOAwAHAYADgMAhwGAwwDAYQDgMABwGAA4DAAcBgAOAwDHI4AfQrww37YeAYQ7cLIgzLetRwCNEC+uxRiv08TdyUJvoAh8VPB9WrUTMcbrSWC4N1AUgMs2dQkglZqnqiuZnznevzf5HP0juGq3qTluu4HpDudi545gjiegjczLVbstXZjjbOFn6eKD+D8nyI/M/KbQO3Ekrc+J7EIb8sFNU8iz2cbrka+4B6C0IeQln9v+hdiRN1QWsvGWr7QR5KjzuliGnffz87pce4tXZguAlAlfCgaHAYDDAMBhAOAwAHAYADgMABwGAA4DAIcBgMMAwPkFbpyTTr8J8OMAAAAASUVORK5CYII=",
     ["user"] = "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",
     ["users"] = "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAIb0lEQVR4nO2d8XXUOBDGv73H/5er4EwFLBWcUsElFZypIFDBhQpIKsBUcKQCTAWECjAVHFSQ08TjY0N2V7IljWVrfu/pOY+YXUf6PBpJo9EvUIrmFyhFowIoHBVA4agACkcFUDgqgMJRARSOCqBwVACFowIoHBVA4TxB5tzd3f1pL1tbjC0n/PMut7Z8s6WlnzebzQ0UbzbIENvoxl7+sqXGNBpb3lkxtFCOkpUAbMOf2csbWyrEobPllRXCeyh7yUIAtuEre3mL3synoLXlhRVCB+UBszuBtvFre/mEdI0P/uxP/F3KDrNaANsgZO5fQpYrawleQblnNgHYxieTX2MeGiuCF1Dm6QJs419hvsYnan6G4hG3ANwPv0UekGPYoGBEBcDePjl8J8gDmkB6XvLoQLoLoDc/l8Yn6FlysUazICYAnuQxyA/Dz1YkYl2AreQviDfDF5vOdgNPUSAiFoDn9ivkS8XPWBxSXUCN/KlRICJdgH277rAAbDeQ5epoSpLHAyzJwaJuIPYSsv1MGmlQTAPVwwkexjQMsQxUaMXyxn7/NwgiERCyxXIw6FcOg2HhX+D4yGe3bs74/7X2ci21hC3hAxgsB4NAyIrY8sH++M/EzzP0f+kzJBxTCQH8iuUQ9Ky8wEWNbxCOoc/iFdNkJHd6luIADkxxBLmfn/rG+9Dacp7CP1AB/MRYAXDj01uf2tchh/E0tgg0LDwcevMlHN0tf1dUVAABcJ9vIIeJHccgIYDPWA7ez8oeeg15LmKODiQEIDqxEciYZ/0b8xHtuyUE0GI5tD43ZbC0HW0JW0IAt1gOred90pHM+6gRAV0M2sFnCMjDvn+RB7+FDgulRgHvkD++z5jT4lbws0gJQGRhI5DG8z4VwFh4Zesr8uXriGXg3IJag5CcCMrBcTrEmGfLaXEr+Fmk9wW09vIH8uKjffuN7825ObShUUxzbAyhYWEub9F3W7ZjNoasTQCiawFc0Tl1BfWEXUE5TW0HP4v4YhDvxbvG/LyeGHaV09R28LPMshpoK56swJxzA5Q/6BLTUAHEwDZAjXkswWv+7qnkNKcR/Cyzx8HzdnFa407tGJLDV4dG2+pUcGTYJ6Bol49IB332NkaoNVd4ymf1JcoegiwigsgT57H4OeLOGNJnUTCliZwDIGpUzkQaRCDnRJE1+mSRUyAHs0mZKHLmSa1Rk1fHyH4vHIthKNT/PvvpFhoLD6li241QdlB+rg+Yh9NYf2dxmyFjwgGaF5DlmofRUVABBCLcFUQz/QMaFh4OrclLTA9/RoJYBBVAIDwUM0g/jDWbBFvDVAARoIZh05xiZvOah7FJpqBVABFh5+wUcawBfcZpTIdvH+oEJoLj9mv02UHGQCeeNFIJIlQAieG1gzM8TBEzzGUMcxhDipj3G+EUMdkKwFYcDa1ojYAqzPA/V3icbq7jQrToK5PODsphvj57shGAbXBqbDKXBvG2XbVcaOHkFsoj5j4wosKPw6EqpKVDv4hzs9GjY/5nFgHw205TqDXmoUE/vCreKkhHBVPDU9Ijgzxo0Z8qVqwQpHIFn3C2q9SHQ43FoD9M6g1768UhkSSKhj+5nROwDxo9vNgUdsZgUgvAbz0lNlrC23Wf6i11Xr7cSGIB2LuXyp6VAvIJzkNHC1wPNLSl6xaP5zHu5yx2vpPKR8lRSnQBsKNHkTJL71OpcU7HOojc6DTCoa6vwjQ69DOD16nFEFUAK2r8gVEisH8/NdrYuX8XLfq9DC0SEM0HWGHjE/dZQPlv86FFfAw/wwe2LlGJYgFW2vi7eFsCgRCxqEffBgsgw7MAU0EicJ4xKLQFPoqTSsToApYyzAtlyAh+FG6UK6SFLO6nEV3TQYIEwGHRSx3qTWHrmauX7kmdE2msf7KXyV0Az/BFz169EM5dM4aCZyRPGq4OTBIAz5vTQZAlmP59UKU/dUXv2Hrq7OV3yDzPpDOQp3YBlyi38Qn62y897vO5JwZe/sk+phyPcu+AQCGeu0yvoBUgRm8bm2IBilosceBTF6lHBLtcjHUKx56Po2//Y45aAZ4X+AI5aIf0qe/NYy3AKPNSCEfrhB2zG8hhxpwo4m0BZlDyknh6zAMXHBIOeFuBMRaghnKIM8fv30MW47twNEYAU9O1lMDRJBEzJZby6q69BMDOXwXlEJWH9y1tBbziEnwtgMvEKe46mjRVG0Dl0w34CsBAcWGO/VIqedVPOF9cXwHkluM/R3zqSDrTuHO63imAO4Ez7NeCR11JdwPGdYOPBShpvT8UV111kMW5BvEEbkpe9RuLq646yFK5bvARgIHii3H8vkNmaJKowvERgNRa9ho4WlczDAW/u27w6QIqKL5UyAvn7KPPYcmLOPg5F1zHuAnWJ739lStuUX2AdULnJTgbn/ARQOr49jVxtK4SZyGh76YtY3SOUO2bb9BHAA0UXxrH71NMqtEyM+1ToDf+amyiSacTSOfr7aRzUw7zzuMswgrhUN9Ozl2LCJlFx4SE0coSRbjqsPAhZHpf+uQWoi3eGD+xRg0+ZA9pYmc0m7IvgCJNLpHXMepzQA1zSWbX5+YjMZVDvuABauCOr7ebxLmDQ7aGveRSmhCo4anRrzbCiZ1TEJQfYEcINdbfNZCpb7CShh+IliOIQ5+prC14hLzshk84XR0psoRV+GEVlto9kJlv0L/tHVZM0kyhPHKgYpB/F0EmvkU/tJKO4J0NsWTRHDY9iCGXboLMe4u+0aXDtbJglnTxxM6RsMOeg2dICw23OvTDK7EjZnNnNgHsg0VBI4thynSLH2FWFQ53I8NkyUDLV/q3b9rYh8lKAIo8uhxcOCqAwlEBFI4KoHBUAIWjAigcFUDhqAAKRwVQOCqAwlEBFM5/5enQVqrANR4AAAAASUVORK5CYII=",
@@ -1278,6 +1279,12 @@ function runtime.fitAuxiliary()
         end
     end
     if runtime.quickPanel then runtime.quickPanel.Position=UDim2.new(1,-6,0,14+44*statusScale.Scale) end
+    if runtime.inspectorPanel then
+        local top=14+44*statusScale.Scale
+        runtime.inspectorPanel.Position=UDim2.new(1,-6,0,top)
+        local scale=runtime.inspectorPanel:FindFirstChildOfClass("UIScale")
+        if scale then scale.Scale=math.min(scale.Scale,math.max(.1,(viewport.Y-top-12)/374)) end
+    end
 end
 connect(gui.ChildAdded,function(child) if child:IsA("GuiObject") then runtime.fitAuxiliary() end end)
 local function fit()
@@ -2805,7 +2812,7 @@ function runtime.buildQuickPanel()
 end
 function runtime.toggleQuickPanel()
     local show=not (runtime.quickPanel and runtime.quickPanel.Visible)
-    if show then runtime.buildQuickPanel() end
+    if show then runtime.buildQuickPanel(); if runtime.hideInspector then runtime.hideInspector() end end
     if runtime.quickPanel then runtime.quickPanel.Visible=show; playUISound(show and "open" or "close") end
 end
 function runtime.profileRequest(other,kind)
@@ -2889,7 +2896,7 @@ function runtime.isRobloxVerified(other)
     local ok,verified=pcall(function() return other.HasVerifiedBadge end)
     return ok and verified==true
 end
-function runtime.playerVerifiedIcon(card,nameLabel)
+function runtime.playerVerifiedIcon(card,nameLabel,register)
     local badge=make("Frame",{Name="RobloxVerifiedBadge",BackgroundTransparency=1,Size=UDim2.fromOffset(18,18)},card)
     for _,angle in ipairs({0,45}) do
         local blue=make("Frame",{BackgroundColor3=Color3.fromRGB(36,149,255),AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(13,13),Rotation=angle},badge)
@@ -2909,8 +2916,101 @@ function runtime.playerVerifiedIcon(card,nameLabel)
         end
         badge.Position=UDim2.fromOffset(nameLabel.Position.X.Offset+math.min(measured,math.max(0,width))+6,15)
     end
-    positionBadge(); rowConnect(nameLabel:GetPropertyChangedSignal("AbsoluteSize"),positionBadge)
+    positionBadge(); (register or rowConnect)(nameLabel:GetPropertyChangedSignal("AbsoluteSize"),positionBadge)
 end
+-- Inventory inspector: owned Tool, independent of rendered menu rows.
+runtime.inspectorConnections={}
+function runtime.inspectorConnect(signal,fn)
+    local connection=signal:Connect(fn); table.insert(runtime.inspectorConnections,connection); return connection
+end
+function runtime.inspectorButton(parent,text,pos,size,fn)
+    local button=make("TextLabel",{Text=text,Font=Enum.Font.BuilderSansBold,TextSize=12,TextColor3=C.text,BackgroundColor3=C.card,Position=pos,Size=size},parent)
+    round(button,12)
+    runtime.bindPress(button,function() playUISound("tap"); fn() end,runtime.inspectorConnect)
+    if text=="×" then runtime.closeGlyph(button) end
+    return button
+end
+function runtime.hideInspector()
+    runtime.inspectedPlayer=nil
+    if runtime.inspectorPanel then runtime.inspectorPanel.Visible=false end
+end
+function runtime.refreshInspector()
+    local other=runtime.inspectedPlayer; local panel=runtime.inspectorPanel
+    if not other or not panel or not panel.Visible then return end
+    if not other.Parent then runtime.hideInspector(); return end
+    local h=other.Character and other.Character:FindFirstChildOfClass("Humanoid")
+    local a=other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+    local b=player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    local values={tostring(other.UserId),tostring(other.AccountAge or "—").." Tage",other.Team and other.Team.Name or "Kein Team",
+        h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verfügbar",
+        a and b and string.format("%.0f Studs",(a.Position-b.Position).Magnitude) or "Nicht verfügbar",
+        runtime.groupRoles[other] or "Player"}
+    for i,value in ipairs(values) do runtime.inspectorFields[i].Text=value end
+    runtime.inspectorRelation.Text=runtime.gameStaff[other] and "ADMIN" or session.friends[other.UserId] and "FREUND" or "SPIELER"
+    runtime.inspectorRelation.TextColor3=runtime.markerColor(session.friends[other.UserId],runtime.gameStaff[other]) or C.muted
+end
+function runtime.showInspector(other)
+    if not alive or not other or other==player or not other.Parent then return end
+    for _,connection in ipairs(runtime.inspectorConnections) do connection:Disconnect() end; table.clear(runtime.inspectorConnections)
+    if runtime.inspectorPanel then runtime.inspectorPanel:Destroy() end
+    if runtime.quickPanel then runtime.quickPanel.Visible=false end
+    runtime.inspectedPlayer=other
+    local panel=make("CanvasGroup",{Name="ISBPlayerInspector",BackgroundTransparency=.08,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-6,0,58),Size=UDim2.fromOffset(360,374),ClipsDescendants=true},gui)
+    runtime.inspectorPanel=panel; round(panel,18); runtime.glassSurface(panel,18); stroke(panel)
+    local heading=label(panel,"ISB / SPIELERINFO",14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-62,0,24)); heading.Font=Enum.Font.BuilderSansBold
+    runtime.inspectorButton(panel,"×",UDim2.new(1,-42,0,10),UDim2.fromOffset(28,28),runtime.hideInspector)
+    local header=make("Frame",{Name="InspectorIdentity",BackgroundTransparency=1,Position=UDim2.fromOffset(16,48),Size=UDim2.new(1,-32,0,78)},panel)
+    local avatar=make("ImageLabel",{BackgroundTransparency=1,Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",Position=UDim2.fromOffset(0,4),Size=UDim2.fromOffset(52,52)},header); round(avatar,26)
+    local name=label(header,other.DisplayName,16,C.text,UDim2.fromOffset(64,12),UDim2.new(1,-70,0,24)); name.Font=Enum.Font.BuilderSansBold
+    if runtime.isRobloxVerified(other) then runtime.playerVerifiedIcon(header,name,runtime.inspectorConnect) end
+    label(header,"@"..other.Name,11,C.muted,UDim2.fromOffset(64,36),UDim2.new(1,-64,0,18))
+    runtime.inspectorRelation=label(header,"",10,C.muted,UDim2.fromOffset(0,62),UDim2.new(1,0,0,16))
+    runtime.inspectorFields={}
+    for i,title in ipairs({"Benutzer-ID","Accountalter","Team","Gesundheit","Entfernung","Gruppenrolle"}) do
+        local cell=make("Frame",{BackgroundTransparency=1,Position=UDim2.new((i-1)%2*.5,16,0,140+math.floor((i-1)/2)*51),Size=UDim2.new(.5,-24,0,44)},panel)
+        label(cell,title,10,C.muted,UDim2.new(),UDim2.new(1,0,0,16))
+        local value=label(cell,"",13,C.text,UDim2.fromOffset(0,18),UDim2.new(1,0,0,22)); value.TextWrapped=false; value.TextTruncate=Enum.TextTruncate.AtEnd
+        runtime.inspectorFields[i]=value
+    end
+    runtime.inspectorButton(panel,"Profil-Link",UDim2.fromOffset(16,300),UDim2.new(.5,-22,0,34),function() copyText("https://www.roblox.com/users/"..other.UserId.."/profile") end)
+    runtime.inspectorButton(panel,"Alle Details",UDim2.new(.5,6,0,300),UDim2.new(.5,-22,0,34),function()
+        if not other.Parent then runtime.hideInspector(); return end
+        setDockVisible(true); page="Spieler"; query=""; runtime.selectedPlayer=other; runtime.profileTab=nil; render(); setOpen(true); runtime.hideInspector()
+    end)
+    label(panel,"Item ausrüsten · anderen Spieler anklicken",10,C.muted,UDim2.fromOffset(16,344),UDim2.new(1,-32,0,18))
+    runtime.refreshInspector(); runtime.fitAuxiliary()
+end
+function runtime.destroyInspectorTool()
+    for _,connection in ipairs(runtime.inspectorToolConnections or {}) do connection:Disconnect() end
+    runtime.inspectorToolConnections={}; runtime.inspectorMouse=nil
+    if runtime.inspectorTool then runtime.inspectorTool:Destroy(); runtime.inspectorTool=nil end
+end
+function runtime.ensureInspectorTool()
+    if not alive then return end
+    local backpack=player:FindFirstChildOfClass("Backpack")
+    if runtime.inspectorTool and runtime.inspectorTool.Parent and (runtime.inspectorTool.Parent==backpack or runtime.inspectorTool.Parent==player.Character) then return end
+    runtime.destroyInspectorTool()
+    if not backpack then return end
+    local tool=make("Tool",{Name="ISB Spielerinfo",ToolTip="ISB · Ausrüsten und einen Spieler anklicken",RequiresHandle=false,CanBeDropped=false,TextureId=iconAsset("isb-inspect") or ""},backpack)
+    runtime.inspectorTool=tool
+    table.insert(runtime.inspectorToolConnections,tool.Equipped:Connect(function(mouse) runtime.inspectorMouse=mouse or player:GetMouse() end))
+    table.insert(runtime.inspectorToolConnections,tool.Unequipped:Connect(function() runtime.inspectorMouse=nil end))
+    table.insert(runtime.inspectorToolConnections,tool.Activated:Connect(function()
+        if not alive or tool.Parent~=player.Character or not runtime.inspectorMouse then return end
+        local target=runtime.inspectorMouse.Target
+        while target and target~=workspace do
+            if target:IsA("Model") then
+                local other=Players:GetPlayerFromCharacter(target)
+                if other then runtime.showInspector(other); return end
+            end
+            target=target.Parent
+        end
+    end))
+end
+connect(player.ChildAdded,function(child) if child:IsA("Backpack") then task.defer(runtime.ensureInspectorTool) end end)
+connect(player.CharacterAdded,function() task.defer(runtime.ensureInspectorTool) end)
+connect(player.CharacterRemoving,function() runtime.destroyInspectorTool(); runtime.hideInspector() end)
+
 function runtime.drawPlayerCard(other,index)
             local relation=session.friends[other.UserId] and "Freund" or "Player"
             local f=card(other.DisplayName,"@"..other.Name.."  ·  "..relation.."  ·  "..(runtime.groupRoles[other] or "Rolle wird geprüft"),104)
@@ -3230,6 +3330,7 @@ connect(UIS.InputBegan,function(input,processed)
         render(); return
     end
     if input.KeyCode==Enum.KeyCode.Escape and quickSearchOpen then setQuickSearch(false); return end
+    if input.KeyCode==Enum.KeyCode.Escape and runtime.inspectorPanel and runtime.inspectorPanel.Visible then runtime.hideInspector(); return end
     if input.KeyCode==Enum.KeyCode.Escape and runtime.quickPanel and runtime.quickPanel.Visible then runtime.quickPanel.Visible=false; return end
     if processed or UIS:GetFocusedTextBox() then return end
     if pressed==settings.key and dockVisible then setOpen(not opened)
@@ -3354,7 +3455,7 @@ connect(Run.RenderStepped,function(dt)
         if runtime.media.volumeTick>=.08 then runtime.media.volumeTick=0; runtime.commitMediaVolume() end
     else runtime.media.volumeTick=0 end
     runtime.detailTick=(runtime.detailTick or 0)+dt
-    if runtime.detailTick>=.25 then runtime.detailTick=0; if opened and page=="Spieler" and runtime.selectedPlayer then runtime.refreshDetails() end end
+    if runtime.detailTick>=.25 then runtime.detailTick=0; runtime.refreshInspector(); if opened and page=="Spieler" and runtime.selectedPlayer then runtime.refreshDetails() end end
     runtime.media.pollTime=runtime.media.pollTime+dt
     if opened and page=="Musik" and runtime.media.pollTime>=1 then runtime.media.pollTime=0; runtime.mediaPoll() end
 
@@ -3480,6 +3581,7 @@ refreshPlayers=function()
 end
 connect(Players.PlayerAdded,function(other) features.detectGameStaff(other,true); refreshPlayers() end)
 connect(Players.PlayerRemoving,function(other)
+    if runtime.inspectedPlayer==other then runtime.hideInspector() end
     if runtime.roleplay and runtime.roleplay.target==other then runtime.stopRoleplay() end
     if runtime.quickTarget==other then runtime.quickTarget=nil; if runtime.quickPanel and runtime.quickPanel.Visible then runtime.buildQuickPanel(); runtime.quickPanel.Visible=true end end
     if session.friends[other.UserId] then notify(other.DisplayName.." hat den Server verlassen.","Freund verlassen","users") end
@@ -3495,6 +3597,8 @@ local api = {}
 api.Destroy = function()
     if not alive then return end
     alive=false
+    runtime.destroyInspectorTool()
+    for _,connection in ipairs(runtime.inspectorConnections) do connection:Disconnect() end; table.clear(runtime.inspectorConnections)
     for _,connection in ipairs(runtime.movementConnections or {}) do connection:Disconnect() end
     runtime.stopEmote(); runtime.stopRoleplay(); runtime.setShader(false)
     for _,connection in ipairs(runtime.quickConnections) do connection:Disconnect() end; table.clear(runtime.quickConnections)
@@ -3527,6 +3631,7 @@ api.AddAction = function(id, category, name, description, callback)
 end
 api.Notify=notify
 env.ISBMenu=api
+runtime.ensureInspectorTool()
 task.spawn(function()
     if Marketplace then
         local ok,info=pcall(function()
