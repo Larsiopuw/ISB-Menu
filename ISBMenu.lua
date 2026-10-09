@@ -3025,7 +3025,9 @@ function runtime.refreshInspector()
     for i,value in ipairs(values) do runtime.inspectorFields[i].Text=value end
     runtime.inspectorFields[7].TextColor3=values[7]=="Ja" and C.good or C.muted
     runtime.inspectorRelation.Text=runtime.gameStaff[other] and "ADMIN" or session.friends[other.UserId] and "FREUND" or "SPIELER"
-    runtime.inspectorRelation.TextColor3=runtime.markerColor(session.friends[other.UserId],runtime.gameStaff[other]) or C.muted
+    local relationColor=runtime.markerColor(session.friends[other.UserId],runtime.gameStaff[other]) or C.muted
+    runtime.inspectorRelation.TextColor3=relationColor
+    runtime.inspectorRelation.Parent.BackgroundColor3=C.card:Lerp(relationColor,.16)
 end
 function runtime.showInspector(other)
     if not alive or not other or other==player or not other.Parent then return end
@@ -3038,29 +3040,37 @@ function runtime.showInspector(other)
     local heading=label(panel,"ISB / SPIELERINFO",14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-62,0,24)); heading.Font=Enum.Font.BuilderSansBold
     runtime.inspectorButton(panel,"×",UDim2.new(1,-42,0,10),UDim2.fromOffset(28,28),runtime.hideInspector)
     local header=make("Frame",{Name="InspectorIdentity",BackgroundTransparency=1,Position=UDim2.fromOffset(16,48),Size=UDim2.new(1,-32,0,78)},panel)
-    local avatar=make("ImageLabel",{BackgroundTransparency=1,Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",Position=UDim2.fromOffset(0,4),Size=UDim2.fromOffset(52,52)},header); round(avatar,26)
-    local name=label(header,other.DisplayName,16,C.text,UDim2.fromOffset(64,12),UDim2.new(1,-70,0,24)); name.Font=Enum.Font.BuilderSansBold
+    round(header,14); runtime.contentSurface(header,14)
+    local avatar=make("ImageLabel",{Name="InspectorAvatar",BackgroundColor3=C.panel,BackgroundTransparency=.25,Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",Position=UDim2.fromOffset(12,12),Size=UDim2.fromOffset(52,52)},header); round(avatar,26)
+    local name=label(header,other.DisplayName,16,C.text,UDim2.fromOffset(76,12),UDim2.new(1,-88,0,24)); name.Font=Enum.Font.BuilderSansBold
     if runtime.isRobloxVerified(other) then runtime.playerVerifiedIcon(header,name,runtime.inspectorConnect) end
-    label(header,"@"..other.Name,11,C.muted,UDim2.fromOffset(64,36),UDim2.new(1,-64,0,18))
-    runtime.inspectorRelation=label(header,"",10,C.muted,UDim2.fromOffset(0,62),UDim2.new(1,0,0,16))
+    label(header,"@"..other.Name,11,C.muted,UDim2.fromOffset(76,36),UDim2.new(1,-88,0,16))
+    local relation=make("Frame",{Name="InspectorRelationBadge",BackgroundColor3=C.card,BorderSizePixel=0,Position=UDim2.fromOffset(76,56),Size=UDim2.fromOffset(82,18)},header); round(relation,7)
+    runtime.inspectorRelation=label(relation,"",11,C.muted,UDim2.fromOffset(8,0),UDim2.new(1,-16,1,0))
+    runtime.inspectorRelation.Font=Enum.Font.BuilderSansBold; runtime.inspectorRelation.TextXAlignment=Enum.TextXAlignment.Center
     runtime.inspectorFields={}
     local info=make("ScrollingFrame",{Name="InspectorInformation",BackgroundTransparency=1,BorderSizePixel=0,Position=UDim2.fromOffset(0,132),Size=UDim2.new(1,0,0,268),CanvasSize=UDim2.fromOffset(0,264),ScrollBarThickness=3,ScrollBarImageColor3=C.accent,ScrollingDirection=Enum.ScrollingDirection.Y},panel)
     for i,title in ipairs({"Benutzer-ID","Accountalter","Team","Gesundheit","Entfernung","Gruppenrolle","Plus / Premium","Erstellt am","Freunde","Frühere Namen"}) do
         local cell=make("Frame",{BackgroundTransparency=1,Position=UDim2.new((i-1)%2*.5,16-((i-1)%2)*8,0,8+math.floor((i-1)/2)*51),Size=UDim2.new(.5,-24,0,44)},info)
-        label(cell,title,10,C.muted,UDim2.new(),UDim2.new(1,0,0,16))
-        local value=label(cell,"",13,C.text,UDim2.fromOffset(0,18),UDim2.new(1,0,0,22)); value.TextWrapped=false; value.TextTruncate=Enum.TextTruncate.AtEnd
+        cell.Name="InspectorMetric"..i; round(cell,10); runtime.contentSurface(cell,10)
+        label(cell,title,11,C.muted,UDim2.fromOffset(10,5),UDim2.new(1,-20,0,14))
+        local value=label(cell,"",13,C.text,UDim2.fromOffset(10,21),UDim2.new(1,-20,0,18)); value.Font=Enum.Font.BuilderSansBold; value.TextWrapped=false; value.TextTruncate=Enum.TextTruncate.AtEnd
         value.Name="InspectorValue"..i; runtime.inspectorFields[i]=value
     end
-    runtime.inspectorButton(panel,session.friends[other.UserId] and "Befreundet" or "Freund anfragen",UDim2.fromOffset(16,412),UDim2.new(1/3,-20,0,30),function()
+    local actionRow=make("Frame",{Name="InspectorActions",BackgroundTransparency=1,Position=UDim2.fromOffset(16,412),Size=UDim2.new(1,-32,0,30)},panel)
+    make("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,10)},actionRow)
+    local friendButton=runtime.inspectorButton(actionRow,session.friends[other.UserId] and "Befreundet" or "Freund anfragen",UDim2.new(),UDim2.new(1/3,-20/3,1,0),function()
         if not other.Parent or session.friends[other.UserId] then return end
         local ok=pcall(function() game:GetService("StarterGui"):SetCore("PromptSendFriendRequest",other) end)
         if not ok then notify("Roblox-Freundschaftsdialog ist hier nicht verfügbar.","Freunde") end
     end)
+    friendButton.LayoutOrder=1
     for i,entry in ipairs({{"Outfits","outfits"},{"Namen","history"}}) do
-        runtime.inspectorButton(panel,entry[1],UDim2.new(i/3,6,0,412),UDim2.new(1/3,-22,0,30),function()
+        local actionButton=runtime.inspectorButton(actionRow,entry[1],UDim2.new(),UDim2.new(1/3,-20/3,1,0),function()
             if not other.Parent then runtime.hideInspector(); return end
             setDockVisible(true); page="Spieler"; query=""; runtime.selectedPlayer=other; runtime.profileTab=entry[2]; runtime.profileRequest(other,entry[2]); render(); setOpen(true); runtime.hideInspector()
         end)
+        actionButton.LayoutOrder=i+1
     end
     runtime.inspectorButton(panel,"Profil-Link",UDim2.fromOffset(16,452),UDim2.new(.5,-22,0,34),function() copyText("https://www.roblox.com/users/"..other.UserId.."/profile") end)
     runtime.inspectorButton(panel,"Alle Details",UDim2.new(.5,6,0,452),UDim2.new(.5,-22,0,34),function()

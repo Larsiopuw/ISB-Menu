@@ -1,4 +1,8 @@
-# ISB Menu 2.6.31 · by Larsiopuw
+# ISB Menu 2.6.32 · by Larsiopuw
+
+## Änderungen in 2.6.32
+
+Spielerinfo: zusammenhängender Profilkopf mit Avatar, Namen und farbig hinterlegtem Beziehungs-Badge. Zehn dezente Informationsflächen mit einheitlicher Rundung, Innenabständen und stärker betonten Werten statt freistehendem Text. Die drei oberen Aktionen teilen sich eine gemeinsame Layout-Zeile mit exakt gleicher Breite und 10 Pixel Abstand. Bestehende Funktionen bleiben erhalten.
 
 ## Änderungen in 2.6.31
 
