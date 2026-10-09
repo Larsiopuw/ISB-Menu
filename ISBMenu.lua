@@ -3716,14 +3716,16 @@ function runtime.teleportFromFreecam()
     local owned=runtime.freecam; local part=root(); local h=humanoid()
     if not owned then return end
     if not part or not h or h.Health<=0 then notify("Charakter ist gerade nicht verfügbar.","Freecam"); return end
-    local offset=owned.camera.CFrame.Position-part.Position
     local destination=owned.camera.CFrame.Position
     local look=owned.camera.CFrame.LookVector
     local forward=Vector3.new(look.X,0,look.Z)
     if forward.Magnitude<.0001 then forward=Vector3.new(-math.sin(owned.yaw),0,-math.cos(owned.yaw)) end
     part.CFrame=CFrame.lookAt(destination,destination+forward.Unit,Vector3.new(0,1,0))
     part.AssemblyLinearVelocity=Vector3.zero; part.AssemblyAngularVelocity=Vector3.zero
-    owned.frame=owned.frame+offset; owned.focus=owned.focus+offset
+    local distance=math.max(.5,(owned.frame.Position-owned.focus.Position).Magnitude)
+    local focus=destination+owned.focusOffset
+    owned.frame=CFrame.lookAt(focus-look*distance,focus,owned.camera.CFrame.UpVector)
+    owned.focus=CFrame.new(focus)
     runtime.safeGround=nil
     runtime.stopFreecam(false)
     notify("An Kameraposition teleportiert · Freecam beendet","Freecam","eye")
@@ -3751,7 +3753,8 @@ function runtime.toggleFreecam()
     restoreCamera(); runtime.stopRoleplay()
     local pitch,yaw=camera.CFrame:ToOrientation()
     runtime.freecam={camera=camera,kind=camera.CameraType,subject=camera.CameraSubject,frame=camera.CFrame,focus=camera.Focus,fov=camera.FieldOfView,
-        mouseBehavior=UIS.MouseBehavior,mouseIcon=UIS.MouseIconEnabled,position=camera.CFrame.Position,pitch=pitch,yaw=yaw,fly=state.fly}
+        mouseBehavior=UIS.MouseBehavior,mouseIcon=UIS.MouseIconEnabled,position=camera.CFrame.Position,pitch=pitch,yaw=yaw,fly=state.fly,
+        focusOffset=camera.Focus.Position-(root() and root().Position or camera.Focus.Position)}
     if state.fly then state.fly=false; stopFly() end
     camera.CameraType=Enum.CameraType.Scriptable
     UIS.MouseBehavior=Enum.MouseBehavior.LockCenter; UIS.MouseIconEnabled=false

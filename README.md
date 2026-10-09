@@ -1,4 +1,8 @@
-# ISB Menu 2.6.35 · by Larsiopuw
+# ISB Menu 2.6.36 · by Larsiopuw
+
+## Änderungen in 2.6.36
+
+N richtet nach dem Freecam-Teleport auch die normale Roblox-Kamera nach dem zuletzt verwendeten Freecam-Blick aus, einschließlich Blickhöhe. Der vorherige Zoomabstand und die übliche Fokusposition relativ zum Charakter bleiben erhalten. L ohne Teleport stellt weiterhin die vorherige Kamera wieder her.
 
 ## Änderungen in 2.6.35
 
