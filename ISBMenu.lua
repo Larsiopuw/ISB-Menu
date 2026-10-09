@@ -99,7 +99,7 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {flightStyle="Fly", favorites = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
+local settings = {flightStyle="Fly", favorites = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -130,7 +130,7 @@ if type(readfile) == "function" then
         settings.notifications=data.notifications~=false; settings.autoOpen=data.autoOpen~=false
         if data.alignment=="Left" or data.alignment=="Right" then settings.alignment=data.alignment end
         settings.uiScale=math.clamp(tonumber(data.uiScale) or 100,50,120)
-        for _,field in ipairs({"dockKey","searchKey","flyKey","noclipKey","espKey","speedKey","flightTierKey"}) do
+        for _,field in ipairs({"dockKey","searchKey","flyKey","noclipKey","espKey","speedKey","flightTierKey","freecamKey","freecamTeleportKey"}) do
             if type(data[field])=="string" then
                 local valid,key=pcall(function() return Enum.KeyCode[data[field]] end)
                 if valid and key and key~=Enum.KeyCode.Unknown then settings[field]=data[field] end
@@ -156,7 +156,7 @@ end
 local alive, connections, actions = true, {}, {}
 do
     local used={}
-    for _,field in ipairs({"key","dockKey","searchKey","flyKey","noclipKey","espKey","speedKey","flightTierKey"}) do
+    for _,field in ipairs({"key","dockKey","searchKey","flyKey","noclipKey","espKey","speedKey","flightTierKey","freecamKey","freecamTeleportKey"}) do
         if used[settings[field]] then
             for _,key in ipairs({"F","Z","E","V","K","T","M","G","H","B","N","J","L","U","Y","I","O","P","C","X","R"}) do
                 if not used[key] then settings[field]=key; break end
@@ -1001,6 +1001,7 @@ local function clearVisuals()
     table.clear(highlights); table.clear(tags)
 end
 local function restoreCamera()
+    if runtime.freecam and runtime.stopFreecam then runtime.stopFreecam() end
     local camera, h = workspace.CurrentCamera, humanoid()
     if spectating and next(spectateOriginal)==nil and camera and h then
         camera.CameraSubject=h; camera.CameraType=Enum.CameraType.Custom
@@ -1547,6 +1548,7 @@ local function addAction(id, category, name, desc, kind, fn, get, minimum, maxim
         fn=fn, get=get, min=minimum, max=maximum, step=step or 1})
 end
 addAction("fly", "Bewegung", "Fliegen", "WASD / Bewegung • Space hoch • Strg runter", "toggle", function()
+    if runtime.freecam then runtime.stopFreecam() end
     state.fly = not state.fly; if state.fly then startFly() else stopFly() end
 end, function() return state.fly end)
 addAction("flyspeed", "Bewegung", "Flugstufe", "GLIDE 55 · NORMAL 110 · FAST 140 · TURBO 250 studs/s", "slider", runtime.setFlightTier, function() return runtime.flightTier or 1 end, 1,4,1)
@@ -1587,6 +1589,7 @@ addAction("fov", "Bewegung", "Sichtfeld aktiv", "Kamerawinkel individuell anpass
     end
 end, function() return state.fov end)
 addAction("fovvalue", "Bewegung", "Sichtfeld", "Kamerawinkel in Grad", "slider", function(v) state.fovValue=v end, function() return state.fovValue end, 40,110,1)
+addAction("freecam","Darstellung","Freecam","Freie Kamera · WASD · E/Q · Shift", "toggle",function() runtime.toggleFreecam() end,function() return runtime.freecam~=nil end)
 addAction("unspectate", "Spieler", "Eigene Kamera", "Beobachtung beenden", "button", restoreCamera)
 
 local sound = make("Sound", {Name="ISBMenuMusic", Volume=settings.volume/100, Looped=false}, SoundService)
@@ -3317,7 +3320,7 @@ render = function()
             end
             plainCard("Live-Messung",tostring(session.fps).." FPS  ·  "..tostring(session.ping or "—").." ms\nDie Statusleiste bleibt oben rechts sichtbar.",88)
         elseif settingsSection=="Tasten" then
-            for _,entry in ipairs({{"key","Menü öffnen / schließen"},{"dockKey","Dock einfahren / ausfahren"},{"searchKey","Skript-Schnellsuche"},{"flyKey","Fliegen an / aus"},{"noclipKey","Noclip an / aus"},{"espKey","Highlights / ESP an / aus"},{"speedKey","Laufgeschwindigkeit an / aus"},{"flightTierKey","Fluggeschwindigkeit: nächste Stufe"}}) do
+            for _,entry in ipairs({{"key","Menü öffnen / schließen"},{"dockKey","Dock einfahren / ausfahren"},{"searchKey","Skript-Schnellsuche"},{"flyKey","Fliegen an / aus"},{"noclipKey","Noclip an / aus"},{"espKey","Highlights / ESP an / aus"},{"speedKey","Laufgeschwindigkeit an / aus"},{"flightTierKey","Fluggeschwindigkeit: nächste Stufe"},{"freecamKey","Freecam an / aus"},{"freecamTeleportKey","Freecam: hierhin teleportieren und beenden"}}) do
                 local field=entry[1]
                 local f=plainCard(entry[2],"Anklicken, Taste drücken. Escape bricht ab.",78)
                 local b
@@ -3418,7 +3421,7 @@ connect(UIS.InputBegan,function(input,processed)
         local field=captureKey==true and "key" or captureKey
         captureKey=false
         if input.KeyCode~=Enum.KeyCode.Escape and input.KeyCode~=Enum.KeyCode.Unknown then
-            for _,other in ipairs({"key","dockKey","searchKey","flyKey","noclipKey","espKey","speedKey","flightTierKey"}) do
+            for _,other in ipairs({"key","dockKey","searchKey","flyKey","noclipKey","espKey","speedKey","flightTierKey","freecamKey","freecamTeleportKey"}) do
                 if other~=field and settings[other]==pressed then notify("Diese Taste wird bereits verwendet.","Tastenkürzel"); render(); return end
             end
             settings[field]=pressed
@@ -3434,6 +3437,8 @@ connect(UIS.InputBegan,function(input,processed)
     if pressed==settings.key and dockVisible then setOpen(not opened)
     elseif pressed==settings.dockKey then setDockVisible(not dockVisible)
     elseif pressed==settings.searchKey then setQuickSearch(not quickSearchOpen)
+    elseif runtime.freecam and pressed==settings.freecamTeleportKey then runtime.teleportFromFreecam(); render()
+    elseif pressed==settings.freecamKey then runtime.toggleFreecam(); render()
     elseif state.fly and pressed==settings.flightTierKey then runtime.nextFlightTier(); playUISound("tap")
     else
         for _,entry in ipairs({{"flyKey","fly"},{"noclipKey","noclip"},{"espKey","esp"},{"speedKey","speed"}}) do
@@ -3456,6 +3461,7 @@ connect(UIS.InputEnded,function(input)
     end
 end)
 connect(UIS.WindowFocusReleased,function()
+    if runtime.stopFreecam then runtime.stopFreecam() end
     local slider=activeSlider; activeSlider=nil; content.ScrollingEnabled=true
     if slider and slider.finish then slider.finish() end
 end)
@@ -3653,6 +3659,7 @@ connect(Run.RenderStepped,function(dt)
     end
 end)
 connect(player.CharacterRemoving,function()
+    if runtime.stopFreecam then runtime.stopFreecam(false) end
     runtime.safeGround=nil; runtime.stopEmote(); runtime.stopRoleplay()
     stopFly(); restoreCollisions()
     table.clear(originals)
@@ -3693,10 +3700,72 @@ connect(Players.PlayerRemoving,function(other)
     if spectating==other then restoreCamera() end
     refreshPlayers()
 end)
+function runtime.stopFreecam(resume)
+    local owned=runtime.freecam; if not owned then return end
+    runtime.freecam=nil; Run:UnbindFromRenderStep("ISBFreecam")
+    if runtime.freecamControls then runtime.freecamControls:UnbindAction("ISBFreecamMovement") end
+    UIS.MouseBehavior=owned.mouseBehavior; UIS.MouseIconEnabled=owned.mouseIcon
+    if owned.camera.Parent then
+        owned.camera.CameraType=owned.kind
+        owned.camera.CameraSubject=owned.subject and owned.subject.Parent and owned.subject or humanoid()
+        owned.camera.CFrame=owned.frame; owned.camera.Focus=owned.focus; owned.camera.FieldOfView=owned.fov
+    end
+    if owned.fly and resume~=false and alive then state.fly=true; startFly() end
+end
+function runtime.teleportFromFreecam()
+    local owned=runtime.freecam; local part=root(); local h=humanoid()
+    if not owned then return end
+    if not part or not h or h.Health<=0 then notify("Charakter ist gerade nicht verfügbar.","Freecam"); return end
+    local offset=owned.camera.CFrame.Position-part.Position
+    part.CFrame=part.CFrame+offset
+    part.AssemblyLinearVelocity=Vector3.zero; part.AssemblyAngularVelocity=Vector3.zero
+    owned.frame=owned.frame+offset; owned.focus=owned.focus+offset
+    runtime.safeGround=nil
+    runtime.stopFreecam(false)
+    notify("An Kameraposition teleportiert · Freecam beendet","Freecam","eye")
+end
+function runtime.updateFreecam(dt)
+    local owned=runtime.freecam; if not owned then return end
+    if workspace.CurrentCamera~=owned.camera then runtime.stopFreecam(); return end
+    if UIS:GetFocusedTextBox() then return end
+    local delta=UIS:GetMouseDelta()
+    owned.pitch=math.clamp(owned.pitch-delta.Y*.003,-math.pi/2+.01,math.pi/2-.01)
+    owned.yaw=owned.yaw-delta.X*.003
+    local rotation=CFrame.Angles(0,owned.yaw,0)*CFrame.Angles(owned.pitch,0,0)
+    local function axis(positive,negative) return (UIS:IsKeyDown(positive) and 1 or 0)-(UIS:IsKeyDown(negative) and 1 or 0) end
+    local direction=rotation.LookVector*axis(Enum.KeyCode.W,Enum.KeyCode.S)+rotation.RightVector*axis(Enum.KeyCode.D,Enum.KeyCode.A)
+        +Vector3.new(0,axis(Enum.KeyCode.E,Enum.KeyCode.Q),0)
+    if direction.Magnitude>1 then direction=direction.Unit end
+    local speed=UIS:IsKeyDown(Enum.KeyCode.LeftShift) and 360 or 120
+    owned.position=owned.position+direction*speed*math.min(dt or 1/60,.1)
+    owned.camera.CFrame=CFrame.new(owned.position)*rotation
+    owned.camera.Focus=owned.camera.CFrame*CFrame.new(0,0,-16)
+end
+function runtime.toggleFreecam()
+    if runtime.freecam then runtime.stopFreecam(); return end
+    local camera=workspace.CurrentCamera; if not camera then return end
+    restoreCamera(); runtime.stopRoleplay()
+    local pitch,yaw=camera.CFrame:ToOrientation()
+    runtime.freecam={camera=camera,kind=camera.CameraType,subject=camera.CameraSubject,frame=camera.CFrame,focus=camera.Focus,fov=camera.FieldOfView,
+        mouseBehavior=UIS.MouseBehavior,mouseIcon=UIS.MouseIconEnabled,position=camera.CFrame.Position,pitch=pitch,yaw=yaw,fly=state.fly}
+    if state.fly then state.fly=false; stopFly() end
+    camera.CameraType=Enum.CameraType.Scriptable
+    UIS.MouseBehavior=Enum.MouseBehavior.LockCenter; UIS.MouseIconEnabled=false
+    runtime.freecamControls=optionalService("ContextActionService")
+    if runtime.freecamControls then
+        runtime.freecamControls:BindActionAtPriority("ISBFreecamMovement",function() return Enum.ContextActionResult.Sink end,false,3000,
+            Enum.KeyCode.W,Enum.KeyCode.A,Enum.KeyCode.S,Enum.KeyCode.D,Enum.KeyCode.E,Enum.KeyCode.Q,Enum.KeyCode.Space,Enum.KeyCode.LeftControl,Enum.KeyCode.LeftShift)
+    end
+    setOpen(false); setQuickSearch(false)
+    Run:BindToRenderStep("ISBFreecam",Enum.RenderPriority.Camera.Value+1,runtime.updateFreecam)
+    notify("WASD bewegen · E/Q hoch/runter · Shift schneller · "..settings.freecamKey.." beenden · "..settings.freecamTeleportKey.." hierhin teleportieren","Freecam","eye")
+end
+
 local api = {}
 api.Destroy = function()
     if not alive then return end
     alive=false
+    runtime.stopFreecam(false)
     runtime.destroyInspectorTool()
     for _,connection in ipairs(runtime.inspectorConnections) do connection:Disconnect() end; table.clear(runtime.inspectorConnections)
     for _,connection in ipairs(runtime.movementConnections or {}) do connection:Disconnect() end

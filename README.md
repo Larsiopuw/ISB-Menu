@@ -1,4 +1,8 @@
-# ISB Menu 2.6.33 · by Larsiopuw
+# ISB Menu 2.6.34 · by Larsiopuw
+
+## Änderungen in 2.6.34
+
+L schaltet Freecam ein und aus. WASD bewegt die Kamera, E/Q hebt oder senkt sie, Standardtempo 120 Studs/s, Shift erhöht es auf 360 Studs/s. Die Maus dreht die Ansicht. N teleportiert den eigenen Charakter an die Kameraposition und beendet Freecam sofort; danach sind normale Kamera und Steuerung aktiv. Freecam steht auch unter Darstellung und der Keybind ist unter Tasten änderbar. Die vorherige Kamera und Maussteuerung werden beim Beenden, Fokusverlust, Respawn und Cleanup wiederhergestellt. Normale Charakter-Steuertasten werden während Freecam abgefangen; bestehender Flug wird pausiert.
 
 ## Änderungen in 2.6.33
 
