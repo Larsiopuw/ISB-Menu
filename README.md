@@ -1,4 +1,9 @@
-# ISB Menu 2.6.44 · by Larsiopuw
+# ISB Menu 2.6.45 · by Larsiopuw
+
+## Änderungen in 2.6.45
+
+- Wegpunkte stehen im Bewegungsmenü neben Rejoin, Serverhop und Respawn.
+- Die Felder der Spielerdetails und ihre Kopierbuttons werden zuverlässiger dargestellt.
 
 ## Änderungen in 2.6.44
 

@@ -1,7 +1,7 @@
--- ISB Menu 2.6.44 | Own-game universal client toolkit
+-- ISB Menu 2.6.45 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.44",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.45",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -641,6 +641,7 @@ runtime.english={
     [" \195\182ffnet das Men\195\188"]=" opens the menu",
 }
 runtime.englishHistory={
+    ["2.6.45"]="Waypoints sits beside Rejoin, Serverhop and Respawn in Movement.\nPlayer detail fields and their copy buttons display more reliably.",
     ["2.6.44"]="Release notes now describe menu features, improvements and fixes in shorter, clearer language.",
     ["2.6.43"]="The menu automatically follows your Roblox language: German for German settings, English for all other languages.\nNavigation, settings, notices, Player Info and release notes are available in German and English.",
     ["2.6.42"]="Fixed broken characters in menu text: accented letters and symbols display correctly again.",
@@ -2852,6 +2853,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.45",text="Wegpunkte stehen im Bewegungsmen\195\188 neben Rejoin, Serverhop und Respawn.\nDie Felder der Spielerdetails und ihre Kopierbuttons werden zuverl\195\164ssiger dargestellt."},
     {version="2.6.44",text="Die \195\132nderungshistorie beschreibt Funktionen, Verbesserungen und Fehlerbehebungen im Men\195\188 jetzt k\195\188rzer und verst\195\164ndlicher."},
     {version="2.6.43",text="Das Men\195\188 verwendet automatisch deine Roblox-Sprache: Deutsch bei deutscher Spracheinstellung, sonst Englisch.\nNavigation, Einstellungen, Hinweise, Spielerinfo und \195\132nderungshistorie sind auf Deutsch und Englisch verf\195\188gbar."},
     {version="2.6.42",text="Fehlerhafte Zeichen in Men\195\188texten behoben: Umlaute und Symbole werden wieder richtig angezeigt."},
@@ -3109,6 +3111,7 @@ local function drawCharacter()
     rowButton(footer,"Rejoin",UDim2.fromOffset(0,0),UDim2.fromOffset(110,32),rejoin)
     rowButton(footer,"Serverhop",UDim2.fromOffset(120,0),UDim2.fromOffset(110,32),serverHop)
     rowButton(footer,"Respawn",UDim2.fromOffset(240,0),UDim2.fromOffset(110,32),function() local h=humanoid(); if h then h.Health=0 end end)
+    rowButton(footer,"Wegpunkte",UDim2.fromOffset(360,0),UDim2.fromOffset(120,32),function() selectPage("Wegpunkte") end)
     for _,entry in ipairs(actions) do
         if entry.category=="Bewegung" and entry.kind=="button" then drawAction(entry) end
     end
@@ -3673,6 +3676,25 @@ function runtime.profileRequest(other,kind)
         if alive and runtime.selectedPlayer==other then render() end
     end)
 end
+function runtime.playerDetailField(parent,title,value,position)
+    -- Build inside the grid from the start; do not move cards through the page layout.
+    local tile=make("CanvasGroup",{Name="PlayerDetail_"..title,BackgroundColor3=C.card,GroupTransparency=0,Position=position,Size=UDim2.new(.5,-5,0,70)},parent)
+    round(tile,17); runtime.contentSurface(tile,17)
+    local heading=label(tile,title,14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-64,0,24))
+    heading.Font=Enum.Font.BuilderSansBold; heading.TextTruncate=Enum.TextTruncate.AtEnd
+    local body=label(tile,value,11,C.muted,UDim2.fromOffset(16,38),UDim2.new(1,-64,0,24))
+    body.TextTruncate=Enum.TextTruncate.AtEnd
+    local field={entry={title,value},label=body}
+    runtime.detailRefs.fields[title]=field
+    local copy=rowButton(tile,"",UDim2.new(1,-42,0,23),UDim2.fromOffset(30,28),function() copyText(field.entry[2]) end)
+    copy.Name="Copy_"..title
+    local icon=make("Frame",{Name="ButtonGlyph",BackgroundTransparency=1,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(14,16)},copy)
+    local backSheet=make("Frame",{Name="CopyBackSheet",BackgroundColor3=C.panel,Position=UDim2.fromOffset(1,1),Size=UDim2.fromOffset(8,10),ZIndex=2},icon)
+    round(backSheet,2); make("UIStroke",{Color=C.text,Thickness=1.3},backSheet)
+    local frontSheet=make("Frame",{Name="CopyFrontSheet",BackgroundColor3=C.panel,Position=UDim2.fromOffset(5,5),Size=UDim2.fromOffset(8,10),ZIndex=3},icon)
+    round(frontSheet,2); make("UIStroke",{Color=C.text,Thickness=1.3},frontSheet)
+    return tile
+end
 function runtime.drawPlayerDetails(other)
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
     rowButton(back,"\226\134\144 Spieler",UDim2.new(),UDim2.fromOffset(120,28),function() runtime.selectedPlayer=nil; render() end)
@@ -3689,21 +3711,13 @@ function runtime.drawPlayerDetails(other)
     local h=other.Character and other.Character:FindFirstChildOfClass("Humanoid")
     local team=other.Team and other.Team.Name or "Kein Team"
     runtime.detailRefs={player=other,fields={}}
-    local detailsGrid=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,228)},content)
-    for index,entry in ipairs({{"Benutzer-ID",tostring(other.UserId)},{"Accountalter",tostring(other.AccountAge or "\226\128\148").." Tage"},{"Team",team},{"Gesundheit",h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verf\195\188gbar"},{"Beziehung",session.friends[other.UserId] and "Freund" or "Spieler"},{"Gruppenrolle",runtime.groupRoles[other] or "Nicht verf\195\188gbar"}}) do
-        local f=plainCard(entry[1],entry[2],70)
-        f.Parent=detailsGrid; f.Size=UDim2.new(.5,-5,0,70); f.Position=UDim2.new((index-1)%2*.5,(index-1)%2*5,0,math.floor((index-1)/2)*76)
-        for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-56,0,24); child.TextWrapped=false; child.TextTruncate=Enum.TextTruncate.AtEnd end end
-        local body
-        for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") and runtime.rawText(child)==entry[2] then body=child end end
-        runtime.detailRefs.fields[entry[1]]={entry=entry,label=body}
-        local copy=rowButton(f,"",UDim2.new(1,-42,0,23),UDim2.fromOffset(30,28),function() copyText(entry[2]) end); copy.Name="Copy_"..entry[1]
-        local icon=make("Frame",{Name="ButtonGlyph",BackgroundTransparency=1,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(14,16)},copy)
-        for _,offset in ipairs({Vector2.new(1,1),Vector2.new(5,5)}) do
-            local glyph=make("Frame",{BackgroundColor3=C.panel,Position=UDim2.fromOffset(offset.X,offset.Y),Size=UDim2.fromOffset(8,10)},icon)
-            round(glyph,2); make("UIStroke",{Color=C.text,Thickness=1.3},glyph)
-        end
-    end
+    local detailsGrid=make("Frame",{Name="PlayerDetailsGrid",BackgroundTransparency=1,Size=UDim2.new(1,0,0,222)},content)
+    runtime.playerDetailField(detailsGrid,"Benutzer-ID",tostring(other.UserId),UDim2.fromOffset(0,0))
+    runtime.playerDetailField(detailsGrid,"Accountalter",tostring(other.AccountAge or "\226\128\148").." Tage",UDim2.new(.5,5,0,0))
+    runtime.playerDetailField(detailsGrid,"Team",team,UDim2.fromOffset(0,76))
+    runtime.playerDetailField(detailsGrid,"Gesundheit",h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verf\195\188gbar",UDim2.new(.5,5,0,76))
+    runtime.playerDetailField(detailsGrid,"Beziehung",session.friends[other.UserId] and "Freund" or "Spieler",UDim2.fromOffset(0,152))
+    runtime.playerDetailField(detailsGrid,"Gruppenrolle",runtime.groupRoles[other] or "Nicht verf\195\188gbar",UDim2.new(.5,5,0,152))
     local controls=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     rowButton(controls,session.friends[other.UserId] and "Bereits befreundet" or "Freund anfragen",UDim2.new(),UDim2.fromOffset(154,28),function()
         if session.friends[other.UserId] then return end
@@ -4093,8 +4107,6 @@ render = function()
         runtime.drawChangelog()
     elseif page=="Bewegung" and query=="" then
         drawCharacter()
-        local shortcuts=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-        rowButton(shortcuts,"Wegpunkte",UDim2.new(),UDim2.fromOffset(120,30),function() selectPage("Wegpunkte") end)
     elseif page=="Server" then
         drawServers()
         if not servers.loaded and not servers.loading and not servers.error then fetchServers(nil) end
