@@ -1,4 +1,8 @@
-# ISB Menu 2.6.41 · by Larsiopuw
+# ISB Menu 2.6.42 · by Larsiopuw
+
+## Änderungen in 2.6.42
+
+Die Lua-Upload-Datei enthält nur ASCII-Zeichen. Umlaute und Symbole stehen in String-Literalen als feste dezimale UTF-8-Byte-Escapes; ihre Laufzeitwerte bleiben unverändert. Das umgeht Zeichenverluste beim Einlesen von Quelltext durch Schutzdienste. AstroProtect selbst muss nach dem erneuten Sirius-Upload getestet werden.
 
 ## Änderungen in 2.6.41
 

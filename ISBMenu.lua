@@ -1,7 +1,7 @@
--- ISB Menu 2.6.40 | Own-game universal client toolkit
+-- ISB Menu 2.6.42 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.41",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.42",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -184,8 +184,8 @@ local playUISound=function() end
 local dockVisible,quickSearchOpen=true,false
 local quickScale,quickBaseScale=nil,1
 local startedAt=os.clock()
-local session={executor="Nicht erkannt",executorVersion="",placeName="Spielname nicht verfügbar",friends={},friendTotal=nil,
-    onlineFriends=nil,voiceStatus="Nicht geprüft",voiceChecking=false,logs={},fps=0,ping=nil}
+local session={executor="Nicht erkannt",executorVersion="",placeName="Spielname nicht verf\195\188gbar",friends={},friendTotal=nil,
+    onlineFriends=nil,voiceStatus="Nicht gepr\195\188ft",voiceChecking=false,logs={},fps=0,ping=nil}
 local servers={data={},cursor=nil,nextCursor=nil,history={},sort="Asc",loading=false,error=nil,loaded=false,generation=0}
 local scriptCatalog={}
 local musicQueue={}
@@ -250,18 +250,18 @@ local function requestBody(url,headers)
     local body
     if transport then
         local result=transport({Url=url,Method="GET",Headers=headers or {}})
-        assert(type(result)=="table" and type(result.Body)=="string","Ungültige HTTP-Antwort")
+        assert(type(result)=="table" and type(result.Body)=="string","Ung\195\188ltige HTTP-Antwort")
         local status=tonumber(result.StatusCode)
         assert(status and status>=200 and status<300,"HTTP "..tostring(status or "unbekannt"))
         body=result.Body
-    else assert(not headers or next(headers)==nil,"Für diesen Anbieter wird ein HTTP-Provider mit Header-Unterstützung benötigt"); body=game:HttpGet(url) end
-    assert(type(body)=="string" and #body<8000000,"Ungültige Antwortgröße")
+    else assert(not headers or next(headers)==nil,"F\195\188r diesen Anbieter wird ein HTTP-Provider mit Header-Unterst\195\188tzung ben\195\182tigt"); body=game:HttpGet(url) end
+    assert(type(body)=="string" and #body<8000000,"Ung\195\188ltige Antwortgr\195\182\195\159e")
     return body
 end
 local function requestJSON(url,headers)
     local body=requestBody(url,headers)
     local decoded=Http:JSONDecode(body)
-    assert(type(decoded)=="table","Ungültige JSON-Antwort")
+    assert(type(decoded)=="table","Ung\195\188ltige JSON-Antwort")
     return decoded
 end
 local function maintainVoiceConnections(fireReady)
@@ -283,11 +283,11 @@ local function toggleAntiVC()
     if antiVC.active then stopAntiVC(); notify("Voice-Modus beendet.","Voice"); return end
     if antiVC.loading then return end
     if not Voice or (type(getconnections)~="function" and type(get_signal_cons)~="function") then
-        notify("Die benötigten Voice-Funktionen sind hier nicht verfügbar.","Voice"); return
+        notify("Die ben\195\182tigten Voice-Funktionen sind hier nicht verf\195\188gbar.","Voice"); return
     end
     antiVC.active=true; antiVC.loading=true
     local micReady,micError=pcall(runtime.buildVoiceMic)
-    if not micReady then stopAntiVC(); notify("Mikrofon-Steuerung konnte nicht geöffnet werden.","Voice"); warn("ISB Mikrofon: "..tostring(micError)); return end
+    if not micReady then stopAntiVC(); notify("Mikrofon-Steuerung konnte nicht ge\195\182ffnet werden.","Voice"); warn("ISB Mikrofon: "..tostring(micError)); return end
     antiVC.generation=(antiVC.generation or 0)+1; local generation=antiVC.generation
     local enumerator=type(getconnections)=="function" and getconnections or get_signal_cons
     captureVoiceConnections(enumerator)
@@ -296,7 +296,7 @@ local function toggleAntiVC()
     task.delay(2.3,function()
         if not alive or not antiVC.active or antiVC.generation~=generation then return end
         local joined=pcall(function() Voice:joinVoice() end)
-        if not joined then stopAntiVC(); if alive then notify("Voice-Verbindung nicht verfügbar.","Voice"); if page=="Voice" then render() end end; return end
+        if not joined then stopAntiVC(); if alive then notify("Voice-Verbindung nicht verf\195\188gbar.","Voice"); if page=="Voice" then render() end end; return end
         task.delay(.3,function()
             if not alive or not antiVC.active or antiVC.generation~=generation then return end
             maintainVoiceConnections(true); antiVC.loading=false
@@ -354,7 +354,7 @@ local function searchRemoteScripts(targetPage)
             if provider=="ScriptBlox" then
                 local url=term=="" and ("https://scriptblox.com/api/script/fetch?sortBy="..(scriptSearch.discovery=="Neu" and "updatedAt" or "views").."&order=desc&page="..targetPage.."&max=12") or ("https://scriptblox.com/api/script/search?q="..Http:UrlEncode(term).."&page="..targetPage.."&max=12")
                 local data=requestJSON(url)
-                assert(type(data.result)=="table" and type(data.result.scripts)=="table",tostring(data.message or "Ungültige ScriptBlox-Antwort"))
+                assert(type(data.result)=="table" and type(data.result.scripts)=="table",tostring(data.message or "Ung\195\188ltige ScriptBlox-Antwort"))
                 for _,row in ipairs(data.result.scripts) do local normalized=normalizeResult(provider,row); if normalized then table.insert(rows,normalized) end end
                 total=tonumber(data.result.totalPages) or 1
             else
@@ -371,7 +371,7 @@ local function searchRemoteScripts(targetPage)
                         local normalized=normalizeResult(provider,row); if normalized then table.insert(rows,normalized) end
                     end
                 end
-                assert(#rows>0 or html:find("No scripts",1,true) or html:find("No results",1,true),"RoScripts-Suchformat geändert oder keine lesbare Ergebnisliste")
+                assert(#rows>0 or html:find("No scripts",1,true) or html:find("No results",1,true),"RoScripts-Suchformat ge\195\164ndert oder keine lesbare Ergebnisliste")
                 total=math.max(1,math.ceil(#rows/12))
                 return {allRows=rows,total=total,rows=rows}
             end
@@ -412,7 +412,7 @@ local function loadScriptSource(entry)
         if not alive or generation~=scriptSearch.generation then return end
         scriptSearch.loading=false
         if ok and type(source)=="string" and source~="" and #source<3000000 and not source:match("^%s*<!") then scriptSearch.source=source
-        else scriptSearch.error="Quelltext nicht verfügbar: "..tostring(ok and "Anbieterantwort enthält kein Lua-Script" or source):sub(1,160) end
+        else scriptSearch.error="Quelltext nicht verf\195\188gbar: "..tostring(ok and "Anbieterantwort enth\195\164lt kein Lua-Script" or source):sub(1,160) end
         if page=="Skripte" then render() end
     end)
 end
@@ -461,16 +461,16 @@ local function fetchServers(cursor)
                 servers.error="Zu viele Anfragen. Bitte warte kurz und versuche es danach erneut."
             else
                 servers.errorKind="unavailable"
-                servers.error="Die Serverliste konnte nicht geladen werden. Bitte versuche es später erneut."
+                servers.error="Die Serverliste konnte nicht geladen werden. Bitte versuche es sp\195\164ter erneut."
             end
         end
         if page=="Server" and render then render() end
     end)
 end
 local function joinServer(id)
-    if not Teleport then notify("TeleportService ist nicht verfügbar.","Server"); return end
-    if type(id)~="string" or id=="" then notify("Für diesen Server ist keine Job-ID verfügbar.","Server"); return end
-    notify("Verbindung wird angefordert …","Server")
+    if not Teleport then notify("TeleportService ist nicht verf\195\188gbar.","Server"); return end
+    if type(id)~="string" or id=="" then notify("F\195\188r diesen Server ist keine Job-ID verf\195\188gbar.","Server"); return end
+    notify("Verbindung wird angefordert \226\128\166","Server")
     local ok,err=pcall(function() Teleport:TeleportToPlaceInstance(game.PlaceId,id,player) end)
     if not ok then notify(tostring(err):sub(1,140),"Verbindung fehlgeschlagen") end
 end
@@ -482,7 +482,7 @@ local function serverHop()
     for _,entry in ipairs(servers.data) do if entry.id~=game.JobId and entry.playing<entry.maxPlayers then table.insert(candidates,entry) end end
     if #candidates==0 then
         page="Server"; query=""; render(); fetchServers(nil)
-        notify("Serverliste geladen. Wähle einen freien Server oder klicke anschließend erneut auf Serverhop.","Serverhop")
+        notify("Serverliste geladen. W\195\164hle einen freien Server oder klicke anschlie\195\159end erneut auf Serverhop.","Serverhop")
     else joinServer(candidates[math.random(1,#candidates)].id) end
 end
 local function voiceInput()
@@ -498,26 +498,26 @@ local function refreshVoice()
     if session.voiceChecking then return end
     session.voiceChecking=true
     task.spawn(function()
-        local ok,result=pcall(function() assert(Voice,"Voice API nicht verfügbar"); return Voice:IsVoiceEnabledForUserIdAsync(player.UserId) end)
+        local ok,result=pcall(function() assert(Voice,"Voice API nicht verf\195\188gbar"); return Voice:IsVoiceEnabledForUserIdAsync(player.UserId) end)
         if not alive then return end
         session.voiceChecking=false
-        session.voiceStatus=ok and (result and "Voice für deinen Account aktiviert" or "Voice für deinen Account nicht aktiviert") or "Voice-Status nicht abrufbar"
+        session.voiceStatus=ok and (result and "Voice f\195\188r deinen Account aktiviert" or "Voice f\195\188r deinen Account nicht aktiviert") or "Voice-Status nicht abrufbar"
         if page=="Voice" and render then render() end
     end)
 end
 local function reconnectVoice()
     task.spawn(function()
-        local left,err=pcall(function() assert(Voice,"Voice API nicht verfügbar"); Voice:leaveVoice() end)
-        if not left then if alive then notify("Voice-Reconnect wird hier nicht unterstützt.","Voice"); logEvent("Voice",err) end; return end
+        local left,err=pcall(function() assert(Voice,"Voice API nicht verf\195\188gbar"); Voice:leaveVoice() end)
+        if not left then if alive then notify("Voice-Reconnect wird hier nicht unterst\195\188tzt.","Voice"); logEvent("Voice",err) end; return end
         task.wait(0.7)
         if not alive then return end
         local ok=pcall(function() Voice:joinVoice() end)
-        notify(ok and "Voice-Verbindung neu angefordert. Audio im Spiel überprüfen." or "Voice-Verbindung konnte nicht angefordert werden.","Voice")
+        notify(ok and "Voice-Verbindung neu angefordert. Audio im Spiel \195\188berpr\195\188fen." or "Voice-Verbindung konnte nicht angefordert werden.","Voice")
         refreshVoice()
     end)
 end
 local function copyText(text)
-    if type(setclipboard)~="function" then notify("Zwischenablage ist in diesem Executor nicht verfügbar.","Kopieren"); return false end
+    if type(setclipboard)~="function" then notify("Zwischenablage ist in diesem Executor nicht verf\195\188gbar.","Kopieren"); return false end
     local ok=pcall(setclipboard,text)
     notify(ok and "In die Zwischenablage kopiert." or "Kopieren fehlgeschlagen.","ISB Menu")
     return ok
@@ -532,7 +532,7 @@ save=function(immediate)
     settings.values={speedValue=state.speedValue,jumpValue=state.jumpValue,fovValue=state.fovValue}
     runtime.saveRevision=runtime.saveRevision+1
     local revision=runtime.saveRevision
-    if type(writefile)~="function" then runtime.saveError="Dateizugriff nicht verfügbar"; return false end
+    if type(writefile)~="function" then runtime.saveError="Dateizugriff nicht verf\195\188gbar"; return false end
     local function write()
         if revision~=runtime.saveRevision then return end
         local ok,err=pcall(function() writefile(CONFIG.SaveFile,Http:JSONEncode(settings)) end)
@@ -815,9 +815,9 @@ local function button(parent, text, pos, dims, fn)
     runtime.bindPress(b, function()
         playUISound("tap")
         local ok, err = pcall(fn)
-        if not ok then warn("ISB Menu: " .. tostring(err)); if notify then notify("Aktion konnte nicht ausgeführt werden.") end end
+        if not ok then warn("ISB Menu: " .. tostring(err)); if notify then notify("Aktion konnte nicht ausgef\195\188hrt werden.") end end
     end,connect)
-    if text=="×" then runtime.closeGlyph(b) end
+    if text=="\195\151" then runtime.closeGlyph(b) end
     return b
 end
 local function humanoid()
@@ -1059,7 +1059,7 @@ local statusScale=make("UIScale",{Scale=1},statusBar)
 runtime.statusToggle=button(statusBar,"ISB",UDim2.fromOffset(8,9),UDim2.fromOffset(32,26),function() setDockVisible(not dockVisible) end)
 runtime.statusToggle.Name="StatusDockToggle"
 runtime.statusQuick=button(statusBar,"ISBQ",UDim2.fromOffset(44,9),UDim2.fromOffset(42,26),function() runtime.toggleQuickPanel() end)
-local metrics=label(statusBar,"ISB  /  -- Spieler  ·  -- ms  ·  -- FPS",11,C.text,UDim2.fromOffset(98,11),UDim2.fromOffset(250,22))
+local metrics=label(statusBar,"ISB  /  -- Spieler  \194\183  -- ms  \194\183  -- FPS",11,C.text,UDim2.fromOffset(98,11),UDim2.fromOffset(250,22))
 runtime.statusDivider=make("Frame",{Name="ExecutorDivider",BackgroundColor3=C.muted,BackgroundTransparency=.7,Position=UDim2.fromOffset(280,14),Size=UDim2.fromOffset(1,16)},statusBar)
 runtime.statusExecutor=label(statusBar,session.executor,11,C.text,UDim2.fromOffset(290,11),UDim2.fromOffset(60,22))
 runtime.statusExecutor.Name="ExecutorName"; runtime.statusExecutor.TextXAlignment=Enum.TextXAlignment.Right; runtime.statusExecutor.TextTruncate=Enum.TextTruncate.AtEnd
@@ -1100,7 +1100,7 @@ end
 metrics.Name="Metrics"; metrics.Font=Enum.Font.BuilderSansBold; metrics.TextSize=12
 runtime.statusExecutor.Font=Enum.Font.BuilderSansBold; runtime.statusExecutor.TextSize=12
 runtime.updateStatusLayout()
-button(header, "×", UDim2.new(1,-47,0,12), UDim2.fromOffset(28,28), function() setOpen(false) end)
+button(header, "\195\151", UDim2.new(1,-47,0,12), UDim2.fromOffset(28,28), function() setOpen(false) end)
 local launcher = button(gui, "ISB", UDim2.new(0,12,0.5,-22), UDim2.fromOffset(44,44), function() setOpen(not opened) end)
 launcher.Visible=false
 launcher.TextColor3 = C.accent; launcher.TextSize = 14; stroke(launcher)
@@ -1118,7 +1118,7 @@ local hintIcon=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(
 local hintTitle=label(dockHint,"",13,C.text,UDim2.fromOffset(53,10),UDim2.fromOffset(170,22)); hintTitle.Font=Enum.Font.BuilderSansMedium
 local hintBody=label(dockHint,"",10,C.muted,UDim2.fromOffset(53,33),UDim2.fromOffset(178,20))
 local hintRevision=0
-local hintDescriptions={Start="Deine aktuelle Sitzung",Bewegung="Charakter und Bewegung",Spieler="Spieler im Server",Server="Server finden und wechseln",Darstellung="Kamera und Darstellung",Skripte="Scripts suchen und verwalten",Musik="Deine Medien und Musik",Favoriten="Deine gespeicherten Aktionen",Einstellungen="Dein Menü anpassen"}
+local hintDescriptions={Start="Deine aktuelle Sitzung",Bewegung="Charakter und Bewegung",Spieler="Spieler im Server",Server="Server finden und wechseln",Darstellung="Kamera und Darstellung",Skripte="Scripts suchen und verwalten",Musik="Deine Medien und Musik",Favoriten="Deine gespeicherten Aktionen",Einstellungen="Dein Men\195\188 anpassen"}
 local function hideDockHint()
     hintRevision=hintRevision+1; local revision=hintRevision
     animate(dockHint,{GroupTransparency=1})
@@ -1202,14 +1202,14 @@ task.spawn(function()
     local ok,url=pcall(function() return Players:GetUserThumbnailAsync(player.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100) end)
     if alive and ok then profile.Image=url end
 end)
-local pageTitle = label(header, "Übersicht", 17, C.text, UDim2.fromOffset(51,16), UDim2.new(1,-154,0,22))
+local pageTitle = label(header, "\195\156bersicht", 17, C.text, UDim2.fromOffset(51,16), UDim2.new(1,-154,0,22))
 pageTitle.Font = Enum.Font.BuilderSansBold
 runtime.versionButton=make("TextLabel",{Name="VersionButton",Text="v"..CONFIG.Version,Font=Enum.Font.BuilderSansMedium,TextSize=12,TextColor3=C.accent,BackgroundColor3=C.panel,Position=UDim2.fromOffset(159,13),Size=UDim2.fromOffset(88,28)},header)
 round(runtime.versionButton,10)
-runtime.bindPress(runtime.versionButton,function() selectPage("Änderungen") end,connect)
+runtime.bindPress(runtime.versionButton,function() selectPage("\195\132nderungen") end,connect)
 local subtitle = label(window, "Dein Spiel. Dein Werkzeug.", 12, C.muted, UDim2.fromOffset(23,116), UDim2.new(1,-46,0,20))
 subtitle.Visible=false
-local search = make("TextBox", {Text = "", PlaceholderText = "Funktionen und Spieler suchen …", ClearTextOnFocus = false,
+local search = make("TextBox", {Text = "", PlaceholderText = "Funktionen und Spieler suchen \226\128\166", ClearTextOnFocus = false,
     Font = Enum.Font.BuilderSans, TextSize = 13, TextColor3 = C.text, PlaceholderColor3 = C.muted,
     TextXAlignment = Enum.TextXAlignment.Left, BackgroundColor3 = C.panel,
     Position = UDim2.fromOffset(20,56), Size = UDim2.new(1,-40,0,34)}, window)
@@ -1474,7 +1474,7 @@ local quickSearch=make("CanvasGroup",{Name="QuickSearch",Visible=false,Backgroun
 round(quickSearch,22); runtime.glassSurface(quickSearch,22); stroke(quickSearch)
 quickScale=quickSearch:FindFirstChildOfClass("UIScale") or make("UIScale",{Scale=quickBaseScale},quickSearch)
 imageIcon(quickSearch,"magnifying-glass",22,UDim2.fromOffset(20,23),C.text)
-local quickInput=make("TextBox",{Name="QuickSearchInput",Text="",PlaceholderText="Scripts suchen …",ClearTextOnFocus=false,BackgroundTransparency=1,
+local quickInput=make("TextBox",{Name="QuickSearchInput",Text="",PlaceholderText="Scripts suchen \226\128\166",ClearTextOnFocus=false,BackgroundTransparency=1,
     TextXAlignment=Enum.TextXAlignment.Left,TextColor3=C.text,PlaceholderColor3=C.muted,Font=Enum.Font.BuilderSans,TextSize=17,
     Position=UDim2.fromOffset(57,14),Size=UDim2.new(1,-140,0,42)},quickSearch)
 button(quickSearch,"Esc",UDim2.new(1,-64,0,20),UDim2.fromOffset(44,28),function() setQuickSearch(false) end)
@@ -1528,8 +1528,8 @@ local function rowButton(parent, text, pos, dims, fn)
     return b
 end
 function runtime.pagination(parent,name,current,total,previous,nextPage)
-    rowButton(parent,"Zurück",UDim2.fromOffset(0,0),UDim2.fromOffset(90,30),previous)
-    local text=runtime.formatCount(current).." / "..(total and runtime.formatCount(total) or "…")
+    rowButton(parent,"Zur\195\188ck",UDim2.fromOffset(0,0),UDim2.fromOffset(90,30),previous)
+    local text=runtime.formatCount(current).." / "..(total and runtime.formatCount(total) or "\226\128\166")
     local counter=label(parent,text,11,C.muted,UDim2.fromOffset(98,0),UDim2.fromOffset(96,30))
     counter.Name=name; counter.TextXAlignment=Enum.TextXAlignment.Center
     counter.BackgroundColor3=C.panel; counter.BackgroundTransparency=.45; round(counter,10)
@@ -1551,11 +1551,11 @@ local function addAction(id, category, name, desc, kind, fn, get, minimum, maxim
     table.insert(actions, {id=id, category=category, name=name, desc=desc, kind=kind,
         fn=fn, get=get, min=minimum, max=maximum, step=step or 1})
 end
-addAction("fly", "Bewegung", "Fliegen", "WASD / Bewegung • Space hoch • Strg runter", "toggle", function()
+addAction("fly", "Bewegung", "Fliegen", "WASD / Bewegung \226\128\162 Space hoch \226\128\162 Strg runter", "toggle", function()
     if runtime.freecam then runtime.stopFreecam() end
     state.fly = not state.fly; if state.fly then startFly() else stopFly() end
 end, function() return state.fly end)
-addAction("flyspeed", "Bewegung", "Flugstufe", "GLIDE 55 · NORMAL 110 · FAST 140 · TURBO 250 studs/s", "slider", runtime.setFlightTier, function() return runtime.flightTier or 1 end, 1,4,1)
+addAction("flyspeed", "Bewegung", "Flugstufe", "GLIDE 55 \194\183 NORMAL 110 \194\183 FAST 140 \194\183 TURBO 250 studs/s", "slider", runtime.setFlightTier, function() return runtime.flightTier or 1 end, 1,4,1)
 addAction("noclip", "Bewegung", "Noclip", "Kollision des eigenen Charakters ausschalten", "toggle", function()
     state.noclip = not state.noclip; if not state.noclip then restoreCollisions() end
 end, function() return state.noclip end)
@@ -1567,7 +1567,7 @@ addAction("speed", "Bewegung", "Laufgeschwindigkeit aktiv", "Originalwert wird b
     applyMovement()
 end, function() return state.speed end)
 addAction("speedvalue", "Bewegung", "Laufgeschwindigkeit", "Studs pro Sekunde", "slider", function(v) state.speedValue=v; applyMovement() end, function() return state.speedValue end, 8,120,2)
-addAction("jump", "Bewegung", "Sprungkraft aktiv", "Unterstützt JumpPower und JumpHeight", "toggle", function()
+addAction("jump", "Bewegung", "Sprungkraft aktiv", "Unterst\195\188tzt JumpPower und JumpHeight", "toggle", function()
     state.jump = not state.jump
     local h=humanoid(); remember(h)
     if h and not state.jump and originals[h].jumpOwned then
@@ -1575,9 +1575,9 @@ addAction("jump", "Bewegung", "Sprungkraft aktiv", "Unterstützt JumpPower und J
     end
     applyMovement()
 end, function() return state.jump end)
-addAction("jumpvalue", "Bewegung", "Sprungkraft", "Wert wird bei Bedarf in Sprunghöhe umgerechnet", "slider", function(v) state.jumpValue=v; applyMovement() end, function() return state.jumpValue end, 20,150,5)
-addAction("esp", "Darstellung", "Spielermarkierungen", "Freunde blau · Admins rot · übrige Spieler bei blauem Akzent goldgelb", "toggle", function() state.esp=not state.esp end, function() return state.esp end)
-addAction("names", "Darstellung", "Namensanzeigen", "Name und Entfernung über dem Charakter", "toggle", function() state.names=not state.names end, function() return state.names end)
+addAction("jumpvalue", "Bewegung", "Sprungkraft", "Wert wird bei Bedarf in Sprungh\195\182he umgerechnet", "slider", function(v) state.jumpValue=v; applyMovement() end, function() return state.jumpValue end, 20,150,5)
+addAction("esp", "Darstellung", "Spielermarkierungen", "Freunde blau \194\183 Admins rot \194\183 \195\188brige Spieler bei blauem Akzent goldgelb", "toggle", function() state.esp=not state.esp end, function() return state.esp end)
+addAction("names", "Darstellung", "Namensanzeigen", "Name und Entfernung \195\188ber dem Charakter", "toggle", function() state.names=not state.names end, function() return state.names end)
 addAction("brightnessvalue","Darstellung","Helligkeit","Lokale Beleuchtung von 0 bis 5", "slider",function(value)
     if state.fullbright then state.fullbright=false; applyLighting() end
     if runtime.brightnessOriginal==nil then runtime.brightnessOriginal=Lighting.Brightness end
@@ -1593,7 +1593,7 @@ addAction("fov", "Bewegung", "Sichtfeld aktiv", "Kamerawinkel individuell anpass
     end
 end, function() return state.fov end)
 addAction("fovvalue", "Bewegung", "Sichtfeld", "Kamerawinkel in Grad", "slider", function(v) state.fovValue=v end, function() return state.fovValue end, 40,110,1)
-addAction("freecam","Darstellung","Freecam","Freie Kamera · WASD · E/Q · Shift", "toggle",function() runtime.toggleFreecam() end,function() return runtime.freecam~=nil end)
+addAction("freecam","Darstellung","Freecam","Freie Kamera \194\183 WASD \194\183 E/Q \194\183 Shift", "toggle",function() runtime.toggleFreecam() end,function() return runtime.freecam~=nil end)
 addAction("unspectate", "Spieler", "Eigene Kamera", "Beobachtung beenden", "button", restoreCamera)
 
 local sound = make("Sound", {Name="ISBMenuMusic", Volume=settings.volume/100, Looped=false}, SoundService)
@@ -1622,7 +1622,7 @@ end
 local flyTouch=make("Frame",{Visible=false,BackgroundTransparency=1,
     Position=UDim2.new(1,-122,0.5,-52),Size=UDim2.fromOffset(108,104)},gui)
 local touchVertical=0
-for i,caption in ipairs({"↑","↓"}) do
+for i,caption in ipairs({"\226\134\145","\226\134\147"}) do
     local b=button(flyTouch,caption,UDim2.fromOffset(0,(i-1)*52),UDim2.fromOffset(48,46),function() end)
     connect(b.InputBegan,function(input)
         if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then touchVertical=i==1 and 1 or -1 end
@@ -1731,7 +1731,7 @@ function runtime.drawRuler(parent,action)
                 if soft then animate(mark.caption,{Position=position}) else mark.caption.Position=position end
             end
         end
-        hint.Text=(value~=selected and "Manueller Wert · " or "Skala ziehen · ")..action.min.."–"..action.max.." · Zahl antippen zum Eingeben"
+        hint.Text=(value~=selected and "Manueller Wert \194\183 " or "Skala ziehen \194\183 ")..action.min.."\226\128\147"..action.max.." \194\183 Zahl antippen zum Eingeben"
     end
     local function apply(value,dragging)
         if dragging and action.preview then action.preview(value) else action.fn(value); save() end
@@ -1808,7 +1808,7 @@ local function drawAction(action)
     else
         runtime.drawRuler(f,action)
         if action.id=="volume" then
-            runtime.rulerResetButton(f,"Standard · 35 %",function()
+            runtime.rulerResetButton(f,"Standard \194\183 35 %",function()
                 action.fn(35); save(); runtime.refreshControls()
             end)
         elseif action.id=="brightnessvalue" then
@@ -1823,7 +1823,7 @@ local function drawAction(action)
 end
 
 runtime.media={state={},queue={},selected="",connected=false,pollTime=0,sourceSignature=""}
-runtime.mediaInstallCommand="$ErrorActionPreference='Stop'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $isbSetup=Join-Path $env:TEMP ('ISBMediaBridge-Install-'+[Guid]::NewGuid().ToString('N')+'.ps1'); Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/Larsiopuw/ISB-Menu/19eb1a9d3a5317ecb87ac3dee9ade748618b76ca/ISBMediaBridge-Install.ps1' -OutFile $isbSetup; if ((Get-FileHash -LiteralPath $isbSetup -Algorithm SHA256).Hash -ne 'B114EA37C1A039B6F5CD7B21FE62340F212198F5D328D668C3DE7ED7AC015E25') { throw 'Installationsdatei konnte nicht bestätigt werden.' }; & ([scriptblock]::Create([IO.File]::ReadAllText($isbSetup))) # -- by Larsiopuw"
+runtime.mediaInstallCommand="$ErrorActionPreference='Stop'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $isbSetup=Join-Path $env:TEMP ('ISBMediaBridge-Install-'+[Guid]::NewGuid().ToString('N')+'.ps1'); Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/Larsiopuw/ISB-Menu/19eb1a9d3a5317ecb87ac3dee9ade748618b76ca/ISBMediaBridge-Install.ps1' -OutFile $isbSetup; if ((Get-FileHash -LiteralPath $isbSetup -Algorithm SHA256).Hash -ne 'B114EA37C1A039B6F5CD7B21FE62340F212198F5D328D668C3DE7ED7AC015E25') { throw 'Installationsdatei konnte nicht best\195\164tigt werden.' }; & ([scriptblock]::Create([IO.File]::ReadAllText($isbSetup))) # -- by Larsiopuw"
 function runtime.mediaConfig()
     if not capabilities.files or not capabilities.http then return nil end
     local ok,config=pcall(function() return Http:JSONDecode(readfile("ISBMenu-media-bridge.json")) end)
@@ -1832,7 +1832,7 @@ end
 function runtime.mediaRequest(path,body)
     local config=runtime.mediaConfig(); assert(config,"Windows-Verbindung ist nicht gestartet.")
     local transport=type(request)=="function" and request or (type(http_request)=="function" and http_request) or (type(syn)=="table" and syn.request)
-    assert(transport,"Lokale HTTP-Verbindung nicht unterstützt.")
+    assert(transport,"Lokale HTTP-Verbindung nicht unterst\195\188tzt.")
     local result=transport({Url="http://127.0.0.1:8766"..path,Method=body and "POST" or "GET",Headers={Authorization="Bearer "..config.token,["Content-Type"]="application/json"},Body=body and Http:JSONEncode(body) or nil})
     assert(type(result)=="table" and type(result.Body)=="string","Windows-Verbindung nicht erreichbar.")
     local data=Http:JSONDecode(result.Body)
@@ -1854,7 +1854,7 @@ function runtime.mediaProgress()
     local refs=runtime.mediaRefs
     if not refs or not refs.times.Parent then return end
     local duration=runtime.media.state.duration or 0; local position=runtime.mediaPosition()
-    local text=duration>0 and (timeString(position).." / "..timeString(duration)) or (runtime.media.state.available and "Zeitdaten nicht verfügbar" or "—")
+    local text=duration>0 and (timeString(position).." / "..timeString(duration)) or (runtime.media.state.available and "Zeitdaten nicht verf\195\188gbar" or "\226\128\148")
     if refs.times.Text~=text then refs.times.Text=text end
     refs.fill.Size=UDim2.fromScale(duration>0 and position/duration or 0,1)
 end
@@ -1864,7 +1864,7 @@ function runtime.mediaPaint()
     refs.setup.Visible=not runtime.media.connected
     local data=runtime.media.state
     refs.title.Text=runtime.media.connected and (data.title or data.message or "Kein Player aktiv") or "Windows-Musiksteuerung nicht verbunden"
-    refs.artist.Text=runtime.media.connected and ((data.source or "Windows")..(data.artist and data.artist~="" and " · "..data.artist or "")) or (runtime.media.reason or "Windows-Musiksteuerung benötigt die optionale ISBMediaBridge.exe")
+    refs.artist.Text=runtime.media.connected and ((data.source or "Windows")..(data.artist and data.artist~="" and " \194\183 "..data.artist or "")) or (runtime.media.reason or "Windows-Musiksteuerung ben\195\182tigt die optionale ISBMediaBridge.exe")
     refs.cover.Image=runtime.media.connected and runtime.media.coverAsset or ""
     if refs.cover.Image==nil then refs.cover.Image="" end
     refs.coverPlaceholder.Visible=refs.cover.Image==""
@@ -1914,7 +1914,7 @@ end
 function runtime.mediaPoll()
     if runtime.media.polling then return end
     if not runtime.mediaConfig() then
-        runtime.media.connected=false; runtime.media.reason="Windows-Musiksteuerung benötigt die optionale ISBMediaBridge.exe"
+        runtime.media.connected=false; runtime.media.reason="Windows-Musiksteuerung ben\195\182tigt die optionale ISBMediaBridge.exe"
         runtime.mediaPaint(); return
     end
     runtime.media.polling=true
@@ -1923,7 +1923,7 @@ function runtime.mediaPoll()
         local ok,data=pcall(runtime.mediaRequest,"/state?cover="..Http:UrlEncode(runtime.media.coverId or "")..(selected~="" and "&source="..Http:UrlEncode(selected) or ""))
         if not alive then return end
         runtime.media.polling=false; runtime.media.connected=ok
-        runtime.media.reason=ok and nil or "Windows-Bridge nicht erreichbar · ISBMediaBridge.exe starten"
+        runtime.media.reason=ok and nil or "Windows-Bridge nicht erreichbar \194\183 ISBMediaBridge.exe starten"
         if ok then
             runtime.mediaCover(data)
             if data.selected~=runtime.media.state.selected then runtime.media.volumePending=nil; runtime.media.lastVolumeSent=nil end
@@ -1948,8 +1948,8 @@ function runtime.mediaPoll()
 end
 function runtime.mediaCommand(command,value)
     local data=runtime.media.state
-    if not runtime.media.connected or not data.available then notify("Starte ISBMediaBridge und öffne einen Medienplayer.","Musik"); return end
-    if not data.controls or not data.controls[command] then notify("Dieser Player unterstützt diese Aktion derzeit nicht.","Musik"); return end
+    if not runtime.media.connected or not data.available then notify("Starte ISBMediaBridge und \195\182ffne einen Medienplayer.","Musik"); return end
+    if not data.controls or not data.controls[command] then notify("Dieser Player unterst\195\188tzt diese Aktion derzeit nicht.","Musik"); return end
     local item={command=command,value=value,source=runtime.media.selected~="" and runtime.media.selected or data.selected}
     if #runtime.media.queue>=8 then notify("Player verarbeitet noch die vorherigen Aktionen.","Musik"); return end
     if command=="seek" then
@@ -1993,7 +1993,7 @@ function runtime.commitMediaVolume()
 end
 function runtime.drawMediaPlayer()
     runtime.media.sourceSignature=""
-    local setup=card("Windows-Musik einrichten","Einmal in PowerShell einfügen · startet danach bei Windows-Anmeldung",84)
+    local setup=card("Windows-Musik einrichten","Einmal in PowerShell einf\195\188gen \194\183 startet danach bei Windows-Anmeldung",84)
     setup.Name="MediaSetupCard"
     for _,child in ipairs(setup:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-236,0,child.Size.Y.Offset) end end
     local setupButton=rowButton(setup,"Einrichtungsbefehl kopieren",UDim2.new(1,-214,0,26),UDim2.fromOffset(198,32),function() copyText(runtime.mediaInstallCommand) end)
@@ -2010,7 +2010,7 @@ function runtime.drawMediaPlayer()
     local times=label(f,"00:00 / 00:00",10,C.muted,UDim2.fromOffset(18,104),UDim2.new(1,-36,0,18))
     local refs={setup=setup,title=title,artist=artist,cover=cover,coverPlaceholder=coverPlaceholder,fill=fill,times=times,buttons={}}
     runtime.mediaRefs=refs
-    for i,item in ipairs({{"previous","Zurück"},{"toggle","Abspielen"},{"next","Weiter"}}) do
+    for i,item in ipairs({{"previous","Zur\195\188ck"},{"toggle","Abspielen"},{"next","Weiter"}}) do
         local b=rowButton(f,item[2],UDim2.new((i-1)/3,18-(i-1)*12,0,137),UDim2.new(1/3,-24,0,34),function() runtime.mediaCommand(item[1]) end)
         refs.buttons[item[1]]=b; if item[1]=="toggle" then refs.toggle=b; b.Name="MediaPlaybackButton" end
     end
@@ -2030,7 +2030,7 @@ function runtime.drawMediaPlayer()
             runtime.mediaCommand("seek",(refs.seekValue or 0)*(runtime.media.state.duration or 0))
         end
     end)
-    drawAction({id="mediavolume",name="App-Lautstärke",desc="Gewählte Windows-App · beim Browser gilt sie für alle Tabs",kind="slider",min=0,max=100,step=5,dragStep=.1,
+    drawAction({id="mediavolume",name="App-Lautst\195\164rke",desc="Gew\195\164hlte Windows-App \194\183 beim Browser gilt sie f\195\188r alle Tabs",kind="slider",min=0,max=100,step=5,dragStep=.1,
         get=function() return math.floor((runtime.media.state.volume or 0)*1000+.5)/10 end,
         preview=runtime.previewMediaVolume,commit=runtime.commitMediaVolume,
         fn=function(v) runtime.previewMediaVolume(v); runtime.commitMediaVolume() end})
@@ -2043,11 +2043,11 @@ end
 
 
 local descriptions = {
-    Start="Dein Spiel. Dein Werkzeug.", Bewegung="Kontrolle über deinen Charakter.",
-    Spieler="Spieler finden, beobachten und erreichen.", Darstellung="Deine persönliche Ansicht.",
+    Start="Dein Spiel. Dein Werkzeug.", Bewegung="Kontrolle \195\188ber deinen Charakter.",
+    Spieler="Spieler finden, beobachten und erreichen.", Darstellung="Deine pers\195\182nliche Ansicht.",
     Musik="Musik und Wiedergabe direkt steuern.", Favoriten="Deine wichtigsten Funktionen an einem Ort.",
     Einstellungen="Gestalte deinen Workspace.",
-    Server="Öffentliche Server, Sitzungsdaten und Verbindungen.", Skripte="Eigene Aktionen und lokaler Script-Katalog.", Voice="Voice-Status und Mikrofonsteuerung.",
+    Server="\195\150ffentliche Server, Sitzungsdaten und Verbindungen.", Skripte="Eigene Aktionen und lokaler Script-Katalog.", Voice="Voice-Status und Mikrofonsteuerung.",
 }
 local tuning="speedvalue"
 local settingsSection=nil
@@ -2085,17 +2085,17 @@ function runtime.waypointName(text)
 end
 function runtime.saveWaypoint(text)
     local name=runtime.waypointName(text)
-    if not name then notify("Bitte einen Namen für den Wegpunkt eingeben.","Wegpunkte"); return end
+    if not name then notify("Bitte einen Namen f\195\188r den Wegpunkt eingeben.","Wegpunkte"); return end
     local part=root(); local h=humanoid()
-    if not runtime.freecam and (not part or not h or h.Health<=0) then notify("Charakter ist gerade nicht verfügbar.","Wegpunkte"); return end
+    if not runtime.freecam and (not part or not h or h.Health<=0) then notify("Charakter ist gerade nicht verf\195\188gbar.","Wegpunkte"); return end
     local frame=runtime.freecam and runtime.freecam.camera.CFrame or part.CFrame
     local position,look=frame.Position,frame.LookVector
     local list=runtime.waypointList(); local existing
     for i,entry in ipairs(list) do if entry.name==name then existing=i; break end end
-    if not existing and #list>=50 then notify("Maximal 50 Wegpunkte pro Spiel. Lösche zuerst einen Eintrag.","Wegpunkte"); return end
+    if not existing and #list>=50 then notify("Maximal 50 Wegpunkte pro Spiel. L\195\182sche zuerst einen Eintrag.","Wegpunkte"); return end
     list[existing or #list+1]={name=name,position={position.X,position.Y,position.Z},look={look.X,look.Y,look.Z}}
     local stored=save(true)
-    notify(stored and (existing and "Wegpunkt aktualisiert." or "Wegpunkt gespeichert.") or "Wegpunkt für diese Sitzung gespeichert · Dateispeicherung nicht verfügbar.","Wegpunkte")
+    notify(stored and (existing and "Wegpunkt aktualisiert." or "Wegpunkt gespeichert.") or "Wegpunkt f\195\188r diese Sitzung gespeichert \194\183 Dateispeicherung nicht verf\195\188gbar.","Wegpunkte")
     render()
 end
 function runtime.renameWaypoint(entry,text)
@@ -2115,14 +2115,14 @@ function runtime.visitWaypoint(entry,freecam)
     if freecam then
         if not runtime.freecam then runtime.toggleFreecam() end
         local owned=runtime.freecam
-        if not owned then notify("Kamera ist gerade nicht verfügbar.","Wegpunkte"); return end
+        if not owned then notify("Kamera ist gerade nicht verf\195\188gbar.","Wegpunkte"); return end
         owned.position=position; owned.pitch,owned.yaw=frame:ToOrientation(); owned.skipMouse=true
         if runtime.attachFreecamCamera() then owned.camera.CFrame=frame; owned.camera.Focus=frame*CFrame.new(0,0,-16) end
         setOpen(false)
         return
     end
     local part=root(); local h=humanoid()
-    if not part or not h or h.Health<=0 then notify("Charakter ist gerade nicht verfügbar.","Wegpunkte"); return end
+    if not part or not h or h.Health<=0 then notify("Charakter ist gerade nicht verf\195\188gbar.","Wegpunkte"); return end
     if runtime.freecam then runtime.stopFreecam(false) end
     if state.fly then state.fly=false; stopFly() end
     restoreCamera(); runtime.stopRoleplay()
@@ -2142,9 +2142,9 @@ function runtime.visitWaypoint(entry,freecam)
 end
 function runtime.drawWaypoints()
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
-    rowButton(back,"← Start",UDim2.new(),UDim2.fromOffset(90,28),function() selectPage("Start") end)
+    rowButton(back,"\226\134\144 Start",UDim2.new(),UDim2.fromOffset(90,28),function() selectPage("Start") end)
     local list=runtime.waypointList()
-    local intro=plainCard("Deine Wegpunkte",session.placeName.." · "..#list.." / 50 gespeichert",84)
+    local intro=plainCard("Deine Wegpunkte",session.placeName.." \194\183 "..#list.." / 50 gespeichert",84)
     label(intro,"Nur Positionen aus diesem Spiel werden angezeigt.",11,C.muted,UDim2.fromOffset(16,58),UDim2.new(1,-32,0,18))
     local form=plainCard("Position speichern",runtime.freecam and "Speichert die aktuelle Freecam-Position und Blickrichtung." or "Speichert die aktuelle Charakterposition und Blickrichtung.",132)
     local input=make("TextBox",{Name="WaypointName",Text="",PlaceholderText="Name, z. B. Treffpunkt",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=13,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,85),Size=UDim2.new(1,-164,0,32)},form)
@@ -2152,15 +2152,15 @@ function runtime.drawWaypoints()
     rowButton(form,"Speichern",UDim2.new(1,-136,0,85),UDim2.fromOffset(120,32),function() runtime.saveWaypoint(input.Text) end)
     if #list==0 then plainCard("Noch keine Wegpunkte","Gib oben einen Namen ein und speichere deine erste Position.",88) end
     for index,entry in ipairs(list) do
-        local tile=plainCard(entry.name,string.format("X %.1f · Y %.1f · Z %.1f",table.unpack(entry.position)),runtime.editWaypoint==entry and 180 or 132)
+        local tile=plainCard(entry.name,string.format("X %.1f \194\183 Y %.1f \194\183 Z %.1f",table.unpack(entry.position)),runtime.editWaypoint==entry and 180 or 132)
         tile.Name="WaypointCard"; tile.LayoutOrder=index+3
         for _,child in ipairs(tile:GetChildren()) do if child:IsA("TextLabel") then child.TextTruncate=Enum.TextTruncate.AtEnd end end
-        for i,action in ipairs({{"Teleport",function() runtime.visitWaypoint(entry,false) end},{"Freecam",function() runtime.visitWaypoint(entry,true) end},{"Umbenennen",function() if runtime.editWaypoint==entry then runtime.editWaypoint=nil else runtime.editWaypoint=entry end; render() end},{"Löschen",function() runtime.deleteWaypoint(entry) end}}) do
+        for i,action in ipairs({{"Teleport",function() runtime.visitWaypoint(entry,false) end},{"Freecam",function() runtime.visitWaypoint(entry,true) end},{"Umbenennen",function() if runtime.editWaypoint==entry then runtime.editWaypoint=nil else runtime.editWaypoint=entry end; render() end},{"L\195\182schen",function() runtime.deleteWaypoint(entry) end}}) do
             rowButton(tile,action[1],UDim2.new((i-1)/4,16-(i-1)*5.5,0,84),UDim2.new(.25,-15.5,0,32),action[2])
         end
         if runtime.editWaypoint==entry then
             local rename=make("TextBox",{Name="WaypointRename",Text=entry.name,ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=13,TextColor3=C.text,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,133),Size=UDim2.new(1,-164,0,32)},tile); round(rename,10)
-            rowButton(tile,"Übernehmen",UDim2.new(1,-136,0,133),UDim2.fromOffset(120,32),function() runtime.renameWaypoint(entry,rename.Text) end)
+            rowButton(tile,"\195\156bernehmen",UDim2.new(1,-136,0,133),UDim2.fromOffset(120,32),function() runtime.renameWaypoint(entry,rename.Text) end)
         end
     end
 end
@@ -2191,7 +2191,7 @@ function runtime.changelogTextHeight(text,width)
 end
 function runtime.drawChangelog()
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
-    rowButton(back,"← Start",UDim2.new(),UDim2.fromOffset(90,28),function() selectPage("Start") end)
+    rowButton(back,"\226\134\144 Start",UDim2.new(),UDim2.fromOffset(90,28),function() selectPage("Start") end)
     local refs={}
     local function resize()
         local width=math.max(100,content.AbsoluteSize.X/math.max(.1,scale.Scale)-64)
@@ -2212,7 +2212,7 @@ function runtime.drawChangelog()
     for index,entry in ipairs(runtime.changelog) do
         local tile=make("Frame",{Name="ChangelogEntry",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,80),LayoutOrder=index},content)
         round(tile,16); runtime.contentSurface(tile,16)
-        local heading=label(tile,"Version "..entry.version..(index==1 and "  ·  Aktuell" or ""),15,index==1 and C.accent or C.text,UDim2.fromOffset(16,14),UDim2.new(1,-32,0,22)); heading.Font=Enum.Font.BuilderSansBold
+        local heading=label(tile,"Version "..entry.version..(index==1 and "  \194\183  Aktuell" or ""),15,index==1 and C.accent or C.text,UDim2.fromOffset(16,14),UDim2.new(1,-32,0,22)); heading.Font=Enum.Font.BuilderSansBold
         make("Frame",{Name="ChangelogDivider",BackgroundColor3=C.muted,BackgroundTransparency=.85,BorderSizePixel=0,Position=UDim2.fromOffset(16,43),Size=UDim2.new(1,-32,0,1)},tile)
         local ref={tile=tile,points={}}
         for text in entry.text:gmatch("[^\n]+") do
@@ -2253,55 +2253,56 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.41",text="Lesbarere Versionsnotizen: Jede Änderung steht als eigener Punkt mit gleichmäßigen Abständen.\nÜbersichtliche Karten: Versionsüberschrift und Trennlinie gliedern die Historie; längere Punkte umbrechen sauber.\nNeutrale Beschreibungen: Bezüge auf andere Menüs wurden aus der gesamten Änderungshistorie entfernt."},
-    {version="2.6.40",text="Versionsbutton sitzt acht Pixel hinter dem gemessenen Menütitel.\nChangelog-Karten berechnen ihre Höhe aus dem Text; dekorative Flächen beeinflussen das Layout nicht mehr.\nLeerflächen und übergroße Karten sind entfernt."},
-    {version="2.6.39",text="Wegpunkte pro Spiel speichern, umbenennen und löschen.\nTeleport oder Freecam direkt am Wegpunkt starten.\nKlickbare Versionsanzeige im Startmenü mit scrollbarer Änderungshistorie; neueste Version zuerst.\nVersionsangaben im Skript vereinheitlicht."},
-    {version="2.6.38",text="Beim Ablegen des Spielerinfo-Items oder Ausrüsten eines anderen Items wird die Spielerinfo rechts geschlossen.\nErneutes Ausrüsten öffnet die vorherige Auswahl nicht automatisch; ein neuer Klick auf einen Spieler öffnet seine Informationen."},
-    {version="2.6.37",text="Freecam bleibt bei Fenster-Fokusverlust, Charakterwechsel und Austausch der Roblox-Kamera aktiv.\nBei Fokusverlust pausieren Bewegung und Maussteuerung; beim Zurückkehren geht es an derselben Kameraposition weiter.\nEin Kamera-Reset durch das Spiel beendet Freecam nicht mehr.\nL beendet weiterhin manuell, N teleportiert und beendet."},
-    {version="2.6.36",text="N richtet nach dem Freecam-Teleport auch die normale Roblox-Kamera nach dem zuletzt verwendeten Freecam-Blick aus, einschließlich Blickhöhe.\nDer vorherige Zoomabstand und die übliche Fokusposition relativ zum Charakter bleiben erhalten.\nL ohne Teleport stellt weiterhin die vorherige Kamera wieder her."},
-    {version="2.6.35",text="N übernimmt beim Teleportieren die horizontale Blickrichtung der Freecam.\nDer Charakter bleibt aufrecht, auch wenn die Kamera nach oben oder unten blickt.\nDie genaue Kameraposition sowie das automatische Beenden von Freecam bleiben erhalten."},
-    {version="2.6.34",text="L schaltet Freecam ein und aus.\nWASD bewegt die Kamera, E/Q hebt oder senkt sie, Standardtempo 120 Studs/s, Shift erhöht es auf 360 Studs/s.\nDie Maus dreht die Ansicht.\nN teleportiert den eigenen Charakter an die Kameraposition und beendet Freecam sofort; danach sind normale Kamera und Steuerung aktiv.\nFreecam steht auch unter Darstellung und der Keybind ist unter Tasten änderbar.\nDie vorherige Kamera und Maussteuerung werden beim Beenden, Fokusverlust, Respawn und Cleanup wiederhergestellt.\nNormale Charakter-Steuertasten werden während Freecam abgefangen; bestehender Flug wird pausiert."},
-    {version="2.6.33",text="Bei Menüposition Rechts stehen Benachrichtigungen unten links.\nBei Links und Mitte stehen sie weiterhin unten rechts.\nDer gesamte Stapel wechselt beim Umstellen sofort mit; Menüskalierung und 12 Pixel Abstand zum Bildschirmrand bleiben erhalten."},
-    {version="2.6.32",text="Spielerinfo: zusammenhängender Profilkopf mit Avatar, Namen und farbig hinterlegtem Beziehungs-Badge.\nZehn dezente Informationsflächen mit einheitlicher Rundung, Innenabständen und stärker betonten Werten statt freistehendem Text.\nDie drei oberen Aktionen teilen sich eine gemeinsame Layout-Zeile mit exakt gleicher Breite und 10 Pixel Abstand.\nBestehende Funktionen bleiben erhalten."},
-    {version="2.6.31",text="Spielerinfo: Plus/Premium-Mitgliedschaft über HasRobloxSubscription mit MembershipType-Fallback; fehlende Daten werden als nicht verfügbar angezeigt.\nErgänzt: genaues öffentliches Erstellungsdatum, Freundesanzahl und frühere Namen mit asynchronem Cache; direkte Aktionen für Freundschaft, Outfits und Namenshistorie.\nMitgliedschaft bleibt bei HTTP-Fehlern verfügbar.\nDie rechte Karte skaliert mit dem Menü und bleibt bei kleinen Fenstern im Bild.\nAusgerüstetes Tool markiert den Spieler unter der Maus mit einer Akzentkontur, respektiert verdeckende Geometrie und entfernt die eigene Markierung beim Ablegen, Zielwechsel, Respawn, Verlassen oder Cleanup.\nFremder Spieler-Ping wird nicht geschätzt: Roblox GetNetworkPing ist clientseitig nur für LocalPlayer verfügbar."},
-    {version="2.6.30",text="Neues Inventar-Item ISB Spielerinfo mit eigenem ISB-Icon: ausrüsten und einen anderen Spieler anklicken.\nRechts öffnet sich seine Spielerkarte mit Avatar, Verifizierung, Beziehung, Benutzer-ID, Accountalter, Team, Gesundheit, Entfernung und Gruppenrolle.\nProfil-Link kopieren oder vollständige Details öffnen.\nDas Item kehrt nach einem Respawn zurück und wird bei erneutem Laden nicht dupliziert.\nDie Karte skaliert mit der Menügröße und schließt sich per X oder Escape.\nBei eigenen Inventarsystemen kann das Spiel die Roblox-Hotbar ausblenden; das Item liegt im lokalen Backpack."},
-    {version="2.6.29",text="Admin- und Freund-Karten zeichnen die Kontur direkt auf einer gemeinsamen abgerundeten Fläche als innenliegenden UIStroke mit fester 1.25-Pixel-Dicke.\nUnterschiedliche Rasterung zweier verschachtelter Farbflächen beeinflusst die Rahmenbreite nicht mehr.\nEin Pixel Abstand zur CanvasGroup-Schnittkante bleibt erhalten."},
-    {version="2.6.28",text="Admin- und Freund-Karten verwenden einen gleichmäßigen innenliegenden Farbrand mit passender Rundung.\nDie Kontur wird nicht mehr als außenliegender UIStroke an der CanvasGroup-Schnittkante gezeichnet."},
-    {version="2.6.27",text="Die Einrichtungskarte im Musik-Tab verschwindet automatisch bei erfolgreicher Bridge-Verbindung, auch ohne aktiven Medienplayer.\nBei Verbindungsverlust erscheint sie wieder; beim erneuten Verbinden verschwindet sie ohne erneutes Laden des Menüs."},
-    {version="2.6.26",text="Im Musik-Tab steht Einrichtungsbefehl kopieren.\nEinmal in Windows PowerShell einfügen: die Bridge wird ohne Administratorrechte heruntergeladen, anhand einer festen SHA-256 geprüft, lokal installiert und bei jeder Windows-Anmeldung gestartet.\nInstaller und EXE stammen aus festgelegten GitHub-Commits.\nReal wird automatisch erkannt; für andere Executor-Workspaces ist -ClientWorkspace verfügbar.\nKeine Browser-Erweiterung erforderlich."},
-    {version="2.6.25",text="Die YouTube-Browsererweiterung wurde entfernt.\nExterne Windows-Musiksteuerung ist optional und setzt die lokale ISBMediaBridge.exe voraus.\nDas Roblox-Skript allein hat keinen Zugriff auf Spotify oder Browser-Player außerhalb des Spiels.\nOhne bereitgestellte Zeitdaten erscheint ein verständlicher Hinweis statt 00:00 / 00:00.\nAlle anderen Menüfunktionen bleiben ohne Zusatzprogramm nutzbar."},
-    {version="2.6.23",text="Benachrichtigungen: Symbol und kompletter Textblock sind vertikal mittig ausgerichtet.\nDie Kartenhöhe richtet sich nach der gemessenen Texthöhe mit gleichmäßigen Abständen oben und unten, auch bei mehrzeiligen Meldungen."},
-    {version="2.6.22",text="Die Serverliste zeigt bei HTTP 429 eine verständliche Rate-Limit-Meldung und pausiert Anfragen für 30 Sekunden.\nDer Aktualisieren-Knopf begrenzt schnelle Wiederholungen auf eine Anfrage je zwei Sekunden.\nAndere Ladefehler zeigen ebenfalls einen verständlichen Hinweis statt interner Fehlermeldungen.\nAbgewiesene Klicks verändern die aktuelle Seite nicht."},
-    {version="2.6.21",text="Skript-Hub und Serverliste teilen dieselbe kompakte Seitennavigation: Zurück, Seitenanzeige, Weiter.\nBei einer einzigen Serverseite steht 1 / 1.\nSolange weitere Cursor-Seiten existieren und die Gesamtzahl unbekannt ist, zeigt der Nenner eine Ellipse."},
-    {version="2.6.20",text="Skript-Hub: Zurück und Weiter stehen mit kleinem Abstand direkt nebeneinander; die Seitenanzeige folgt als dezentes Feld.\nAufrufzahlen und Seitenzahlen erhalten deutsche Tausenderpunkte."},
-    {version="2.6.19",text="Der blaue Roblox-Haken erscheint auch direkt hinter dem Namen in der Spieler-Detailansicht.\nLange Namen behalten Platz für Haken und Avatar."},
-    {version="2.6.18",text="Spieler mit blauem Roblox-Haken zeigen diesen auch direkt hinter dem Namen, einschließlich verifizierter Freunde und Admins.\nLange Namen werden gekürzt und behalten Platz für das Symbol."},
-    {version="2.6.17",text="Alle Hauptmenüs zeichnen ihre Kontur direkt auf der sichtbaren WindowSurface mit übereinstimmender Größe und Rundung.\nBeim Welcome-Intro begleitet ein kurzer, dezenter Ton jeden erscheinenden Dock-Button mit leicht steigender Tonhöhe.\nDer Ton wird vor der Sequenz vorbereitet und respektiert ausgeschaltete Sounds sowie reduzierte Animationen."},
-    {version="2.6.16",text="Uhrzeit und Datum behalten ihre Anordnung und Typografie.\nDie zusätzliche Hintergrundfläche und Umrandung sind entfernt."},
-    {version="2.6.15",text="Die Glaskontur sitzt direkt auf der sichtbaren Fläche, auch im Roleplay-Menü.\nSchließen-Buttons verwenden ein zentriertes, aus zwei Linien gezeichnetes X."},
-    {version="2.6.14",text="Buttonkonturen liegen direkt auf der bewegten Fläche und verwenden deren Rundung.\nSpiellink und Join-Script teilen eine Zeile, ebenso die vier Aktionen in Spielerdetails.\nAlle Musikquellen erhalten beim Auswählen dieselbe unmittelbare Akzentmarkierung.\nEin dezentes Datum unter der Dock-Uhr nutzt den vorhandenen Platz."},
-    {version="2.6.13",text="Die gemeinsame GlassEdge-Kontur folgt nun ebenfalls dem halben Pixel Randabstand der sichtbaren Fläche; die bisherige 2-px-Geometrie ließ unter der Statuskontur einen Streifen stehen.\nDas betrifft auch andere Glasflächen."},
-    {version="2.6.12",text="Gemeinsame Konturen: sichtbare Flächen und Rahmen benutzen dieselbe Geometrie und Rundung.\nEin 1-px-Rahmen liegt mit 0.5-px-Inset direkt an der bewegten Fläche.\nDas gilt auch für Freund-/Admin-Karten.\nDock-Symbole bleiben im relativen Mittelpunkt des animierten Bereichs; die zweite unabhängige Icon-Vergrößerung entfällt."},
-    {version="2.6.11",text="Standardknöpfe: mittig ausgerichtete Beschriftung mit 11 px und optischer Höhenkorrektur.\nReset-Symbol und Text behalten getrennte Bereiche."},
-    {version="2.6.10",text="Standardknöpfe: Icon und Beschriftung haben getrennte Bereiche mit acht Pixeln Abstand.\nGemeinsames UIPadding wurde entfernt, damit es das Icon nicht in den Text verschiebt.\nBeide Inhalte bleiben im animierten Button-Face."},
-    {version="2.6.9",text="Standardknöpfe sitzen neben dem Zahlenfeld im oberen Kartenbereich.\nHelligkeit, Lautstärke und Menügröße benötigen dadurch keine zusätzliche leere Zeile.\nShader-Texte und Kommentare verwenden neutrale Namen."},
-    {version="2.6.8",text="Bewegung: Reset setzt nur den ausgewählten Regler zurück.\nDie vier Flugstufen bleiben GLIDE 55, NORMAL 110, FAST 140 und TURBO 250 studs/s; ein Stufenwechsel benötigt jetzt 48 Pixel Zugweg.\nAlle vier Stufen sind beschriftet.\nMehrfachsprung stellt den Sprungimpuls einmal nach dem Physikschritt wieder her, auch bei R15 und JumpHeight-Steuerung, ohne dauerhaft nach oben zu drücken."},
-    {version="2.6.7",text="Auf dem Kopf hält den Avatar jetzt aufrecht und übernimmt die horizontale Blickrichtung des Ziels.\nDer bisherige senkrechte Abwärtsblick drehte den ganzen Charakter auf den Bauch.\nAnimationsasset und eingefrorene Pose bei Sekunde 2 bleiben erhalten.\nDie tatsächliche Sitzhöhe hängt vom Avatar ab und die Optik benötigt noch Bestätigung im Spiel."},
-    {version="2.6.6",text="Performance: Inventarleisten werden zwischengespeichert.\nVollständige GUI-Suchen erfolgen beim Start und nach relevanten Strukturänderungen, nicht mehr zweimal pro Sekunde.\nUnveränderte Inventarleisten prüfen nur die bekannten Elemente.\nEigene Körperteile werden für Noclip/Roleplay einmal erfasst und bei hinzugefügten Teilen ergänzt.\nDetailwerte werden nur in der geöffneten Detailansicht aktualisiert; unveränderte Sprunghöhe und eingefrorene Animation werden nicht ständig neu geschrieben."},
-    {version="2.6.5",text="Kopierbuttons in Spieler-Details animieren Fläche, Kontur und Symbol gemeinsam; das Symbol wird nicht zusätzlich aufgeblasen.\nWiederholtes Hover wird geprüft.\nBewegung und Darstellung haben keine Suchleiste mehr.\nDie Serversuche filtert die geladene Seite nach Server-ID und Spielerzahl; die öffentliche Serverliste liefert keine Spielernamen oder privaten Einladungscodes.\nFavoriten durchsucht ausschließlich gespeicherte Funktionen.\nSkripte verwendet die gestalteten Filter Beliebt / Neu / Favoriten ohne frei stehendes Entdecken-Label."},
-    {version="2.6.4",text="Executor-Kompatibilität: Die Begrüßung wird in einer eigenen Funktion aufgebaut.\nDer unoptimierte Luau-Compiler überschritt in 2.6.3 beim Aufbau der Begrüßung die Grenze von 200 lokalen Registern; Optimierungsstufe 1 und 2 waren nicht betroffen.\n2.6.4 kompiliert nun auf allen drei Stufen (-O0, -O1 und -O2).\n1707 simulierte Interaktions-/Lifecycle-Prüfungen bestehen weiterhin."},
-    {version="2.6.3",text="Die vier Flugstufen übernehmen die festen Geschwindigkeiten und Namen fest: GLIDE 55, NORMAL 110, FAST 140 und TURBO 250 studs/s.\nQ und der Knopf in der Flugleiste schalten die Stufen zyklisch.\nDer Flight-Regler wählt nun die Stufe 1–4; ein alter gespeicherter Basiswert verändert die festen Geschwindigkeiten nicht mehr.\nReset setzt Stufe 1.\nFlugleiste und Animationen verwenden dieselbe Stufentabelle, einschließlich der Stufenfarben.\nDie bestehende ISB-Flugphysik mit weicher Beschleunigung bleibt erhalten."},
-    {version="2.6.2",text="Die Flugleiste bietet Fly, Mysterious, Villain Fly, Superman und Halloween Fly .\nDer Standardstyle heißt Fly; der Dropdown-Pfeil wird aus Formen gezeichnet.\nGespeicherte Flugstil-Auswahlen werden übernommen.\nDie Auswahl bleibt gespeichert und kann während des Fluges geändert werden.\nStufe 1 verwendet die Gleitpose, Stufe 2 die ruhige Flugpose; Stufen 3/4 wechseln abhängig von der tatsächlich erreichten Geschwindigkeit zur Vorwärtspose.\nStufe 4 verwendet bei Styles mit zusätzlichem Clip die schnelle Alternativpose.\nÜbergänge blenden weich über.\nQ und die bisherigen vier Geschwindigkeitsfaktoren bleiben erhalten."},
-    {version="2.6.1",text="Button-Konturen liegen innerhalb der bewegten Fläche mit zwei Pixeln Abstand.\nScrollinhalte haben Sicherheitsabstände oben und links.\nFreund- und Admin-Flächen sowie ihre Konturen übernehmen denselben Radius und Abstand wie die Karten; doppelte Standardflächen entfallen.\nDie Renderflächen der gestaffelten Begrüßung reservieren Platz für Hover-Vergrößerung und Anhebung."},
-    {version="2.6.0",text="Freunde erhalten blaue, Spiel-Admins rote Karten samt Kennzeichnung.\nBei blauem Akzent erscheinen normale ESP-Markierungen goldgelb; Freunde bleiben blau und Admins rot.\nRoleplay folgt dem Ziel direkt nach der Charakteraktualisierung ohne die bisherige Lerp-Verzögerung.\nZielgeschwindigkeit wird übernommen; die bereits bestätigte Avatar-Sichtbarkeit bleibt erhalten.\nDas Verhalten bei bewegten Zielen benötigt weiterhin einen Test mit einem anderen Spieler."},
-    {version="2.5.8",text="Die obere Aktivitätskapsel wurde nach dem Live-Test auf Benutzerwunsch vollständig entfernt.\nMusik, Timer und Stoppuhr liegen im normalen Musikmenü.\nBeide Uhren laufen unabhängig weiter; jede hat Pause/Weiter und Zurücksetzen.\nHelligkeit lässt sich in Darstellung einstellen.\nDie Begrüßung „Hey, <Anzeigename>.“ blendet am Dock ein und geht danach in die Navigation über; reduzierte Bewegung wird berücksichtigt."},
-    {version="2.4",text="Rollskalen: Speed, Jump, Flight, FOV und Musiklautstärke lassen sich über eine feste Mittelmarkierung einstellen. Nach links ziehen erhöht den Wert, nach rechts verringert ihn.\nDirekte Eingabe: Zahlenfelder akzeptieren Komma und Dezimalpunkt. Ungültige Werte werden abgewiesen; beim Ziehen gilt wieder der normale Skalenbereich.\nWertebereiche: Speed/Jump/Flight bis 10.000, FOV 1–120 Grad und Lautstärke bis 1.000 Prozent.\nFlugphysik: weichere Beschleunigung und Bremsung sowie gleichmäßige Geschwindigkeit bei verschiedenen Physikraten.\nFluggeräusche: Eigene Schrittgeräusche pausieren im Flug und werden beim Beenden oder Respawn wiederhergestellt.\nTasten: F/Z/E/V schalten Funktionen um. Alle sieben Belegungen sind unter Einstellungen → Tasten änderbar und werden gespeichert.\nMausbedienung: Der eigene Ersatzzeiger wurde entfernt. Klick, Touch, Hover und Tastaturauswahl bleiben verfügbar."},
-    {version="2.3",text="Glossy Dark mit Lichtverläufen und enthaltenen Rahmen; Akzent einstellbar.\nHinweiskarten erscheinen nur bei geschlossenem Panel und geschlossener Schnellsuche. Bei offenen Panels reagiert nur das Dock-Symbol auf Hover.\nStatusleiste ignoriert den Roblox-GUI-Abstand und sitzt direkt oben rechts.\nProfil mit Avatar, Rolle, Kontoalter, UserId, Sammlung, Executor, Version, Place/Universe, Sitzung und Speicherstatus.\nProfilwerkzeuge zum Kopieren von Sitzungsdaten und Exportieren der Einstellungen. Owner/Admin erhalten lokale Diagnose-, Benachrichtigungs- und Erkennungswerkzeuge.\nAutomatisches Speichern von Einstellungen, Tasten, Reglerwerten, Lautstärke, Erkennung, Performance, Anbieter und Favoriten.\nSkripte laden direkt beim Öffnen: Beliebt, Neu oder Favoriten. Karten mit Titel, Spiel, Aufrufen und Vorschaubild, soweit verfügbar.\nOverhead-Anbindung und zugehöriges Server-Skript entfernt."},
+    {version="2.6.42",text="Umlaute und Symbole: Texte bleiben beim Upload als ASCII-Byte-Escapes erhalten und werden zur Laufzeit wieder als UTF-8 angezeigt.\nSchutz-Kompatibilit\195\164t: Keine \195\132nderung an Schriftarten, Sprache oder Men\195\188funktionen; AstroProtect kann aktiviert bleiben."},
+    {version="2.6.41",text="Lesbarere Versionsnotizen: Jede \195\132nderung steht als eigener Punkt mit gleichm\195\164\195\159igen Abst\195\164nden.\n\195\156bersichtliche Karten: Versions\195\188berschrift und Trennlinie gliedern die Historie; l\195\164ngere Punkte umbrechen sauber.\nNeutrale Beschreibungen: Bez\195\188ge auf andere Men\195\188s wurden aus der gesamten \195\132nderungshistorie entfernt."},
+    {version="2.6.40",text="Versionsbutton sitzt acht Pixel hinter dem gemessenen Men\195\188titel.\nChangelog-Karten berechnen ihre H\195\182he aus dem Text; dekorative Fl\195\164chen beeinflussen das Layout nicht mehr.\nLeerfl\195\164chen und \195\188bergro\195\159e Karten sind entfernt."},
+    {version="2.6.39",text="Wegpunkte pro Spiel speichern, umbenennen und l\195\182schen.\nTeleport oder Freecam direkt am Wegpunkt starten.\nKlickbare Versionsanzeige im Startmen\195\188 mit scrollbarer \195\132nderungshistorie; neueste Version zuerst.\nVersionsangaben im Skript vereinheitlicht."},
+    {version="2.6.38",text="Beim Ablegen des Spielerinfo-Items oder Ausr\195\188sten eines anderen Items wird die Spielerinfo rechts geschlossen.\nErneutes Ausr\195\188sten \195\182ffnet die vorherige Auswahl nicht automatisch; ein neuer Klick auf einen Spieler \195\182ffnet seine Informationen."},
+    {version="2.6.37",text="Freecam bleibt bei Fenster-Fokusverlust, Charakterwechsel und Austausch der Roblox-Kamera aktiv.\nBei Fokusverlust pausieren Bewegung und Maussteuerung; beim Zur\195\188ckkehren geht es an derselben Kameraposition weiter.\nEin Kamera-Reset durch das Spiel beendet Freecam nicht mehr.\nL beendet weiterhin manuell, N teleportiert und beendet."},
+    {version="2.6.36",text="N richtet nach dem Freecam-Teleport auch die normale Roblox-Kamera nach dem zuletzt verwendeten Freecam-Blick aus, einschlie\195\159lich Blickh\195\182he.\nDer vorherige Zoomabstand und die \195\188bliche Fokusposition relativ zum Charakter bleiben erhalten.\nL ohne Teleport stellt weiterhin die vorherige Kamera wieder her."},
+    {version="2.6.35",text="N \195\188bernimmt beim Teleportieren die horizontale Blickrichtung der Freecam.\nDer Charakter bleibt aufrecht, auch wenn die Kamera nach oben oder unten blickt.\nDie genaue Kameraposition sowie das automatische Beenden von Freecam bleiben erhalten."},
+    {version="2.6.34",text="L schaltet Freecam ein und aus.\nWASD bewegt die Kamera, E/Q hebt oder senkt sie, Standardtempo 120 Studs/s, Shift erh\195\182ht es auf 360 Studs/s.\nDie Maus dreht die Ansicht.\nN teleportiert den eigenen Charakter an die Kameraposition und beendet Freecam sofort; danach sind normale Kamera und Steuerung aktiv.\nFreecam steht auch unter Darstellung und der Keybind ist unter Tasten \195\164nderbar.\nDie vorherige Kamera und Maussteuerung werden beim Beenden, Fokusverlust, Respawn und Cleanup wiederhergestellt.\nNormale Charakter-Steuertasten werden w\195\164hrend Freecam abgefangen; bestehender Flug wird pausiert."},
+    {version="2.6.33",text="Bei Men\195\188position Rechts stehen Benachrichtigungen unten links.\nBei Links und Mitte stehen sie weiterhin unten rechts.\nDer gesamte Stapel wechselt beim Umstellen sofort mit; Men\195\188skalierung und 12 Pixel Abstand zum Bildschirmrand bleiben erhalten."},
+    {version="2.6.32",text="Spielerinfo: zusammenh\195\164ngender Profilkopf mit Avatar, Namen und farbig hinterlegtem Beziehungs-Badge.\nZehn dezente Informationsfl\195\164chen mit einheitlicher Rundung, Innenabst\195\164nden und st\195\164rker betonten Werten statt freistehendem Text.\nDie drei oberen Aktionen teilen sich eine gemeinsame Layout-Zeile mit exakt gleicher Breite und 10 Pixel Abstand.\nBestehende Funktionen bleiben erhalten."},
+    {version="2.6.31",text="Spielerinfo: Plus/Premium-Mitgliedschaft \195\188ber HasRobloxSubscription mit MembershipType-Fallback; fehlende Daten werden als nicht verf\195\188gbar angezeigt.\nErg\195\164nzt: genaues \195\182ffentliches Erstellungsdatum, Freundesanzahl und fr\195\188here Namen mit asynchronem Cache; direkte Aktionen f\195\188r Freundschaft, Outfits und Namenshistorie.\nMitgliedschaft bleibt bei HTTP-Fehlern verf\195\188gbar.\nDie rechte Karte skaliert mit dem Men\195\188 und bleibt bei kleinen Fenstern im Bild.\nAusger\195\188stetes Tool markiert den Spieler unter der Maus mit einer Akzentkontur, respektiert verdeckende Geometrie und entfernt die eigene Markierung beim Ablegen, Zielwechsel, Respawn, Verlassen oder Cleanup.\nFremder Spieler-Ping wird nicht gesch\195\164tzt: Roblox GetNetworkPing ist clientseitig nur f\195\188r LocalPlayer verf\195\188gbar."},
+    {version="2.6.30",text="Neues Inventar-Item ISB Spielerinfo mit eigenem ISB-Icon: ausr\195\188sten und einen anderen Spieler anklicken.\nRechts \195\182ffnet sich seine Spielerkarte mit Avatar, Verifizierung, Beziehung, Benutzer-ID, Accountalter, Team, Gesundheit, Entfernung und Gruppenrolle.\nProfil-Link kopieren oder vollst\195\164ndige Details \195\182ffnen.\nDas Item kehrt nach einem Respawn zur\195\188ck und wird bei erneutem Laden nicht dupliziert.\nDie Karte skaliert mit der Men\195\188gr\195\182\195\159e und schlie\195\159t sich per X oder Escape.\nBei eigenen Inventarsystemen kann das Spiel die Roblox-Hotbar ausblenden; das Item liegt im lokalen Backpack."},
+    {version="2.6.29",text="Admin- und Freund-Karten zeichnen die Kontur direkt auf einer gemeinsamen abgerundeten Fl\195\164che als innenliegenden UIStroke mit fester 1.25-Pixel-Dicke.\nUnterschiedliche Rasterung zweier verschachtelter Farbfl\195\164chen beeinflusst die Rahmenbreite nicht mehr.\nEin Pixel Abstand zur CanvasGroup-Schnittkante bleibt erhalten."},
+    {version="2.6.28",text="Admin- und Freund-Karten verwenden einen gleichm\195\164\195\159igen innenliegenden Farbrand mit passender Rundung.\nDie Kontur wird nicht mehr als au\195\159enliegender UIStroke an der CanvasGroup-Schnittkante gezeichnet."},
+    {version="2.6.27",text="Die Einrichtungskarte im Musik-Tab verschwindet automatisch bei erfolgreicher Bridge-Verbindung, auch ohne aktiven Medienplayer.\nBei Verbindungsverlust erscheint sie wieder; beim erneuten Verbinden verschwindet sie ohne erneutes Laden des Men\195\188s."},
+    {version="2.6.26",text="Im Musik-Tab steht Einrichtungsbefehl kopieren.\nEinmal in Windows PowerShell einf\195\188gen: die Bridge wird ohne Administratorrechte heruntergeladen, anhand einer festen SHA-256 gepr\195\188ft, lokal installiert und bei jeder Windows-Anmeldung gestartet.\nInstaller und EXE stammen aus festgelegten GitHub-Commits.\nReal wird automatisch erkannt; f\195\188r andere Executor-Workspaces ist -ClientWorkspace verf\195\188gbar.\nKeine Browser-Erweiterung erforderlich."},
+    {version="2.6.25",text="Die YouTube-Browsererweiterung wurde entfernt.\nExterne Windows-Musiksteuerung ist optional und setzt die lokale ISBMediaBridge.exe voraus.\nDas Roblox-Skript allein hat keinen Zugriff auf Spotify oder Browser-Player au\195\159erhalb des Spiels.\nOhne bereitgestellte Zeitdaten erscheint ein verst\195\164ndlicher Hinweis statt 00:00 / 00:00.\nAlle anderen Men\195\188funktionen bleiben ohne Zusatzprogramm nutzbar."},
+    {version="2.6.23",text="Benachrichtigungen: Symbol und kompletter Textblock sind vertikal mittig ausgerichtet.\nDie Kartenh\195\182he richtet sich nach der gemessenen Texth\195\182he mit gleichm\195\164\195\159igen Abst\195\164nden oben und unten, auch bei mehrzeiligen Meldungen."},
+    {version="2.6.22",text="Die Serverliste zeigt bei HTTP 429 eine verst\195\164ndliche Rate-Limit-Meldung und pausiert Anfragen f\195\188r 30 Sekunden.\nDer Aktualisieren-Knopf begrenzt schnelle Wiederholungen auf eine Anfrage je zwei Sekunden.\nAndere Ladefehler zeigen ebenfalls einen verst\195\164ndlichen Hinweis statt interner Fehlermeldungen.\nAbgewiesene Klicks ver\195\164ndern die aktuelle Seite nicht."},
+    {version="2.6.21",text="Skript-Hub und Serverliste teilen dieselbe kompakte Seitennavigation: Zur\195\188ck, Seitenanzeige, Weiter.\nBei einer einzigen Serverseite steht 1 / 1.\nSolange weitere Cursor-Seiten existieren und die Gesamtzahl unbekannt ist, zeigt der Nenner eine Ellipse."},
+    {version="2.6.20",text="Skript-Hub: Zur\195\188ck und Weiter stehen mit kleinem Abstand direkt nebeneinander; die Seitenanzeige folgt als dezentes Feld.\nAufrufzahlen und Seitenzahlen erhalten deutsche Tausenderpunkte."},
+    {version="2.6.19",text="Der blaue Roblox-Haken erscheint auch direkt hinter dem Namen in der Spieler-Detailansicht.\nLange Namen behalten Platz f\195\188r Haken und Avatar."},
+    {version="2.6.18",text="Spieler mit blauem Roblox-Haken zeigen diesen auch direkt hinter dem Namen, einschlie\195\159lich verifizierter Freunde und Admins.\nLange Namen werden gek\195\188rzt und behalten Platz f\195\188r das Symbol."},
+    {version="2.6.17",text="Alle Hauptmen\195\188s zeichnen ihre Kontur direkt auf der sichtbaren WindowSurface mit \195\188bereinstimmender Gr\195\182\195\159e und Rundung.\nBeim Welcome-Intro begleitet ein kurzer, dezenter Ton jeden erscheinenden Dock-Button mit leicht steigender Tonh\195\182he.\nDer Ton wird vor der Sequenz vorbereitet und respektiert ausgeschaltete Sounds sowie reduzierte Animationen."},
+    {version="2.6.16",text="Uhrzeit und Datum behalten ihre Anordnung und Typografie.\nDie zus\195\164tzliche Hintergrundfl\195\164che und Umrandung sind entfernt."},
+    {version="2.6.15",text="Die Glaskontur sitzt direkt auf der sichtbaren Fl\195\164che, auch im Roleplay-Men\195\188.\nSchlie\195\159en-Buttons verwenden ein zentriertes, aus zwei Linien gezeichnetes X."},
+    {version="2.6.14",text="Buttonkonturen liegen direkt auf der bewegten Fl\195\164che und verwenden deren Rundung.\nSpiellink und Join-Script teilen eine Zeile, ebenso die vier Aktionen in Spielerdetails.\nAlle Musikquellen erhalten beim Ausw\195\164hlen dieselbe unmittelbare Akzentmarkierung.\nEin dezentes Datum unter der Dock-Uhr nutzt den vorhandenen Platz."},
+    {version="2.6.13",text="Die gemeinsame GlassEdge-Kontur folgt nun ebenfalls dem halben Pixel Randabstand der sichtbaren Fl\195\164che; die bisherige 2-px-Geometrie lie\195\159 unter der Statuskontur einen Streifen stehen.\nDas betrifft auch andere Glasfl\195\164chen."},
+    {version="2.6.12",text="Gemeinsame Konturen: sichtbare Fl\195\164chen und Rahmen benutzen dieselbe Geometrie und Rundung.\nEin 1-px-Rahmen liegt mit 0.5-px-Inset direkt an der bewegten Fl\195\164che.\nDas gilt auch f\195\188r Freund-/Admin-Karten.\nDock-Symbole bleiben im relativen Mittelpunkt des animierten Bereichs; die zweite unabh\195\164ngige Icon-Vergr\195\182\195\159erung entf\195\164llt."},
+    {version="2.6.11",text="Standardkn\195\182pfe: mittig ausgerichtete Beschriftung mit 11 px und optischer H\195\182henkorrektur.\nReset-Symbol und Text behalten getrennte Bereiche."},
+    {version="2.6.10",text="Standardkn\195\182pfe: Icon und Beschriftung haben getrennte Bereiche mit acht Pixeln Abstand.\nGemeinsames UIPadding wurde entfernt, damit es das Icon nicht in den Text verschiebt.\nBeide Inhalte bleiben im animierten Button-Face."},
+    {version="2.6.9",text="Standardkn\195\182pfe sitzen neben dem Zahlenfeld im oberen Kartenbereich.\nHelligkeit, Lautst\195\164rke und Men\195\188gr\195\182\195\159e ben\195\182tigen dadurch keine zus\195\164tzliche leere Zeile.\nShader-Texte und Kommentare verwenden neutrale Namen."},
+    {version="2.6.8",text="Bewegung: Reset setzt nur den ausgew\195\164hlten Regler zur\195\188ck.\nDie vier Flugstufen bleiben GLIDE 55, NORMAL 110, FAST 140 und TURBO 250 studs/s; ein Stufenwechsel ben\195\182tigt jetzt 48 Pixel Zugweg.\nAlle vier Stufen sind beschriftet.\nMehrfachsprung stellt den Sprungimpuls einmal nach dem Physikschritt wieder her, auch bei R15 und JumpHeight-Steuerung, ohne dauerhaft nach oben zu dr\195\188cken."},
+    {version="2.6.7",text="Auf dem Kopf h\195\164lt den Avatar jetzt aufrecht und \195\188bernimmt die horizontale Blickrichtung des Ziels.\nDer bisherige senkrechte Abw\195\164rtsblick drehte den ganzen Charakter auf den Bauch.\nAnimationsasset und eingefrorene Pose bei Sekunde 2 bleiben erhalten.\nDie tats\195\164chliche Sitzh\195\182he h\195\164ngt vom Avatar ab und die Optik ben\195\182tigt noch Best\195\164tigung im Spiel."},
+    {version="2.6.6",text="Performance: Inventarleisten werden zwischengespeichert.\nVollst\195\164ndige GUI-Suchen erfolgen beim Start und nach relevanten Struktur\195\164nderungen, nicht mehr zweimal pro Sekunde.\nUnver\195\164nderte Inventarleisten pr\195\188fen nur die bekannten Elemente.\nEigene K\195\182rperteile werden f\195\188r Noclip/Roleplay einmal erfasst und bei hinzugef\195\188gten Teilen erg\195\164nzt.\nDetailwerte werden nur in der ge\195\182ffneten Detailansicht aktualisiert; unver\195\164nderte Sprungh\195\182he und eingefrorene Animation werden nicht st\195\164ndig neu geschrieben."},
+    {version="2.6.5",text="Kopierbuttons in Spieler-Details animieren Fl\195\164che, Kontur und Symbol gemeinsam; das Symbol wird nicht zus\195\164tzlich aufgeblasen.\nWiederholtes Hover wird gepr\195\188ft.\nBewegung und Darstellung haben keine Suchleiste mehr.\nDie Serversuche filtert die geladene Seite nach Server-ID und Spielerzahl; die \195\182ffentliche Serverliste liefert keine Spielernamen oder privaten Einladungscodes.\nFavoriten durchsucht ausschlie\195\159lich gespeicherte Funktionen.\nSkripte verwendet die gestalteten Filter Beliebt / Neu / Favoriten ohne frei stehendes Entdecken-Label."},
+    {version="2.6.4",text="Executor-Kompatibilit\195\164t: Die Begr\195\188\195\159ung wird in einer eigenen Funktion aufgebaut.\nDer unoptimierte Luau-Compiler \195\188berschritt in 2.6.3 beim Aufbau der Begr\195\188\195\159ung die Grenze von 200 lokalen Registern; Optimierungsstufe 1 und 2 waren nicht betroffen.\n2.6.4 kompiliert nun auf allen drei Stufen (-O0, -O1 und -O2).\n1707 simulierte Interaktions-/Lifecycle-Pr\195\188fungen bestehen weiterhin."},
+    {version="2.6.3",text="Die vier Flugstufen \195\188bernehmen die festen Geschwindigkeiten und Namen fest: GLIDE 55, NORMAL 110, FAST 140 und TURBO 250 studs/s.\nQ und der Knopf in der Flugleiste schalten die Stufen zyklisch.\nDer Flight-Regler w\195\164hlt nun die Stufe 1\226\128\1474; ein alter gespeicherter Basiswert ver\195\164ndert die festen Geschwindigkeiten nicht mehr.\nReset setzt Stufe 1.\nFlugleiste und Animationen verwenden dieselbe Stufentabelle, einschlie\195\159lich der Stufenfarben.\nDie bestehende ISB-Flugphysik mit weicher Beschleunigung bleibt erhalten."},
+    {version="2.6.2",text="Die Flugleiste bietet Fly, Mysterious, Villain Fly, Superman und Halloween Fly .\nDer Standardstyle hei\195\159t Fly; der Dropdown-Pfeil wird aus Formen gezeichnet.\nGespeicherte Flugstil-Auswahlen werden \195\188bernommen.\nDie Auswahl bleibt gespeichert und kann w\195\164hrend des Fluges ge\195\164ndert werden.\nStufe 1 verwendet die Gleitpose, Stufe 2 die ruhige Flugpose; Stufen 3/4 wechseln abh\195\164ngig von der tats\195\164chlich erreichten Geschwindigkeit zur Vorw\195\164rtspose.\nStufe 4 verwendet bei Styles mit zus\195\164tzlichem Clip die schnelle Alternativpose.\n\195\156berg\195\164nge blenden weich \195\188ber.\nQ und die bisherigen vier Geschwindigkeitsfaktoren bleiben erhalten."},
+    {version="2.6.1",text="Button-Konturen liegen innerhalb der bewegten Fl\195\164che mit zwei Pixeln Abstand.\nScrollinhalte haben Sicherheitsabst\195\164nde oben und links.\nFreund- und Admin-Fl\195\164chen sowie ihre Konturen \195\188bernehmen denselben Radius und Abstand wie die Karten; doppelte Standardfl\195\164chen entfallen.\nDie Renderfl\195\164chen der gestaffelten Begr\195\188\195\159ung reservieren Platz f\195\188r Hover-Vergr\195\182\195\159erung und Anhebung."},
+    {version="2.6.0",text="Freunde erhalten blaue, Spiel-Admins rote Karten samt Kennzeichnung.\nBei blauem Akzent erscheinen normale ESP-Markierungen goldgelb; Freunde bleiben blau und Admins rot.\nRoleplay folgt dem Ziel direkt nach der Charakteraktualisierung ohne die bisherige Lerp-Verz\195\182gerung.\nZielgeschwindigkeit wird \195\188bernommen; die bereits best\195\164tigte Avatar-Sichtbarkeit bleibt erhalten.\nDas Verhalten bei bewegten Zielen ben\195\182tigt weiterhin einen Test mit einem anderen Spieler."},
+    {version="2.5.8",text="Die obere Aktivit\195\164tskapsel wurde nach dem Live-Test auf Benutzerwunsch vollst\195\164ndig entfernt.\nMusik, Timer und Stoppuhr liegen im normalen Musikmen\195\188.\nBeide Uhren laufen unabh\195\164ngig weiter; jede hat Pause/Weiter und Zur\195\188cksetzen.\nHelligkeit l\195\164sst sich in Darstellung einstellen.\nDie Begr\195\188\195\159ung \226\128\158Hey, <Anzeigename>.\226\128\156 blendet am Dock ein und geht danach in die Navigation \195\188ber; reduzierte Bewegung wird ber\195\188cksichtigt."},
+    {version="2.4",text="Rollskalen: Speed, Jump, Flight, FOV und Musiklautst\195\164rke lassen sich \195\188ber eine feste Mittelmarkierung einstellen. Nach links ziehen erh\195\182ht den Wert, nach rechts verringert ihn.\nDirekte Eingabe: Zahlenfelder akzeptieren Komma und Dezimalpunkt. Ung\195\188ltige Werte werden abgewiesen; beim Ziehen gilt wieder der normale Skalenbereich.\nWertebereiche: Speed/Jump/Flight bis 10.000, FOV 1\226\128\147120 Grad und Lautst\195\164rke bis 1.000 Prozent.\nFlugphysik: weichere Beschleunigung und Bremsung sowie gleichm\195\164\195\159ige Geschwindigkeit bei verschiedenen Physikraten.\nFlugger\195\164usche: Eigene Schrittger\195\164usche pausieren im Flug und werden beim Beenden oder Respawn wiederhergestellt.\nTasten: F/Z/E/V schalten Funktionen um. Alle sieben Belegungen sind unter Einstellungen \226\134\146 Tasten \195\164nderbar und werden gespeichert.\nMausbedienung: Der eigene Ersatzzeiger wurde entfernt. Klick, Touch, Hover und Tastaturauswahl bleiben verf\195\188gbar."},
+    {version="2.3",text="Glossy Dark mit Lichtverl\195\164ufen und enthaltenen Rahmen; Akzent einstellbar.\nHinweiskarten erscheinen nur bei geschlossenem Panel und geschlossener Schnellsuche. Bei offenen Panels reagiert nur das Dock-Symbol auf Hover.\nStatusleiste ignoriert den Roblox-GUI-Abstand und sitzt direkt oben rechts.\nProfil mit Avatar, Rolle, Kontoalter, UserId, Sammlung, Executor, Version, Place/Universe, Sitzung und Speicherstatus.\nProfilwerkzeuge zum Kopieren von Sitzungsdaten und Exportieren der Einstellungen. Owner/Admin erhalten lokale Diagnose-, Benachrichtigungs- und Erkennungswerkzeuge.\nAutomatisches Speichern von Einstellungen, Tasten, Reglerwerten, Lautst\195\164rke, Erkennung, Performance, Anbieter und Favoriten.\nSkripte laden direkt beim \195\150ffnen: Beliebt, Neu oder Favoriten. Karten mit Titel, Spiel, Aufrufen und Vorschaubild, soweit verf\195\188gbar.\nOverhead-Anbindung und zugeh\195\182riges Server-Skript entfernt."},
 }
 function runtime.drawSessionCard(includeJoin)
     local link="https://www.roblox.com/games/"..tostring(game.PlaceId)
     local job=tostring(game.JobId or "")
-    local kind=(game.PrivateServerId and game.PrivateServerId~="") and "Privater Server" or "Öffentlicher Server"
+    local kind=(game.PrivateServerId and game.PrivateServerId~="") and "Privater Server" or "\195\150ffentlicher Server"
     local f=make("Frame",{Name="SessionCard",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,270)},content); round(f,18); runtime.contentSurface(f,18)
     local thumbnail=make("ImageLabel",{Name="GameIcon",BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,16),Size=UDim2.fromOffset(52,52),Image="rbxthumb://type=GameIcon&id="..tostring(game.GameId).."&w=150&h=150"},f); round(thumbnail,13)
     label(f,"Diese Sitzung",10,C.muted,UDim2.fromOffset(82,14),UDim2.new(1,-98,0,18))
@@ -2313,9 +2314,9 @@ function runtime.drawSessionCard(includeJoin)
         local text=label(tile,value,12,C.text,UDim2.fromOffset(12,23),UDim2.new(1,-24,0,22)); text.TextTruncate=Enum.TextTruncate.AtEnd
     end
     copyField("Place-ID",tostring(game.PlaceId),UDim2.fromOffset(16,82),UDim2.new(.5,-22,0,54))
-    copyField("Universe-ID",tostring(game.GameId or "—"),UDim2.new(.5,6,0,82),UDim2.new(.5,-22,0,54))
-    copyField("Server-ID",job~="" and job or "Nicht verfügbar",UDim2.fromOffset(16,146),UDim2.new(1,-32,0,54))
-    label(f,kind.."  ·  "..#Players:GetPlayers().." / "..tostring(Players.MaxPlayers or "—").." Spieler",11,C.muted,UDim2.fromOffset(16,208),UDim2.new(1,-32,0,20))
+    copyField("Universe-ID",tostring(game.GameId or "\226\128\148"),UDim2.new(.5,6,0,82),UDim2.new(.5,-22,0,54))
+    copyField("Server-ID",job~="" and job or "Nicht verf\195\188gbar",UDim2.fromOffset(16,146),UDim2.new(1,-32,0,54))
+    label(f,kind.."  \194\183  "..#Players:GetPlayers().." / "..tostring(Players.MaxPlayers or "\226\128\148").." Spieler",11,C.muted,UDim2.fromOffset(16,208),UDim2.new(1,-32,0,20))
     rowButton(f,"Spiellink kopieren",UDim2.fromOffset(16,236),UDim2.fromOffset(150,26),function() copyText(link) end)
     if includeJoin then rowButton(f,"Join-Script kopieren",UDim2.fromOffset(176,236),UDim2.fromOffset(168,26),function()
         copyText(string.format('game:GetService("TeleportService"):TeleportToPlaceInstance(%s, %q, game:GetService("Players").LocalPlayer)\n-- by Larsiopuw',tostring(game.PlaceId),job))
@@ -2376,7 +2377,7 @@ function features.detectGameStaff(other,joined)
         runtime.gameStaff[other]=detected
         runtime.groupRoles[other]=roleLabel
         if page=="Spieler" and (previous~=detected or previousRole~=roleLabel) and refreshPlayers then refreshPlayers() end
-        if detected and not previous and other~=player then notify(other.DisplayName..(joined and " ist dem Server beigetreten." or " gehört zur Spiel-Leitung."),joined and "Admin beigetreten" or "Spiel-Admin","shield-check") end
+        if detected and not previous and other~=player then notify(other.DisplayName..(joined and " ist dem Server beigetreten." or " geh\195\182rt zur Spiel-Leitung."),joined and "Admin beigetreten" or "Spiel-Admin","shield-check") end
     end)
 end
 function features.drawProfile()
@@ -2384,13 +2385,13 @@ function features.drawProfile()
     local avatar=make("ImageLabel",{Image=profile.Image,BackgroundColor3=C.card,Position=UDim2.fromOffset(0,6),Size=UDim2.fromOffset(72,72)},hero); round(avatar,36)
     rowConnect(profile:GetPropertyChangedSignal("Image"),function() if avatar.Parent then avatar.Image=profile.Image end end)
     local name=label(hero,player.DisplayName,22,C.text,UDim2.fromOffset(90,9),UDim2.new(1,-104,0,30)); name.Font=Enum.Font.BuilderSansBold
-    label(hero,"@"..player.Name.."  ·  "..runtime.role,12,C.accent,UDim2.fromOffset(90,45),UDim2.new(1,-104,0,22))
+    label(hero,"@"..player.Name.."  \194\183  "..runtime.role,12,C.accent,UDim2.fromOffset(90,45),UDim2.new(1,-104,0,22))
     local count,scripts=0,0; for _ in pairs(settings.favorites) do count=count+1 end; for _ in pairs(settings.scriptFavorites) do scripts=scripts+1 end
     local stats=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,168)},content)
-    local data={{"Dein Konto","ID "..tostring(player.UserId).." · "..tostring(player.AccountAge or "—").." Tage"},
-        {"Deine Sammlung",count.." Aktionen · "..scripts.." Scripts"},
-        {"Client",session.executor.." "..session.executorVersion.." · ISB "..CONFIG.Version},
-        {"Automatisches Speichern",runtime.saveError or (runtime.lastSaved and "Gespeichert · "..runtime.lastSaved or "Aktiv · lokal")}}
+    local data={{"Dein Konto","ID "..tostring(player.UserId).." \194\183 "..tostring(player.AccountAge or "\226\128\148").." Tage"},
+        {"Deine Sammlung",count.." Aktionen \194\183 "..scripts.." Scripts"},
+        {"Client",session.executor.." "..session.executorVersion.." \194\183 ISB "..CONFIG.Version},
+        {"Automatisches Speichern",runtime.saveError or (runtime.lastSaved and "Gespeichert \194\183 "..runtime.lastSaved or "Aktiv \194\183 lokal")}}
     for i,entry in ipairs(data) do
         local col=(i-1)%2; local y=math.floor((i-1)/2)
         local tile=make("Frame",{BackgroundColor3=C.card,BackgroundTransparency=.14,Position=UDim2.new(col*.5,col*5,0,y*86),Size=UDim2.new(.5,-5,0,76)},stats); round(tile,17); runtime.contentSurface(tile,17)
@@ -2405,15 +2406,15 @@ function features.drawProfile()
     if runtime.role=="Owner" or runtime.role=="Admin" then
         local admin=plainCard("ISB Verwaltung","Lokale Diagnose, Testhinweise und Konfigurationskontrolle.",112)
         rowButton(admin,"Diagnose",UDim2.fromOffset(16,72),UDim2.fromOffset(108,28),function() copyText("ISB "..CONFIG.Version.." / "..session.executor.." / FPS "..session.fps.." / Ping "..tostring(session.ping).." / Dateien "..tostring(capabilities.files)) end)
-        rowButton(admin,"Testhinweis",UDim2.fromOffset(134,72),UDim2.fromOffset(112,28),function() notify("Oberfläche und Benachrichtigungen sind bereit.","ISB / Systemtest","shield-check") end)
-        rowButton(admin,"Erkennung prüfen",UDim2.fromOffset(256,72),UDim2.fromOffset(140,28),function() for _,other in ipairs(Players:GetPlayers()) do features.detectGameStaff(other) end; notify("Gruppenrollen werden erneut geprüft.","ISB") end)
+        rowButton(admin,"Testhinweis",UDim2.fromOffset(134,72),UDim2.fromOffset(112,28),function() notify("Oberfl\195\164che und Benachrichtigungen sind bereit.","ISB / Systemtest","shield-check") end)
+        rowButton(admin,"Erkennung pr\195\188fen",UDim2.fromOffset(256,72),UDim2.fromOffset(140,28),function() for _,other in ipairs(Players:GetPlayers()) do features.detectGameStaff(other) end; notify("Gruppenrollen werden erneut gepr\195\188ft.","ISB") end)
     end
 end
 local function drawDashboard()
     local f=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,298)},content)
     local greeting=label(f,"Willkommen, "..player.DisplayName,18,C.text,UDim2.fromOffset(0,0),UDim2.new(1,0,0,24))
     greeting.Font=Enum.Font.BuilderSansBold
-    label(f,"ISB / "..runtime.role.."  ·  "..session.placeName,12,C.muted,UDim2.fromOffset(0,27),UDim2.new(1,0,0,22))
+    label(f,"ISB / "..runtime.role.."  \194\183  "..session.placeName,12,C.muted,UDim2.fromOffset(0,27),UDim2.new(1,0,0,22))
     local data={{"Server","server-stack","server"},{"Freunde","users","friends"},{"Executor","code-bracket-square","executor"},{"Sitzung","globe-alt","session"}}
     for i,entry in ipairs(data) do
         local x=(i-1)%2; local y=math.floor((i-1)/2)
@@ -2422,7 +2423,7 @@ local function drawDashboard()
         local icon=imageIcon(tile,entry[2],16,UDim2.fromOffset(14,12),C.muted)
         local text=label(tile,entry[1],12,C.muted,UDim2.fromOffset(icon and 39 or 14,10),UDim2.new(1,-50,0,22))
         text.Font=Enum.Font.BuilderSansMedium
-        local value=label(tile,"—",17,C.text,UDim2.fromOffset(14,34),UDim2.new(1,-28,0,25))
+        local value=label(tile,"\226\128\148",17,C.text,UDim2.fromOffset(14,34),UDim2.new(1,-28,0,25))
         value.Font=Enum.Font.BuilderSansMedium
         local sub=label(tile,"",10,C.muted,UDim2.fromOffset(14,63),UDim2.new(1,-28,0,16))
         dashboardRefs[entry[3]]={value=value,sub=sub}
@@ -2435,16 +2436,16 @@ end
 local function updateDashboard()
     local fields=dashboardRefs
     if fields.server then
-        fields.server.value.Text=tostring(#Players:GetPlayers()).." / "..tostring(Players.MaxPlayers or "—").." Spieler"
+        fields.server.value.Text=tostring(#Players:GetPlayers()).." / "..tostring(Players.MaxPlayers or "\226\128\148").." Spieler"
         fields.server.sub.Text="Place "..tostring(game.PlaceId)
         local inServer=0
         for _,other in ipairs(Players:GetPlayers()) do if session.friends[other.UserId] then inServer=inServer+1 end end
         fields.friends.value.Text=tostring(inServer).." im Server"
-        fields.friends.sub.Text=tostring(session.onlineFriends or "—").." online  ·  "..tostring(session.friendTotal or "—").." insgesamt"
+        fields.friends.sub.Text=tostring(session.onlineFriends or "\226\128\148").." online  \194\183  "..tostring(session.friendTotal or "\226\128\148").." insgesamt"
         fields.executor.value.Text=session.executor
-        fields.executor.sub.Text=session.executorVersion~="" and session.executorVersion or "Funktionen abhängig vom Executor"
+        fields.executor.sub.Text=session.executorVersion~="" and session.executorVersion or "Funktionen abh\195\164ngig vom Executor"
         fields.session.value.Text=string.format("%02d:%02d",math.floor((os.clock()-startedAt)/60),math.floor(os.clock()-startedAt)%60).." Hub aktiv"
-        fields.session.sub.Text=runtime.serverRegion or "Region wird geprüft …"
+        fields.session.sub.Text=runtime.serverRegion or "Region wird gepr\195\188ft \226\128\166"
     end
 end
 connect(Lighting.DescendantAdded,function(obj)
@@ -2484,7 +2485,7 @@ local function drawCharacter()
         elseif tuning=="jumpvalue" then state.jumpValue=h and (h.UseJumpPower and h.JumpPower or math.sqrt(2*math.max(workspace.Gravity,1)*h.JumpHeight)) or 50
         elseif tuning=="flyspeed" then runtime.setFlightTier(1)
         elseif tuning=="fovvalue" then state.fovValue=workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70 end
-        activeSlider=nil; save(); runtime.refreshControls(); notify("Ausgewählten Regler zurückgesetzt.","Charakter")
+        activeSlider=nil; save(); runtime.refreshControls(); notify("Ausgew\195\164hlten Regler zur\195\188ckgesetzt.","Charakter")
     end)
     local selectedTuning=tuning
     local source=findAction(selectedTuning); local action=table.clone(source)
@@ -2497,7 +2498,7 @@ local function drawCharacter()
     drawAction(findAction("antivoid"))
     if tuning=="fovvalue" then
         local reset=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
-        rowButton(reset,"Sichtfeld zurücksetzen",UDim2.new(),UDim2.fromOffset(184,28),function()
+        rowButton(reset,"Sichtfeld zur\195\188cksetzen",UDim2.new(),UDim2.fromOffset(184,28),function()
             local control=findAction("fov"); if control.get() then control.fn() end
             state.fovValue=workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70
             save(); runtime.refreshControls()
@@ -2520,7 +2521,7 @@ function runtime.applyFPSLimit(value)
     if not ok or result==false then notify("FPS-Limit wurde vom Executor abgelehnt: "..tostring(result),"FPS-Limit"); return end
     runtime.fpsLimit={value=value,elapsed=0,checkAfter=2,reported=false}
     settings.fpsCap=value; save()
-    if runtime.fpsStatus and runtime.fpsStatus.Parent then runtime.fpsStatus.Text="Limit "..value.." FPS · Wirkung wird geprüft …" end
+    if runtime.fpsStatus and runtime.fpsStatus.Parent then runtime.fpsStatus.Text="Limit "..value.." FPS \194\183 Wirkung wird gepr\195\188ft \226\128\166" end
 end
 function runtime.updateFPSLimit(dt)
     local limit=runtime.fpsLimit; if not limit then return end
@@ -2532,10 +2533,10 @@ function runtime.updateFPSLimit(dt)
     end
     if limit.checkAfter<=0 then
         local achieved=session.fps<=limit.value*1.15+3
-        local text=achieved and ("Limit "..limit.value.." FPS · gemessen "..session.fps) or ("Limit "..limit.value.." angefordert · weiterhin "..session.fps.." FPS")
+        local text=achieved and ("Limit "..limit.value.." FPS \194\183 gemessen "..session.fps) or ("Limit "..limit.value.." angefordert \194\183 weiterhin "..session.fps.." FPS")
         if runtime.fpsStatus and runtime.fpsStatus.Parent then runtime.fpsStatus.Text=text end
         if not achieved and not limit.reported then
-            limit.reported=true; notify("Weiterhin "..session.fps.." FPS. Prüfe das FPS-Limit in Roblox und im Executor; der gesetzte Wert wird offenbar nicht wirksam.","FPS-Limit")
+            limit.reported=true; notify("Weiterhin "..session.fps.." FPS. Pr\195\188fe das FPS-Limit in Roblox und im Executor; der gesetzte Wert wird offenbar nicht wirksam.","FPS-Limit")
         end
     end
 end
@@ -2553,14 +2554,14 @@ local function drawServers()
     end)
     rowButton(control,"Rejoin",UDim2.fromOffset(244,0),UDim2.fromOffset(82,30),rejoin)
     rowButton(control,"Serverhop",UDim2.fromOffset(336,0),UDim2.fromOffset(98,30),serverHop)
-    if servers.loading then plainCard("Server werden geladen …","Öffentliche Roblox-Server für diesen Place.",74)
-    elseif servers.error then plainCard(servers.errorKind=="rateLimit" and "Rate Limit erreicht" or "Serverliste nicht verfügbar",servers.error,86)
+    if servers.loading then plainCard("Server werden geladen \226\128\166","\195\150ffentliche Roblox-Server f\195\188r diesen Place.",74)
+    elseif servers.error then plainCard(servers.errorKind=="rateLimit" and "Rate Limit erreicht" or "Serverliste nicht verf\195\188gbar",servers.error,86)
     else
         for _,entry in ipairs(servers.data) do
             if matches(entry.id.." "..tostring(entry.playing)) then
                 local current=entry.id==game.JobId; local full=entry.playing>=entry.maxPlayers
-                local f=card(string.format("%d / %d Spieler%s",entry.playing,entry.maxPlayers,current and "  ·  Aktuell" or ""),
-                    string.format("%s ms  ·  %s FPS  ·  %s",tostring(entry.ping or "—"),tostring(entry.fps or "—"),entry.id:sub(1,8)),68)
+                local f=card(string.format("%d / %d Spieler%s",entry.playing,entry.maxPlayers,current and "  \194\183  Aktuell" or ""),
+                    string.format("%s ms  \194\183  %s FPS  \194\183  %s",tostring(entry.ping or "\226\128\148"),tostring(entry.fps or "\226\128\148"),entry.id:sub(1,8)),68)
                 imageIcon(f,"server-stack",20,UDim2.fromOffset(14,16),C.muted)
                 for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Position=child.Position+UDim2.fromOffset(30,0); child.Size=UDim2.new(1,-175,0,24) end end
                 local b=rowButton(f,current and "Aktuell" or (full and "Voll" or "Beitreten"),UDim2.new(1,-110,0,18),UDim2.fromOffset(96,30),function()
@@ -2569,7 +2570,7 @@ local function drawServers()
                 if current or full then b.TextColor3=C.muted end
             end
         end
-        if #servers.data==0 and servers.loaded then plainCard("Keine öffentlichen Server gefunden","Private Server werden von dieser API nicht aufgelistet.",76)
+        if #servers.data==0 and servers.loaded then plainCard("Keine \195\182ffentlichen Server gefunden","Private Server werden von dieser API nicht aufgelistet.",76)
         elseif query~="" then plainCard("Serversuche","Filtert Server-ID und Spieleranzahl auf dieser geladenen Seite. Spielernamen und private Servercodes liefert die Roblox-Serverliste nicht.",76) end
     end
     local pagination=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
@@ -2586,24 +2587,24 @@ local function drawServers()
 end
 local function drawVoice()
     plainCard("Voice-Status",session.voiceStatus,72)
-    local f=plainCard("Mikrofon und Verbindung","Steuert den lokalen Voice-Client, sofern die APIs verfügbar sind.",108)
-    rowButton(f,"Status prüfen",UDim2.fromOffset(16,73),UDim2.fromOffset(112,28),refreshVoice)
+    local f=plainCard("Mikrofon und Verbindung","Steuert den lokalen Voice-Client, sofern die APIs verf\195\188gbar sind.",108)
+    rowButton(f,"Status pr\195\188fen",UDim2.fromOffset(16,73),UDim2.fromOffset(112,28),refreshVoice)
     rowButton(f,"Mute / Unmute",UDim2.fromOffset(138,73),UDim2.fromOffset(124,28),runtime.toggleVoiceMute)
     rowButton(f,"Reconnect",UDim2.fromOffset(272,73),UDim2.fromOffset(108,28),reconnectVoice)
-    drawAction({id="antivc",name="Anti-VC Ban",desc=antiVC.loading and "Voice-Verbindung wird erneuert …" or "Lokaler Voice-Modus mit Reconnect",kind="toggle",get=function() return antiVC.active end,fn=toggleAntiVC})
-    plainCard("Voice-Verbindung", "Dieser Modus steuert ausschließlich den lokalen Voice-Client. Ein Schutz vor serverseitigen Voice-Sperren ist nicht nachgewiesen.",98)
+    drawAction({id="antivc",name="Anti-VC Ban",desc=antiVC.loading and "Voice-Verbindung wird erneuert \226\128\166" or "Lokaler Voice-Modus mit Reconnect",kind="toggle",get=function() return antiVC.active end,fn=toggleAntiVC})
+    plainCard("Voice-Verbindung", "Dieser Modus steuert ausschlie\195\159lich den lokalen Voice-Client. Ein Schutz vor serverseitigen Voice-Sperren ist nicht nachgewiesen.",98)
 end
 local function drawScripts()
     local mode=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
     rowButton(mode,"Zur Online-Suche",UDim2.new(),UDim2.fromOffset(150,30),function() scriptSearch.localMode=false; render() end)
-    local f=plainCard("Eigene Scripts","Lokale Lua-Dateien aus deinem Executor-Workspace. Ausführung nur nach deinem Klick.",126)
+    local f=plainCard("Eigene Scripts","Lokale Lua-Dateien aus deinem Executor-Workspace. Ausf\195\188hrung nur nach deinem Klick.",126)
     local input=make("TextBox",{Text="",PlaceholderText="Dateiname.lua",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,
         TextSize=13,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,78),Size=UDim2.new(1,-160,0,32)},f)
     round(input,16)
-    rowButton(f,"Hinzufügen",UDim2.new(1,-128,0,78),UDim2.fromOffset(112,32),function()
+    rowButton(f,"Hinzuf\195\188gen",UDim2.new(1,-128,0,78),UDim2.fromOffset(112,32),function()
         local path=input.Text:match("^%s*(.-)%s*$")
         if not path or not path:match("^[%w_%-][%w_%-. ]*%.lua$") or path:find("..",1,true) then notify("Eine lokale .lua-Datei ohne Verzeichnispfad angeben.","Scripts"); return end
-        if type(readfile)~="function" or type(loadstring)~="function" then notify("readfile und loadstring werden benötigt.","Scripts"); return end
+        if type(readfile)~="function" or type(loadstring)~="function" then notify("readfile und loadstring werden ben\195\182tigt.","Scripts"); return end
         local ok=pcall(readfile,path)
         if not ok then notify("Datei nicht lesbar: "..path,"Scripts"); return end
         for _,entry in ipairs(scriptCatalog) do if entry.path==path then notify("Datei ist bereits im Katalog.","Scripts"); return end end
@@ -2611,14 +2612,14 @@ local function drawScripts()
     end)
     for _,entry in ipairs(scriptCatalog) do
         if matches(entry.path) then
-            local row=card(entry.path,"Lokale Datei · selbst hinzugefügt",66)
-            rowButton(row,"Ausführen",UDim2.new(1,-118,0,17),UDim2.fromOffset(104,32),function()
+            local row=card(entry.path,"Lokale Datei \194\183 selbst hinzugef\195\188gt",66)
+            rowButton(row,"Ausf\195\188hren",UDim2.new(1,-118,0,17),UDim2.fromOffset(104,32),function()
                 local chunk,err=loadstring(readfile(entry.path),entry.path); assert(chunk,err)
-                task.spawn(function() local ok,message=pcall(chunk); if alive then notify(ok and "Script ausgeführt." or tostring(message):sub(1,140),entry.path) end end)
+                task.spawn(function() local ok,message=pcall(chunk); if alive then notify(ok and "Script ausgef\195\188hrt." or tostring(message):sub(1,140),entry.path) end end)
             end)
         end
     end
-    plainCard("Spiel-Erweiterungen",tostring(#actions).." registrierte Aktionen. Eigene Funktionen lassen sich über ISBMenu.AddAction ergänzen.",72)
+    plainCard("Spiel-Erweiterungen",tostring(#actions).." registrierte Aktionen. Eigene Funktionen lassen sich \195\188ber ISBMenu.AddAction erg\195\164nzen.",72)
 end
 function features.scriptBookmark(entry)
     local key=entry.provider..":"..entry.slug
@@ -2695,11 +2696,11 @@ local function drawScriptSearch()
         end
         -- The active discovery pill already names this view; no floating duplicate label.
     end
-    if scriptSearch.loading then plainCard("Wird geladen …",scriptSearch.provider,72); return end
+    if scriptSearch.loading then plainCard("Wird geladen \226\128\166",scriptSearch.provider,72); return end
     if scriptSearch.error then plainCard("Anbieter meldet einen Fehler",scriptSearch.error,94) end
     if scriptSearch.selected then
         local selected=scriptSearch.selected
-        local detail=plainCard(selected.title,selected.game.."  ·  @"..selected.owner..(selected.key and "  ·  Key-System" or ""),selected.verified and 152 or 124)
+        local detail=plainCard(selected.title,selected.game.."  \194\183  @"..selected.owner..(selected.key and "  \194\183  Key-System" or ""),selected.verified and 152 or 124)
         for _,child in ipairs(detail:GetChildren()) do if child:IsA("TextLabel") then
             if child.Text==selected.title then child.Size=UDim2.new(1,-64,0,36); child.TextWrapped=true; child.TextYAlignment=Enum.TextYAlignment.Top
             else child.Position=UDim2.fromOffset(16,52); child.Size=UDim2.new(1,-32,0,26) end
@@ -2708,13 +2709,13 @@ local function drawScriptSearch()
         local controlsY=selected.verified and 112 or 86
         local bookmark=rowButton(detail,"",UDim2.new(1,-42,0,12),UDim2.fromOffset(28,28),function() features.scriptBookmark(selected) end)
         imageIcon(bookmark,"star",18,UDim2.fromOffset(5,5),settings.scriptFavorites[selected.provider..":"..selected.slug] and C.accent or C.muted)
-        rowButton(detail,"Zurück",UDim2.fromOffset(16,controlsY),UDim2.fromOffset(84,28),function() scriptSearch.selected=nil; scriptSearch.source=nil; scriptSearch.error=nil; render() end)
+        rowButton(detail,"Zur\195\188ck",UDim2.fromOffset(16,controlsY),UDim2.fromOffset(84,28),function() scriptSearch.selected=nil; scriptSearch.source=nil; scriptSearch.error=nil; render() end)
         rowButton(detail,"Kopieren",UDim2.fromOffset(110,controlsY),UDim2.fromOffset(94,28),function() if scriptSearch.source then copyText(scriptSearch.source) end end)
-        rowButton(detail,"Ausführen",UDim2.fromOffset(214,controlsY),UDim2.fromOffset(104,28),function()
-            if type(loadstring)~="function" or not scriptSearch.source then notify("Kein ausführbarer Quelltext verfügbar.","Scripts"); return end
+        rowButton(detail,"Ausf\195\188hren",UDim2.fromOffset(214,controlsY),UDim2.fromOffset(104,28),function()
+            if type(loadstring)~="function" or not scriptSearch.source then notify("Kein ausf\195\188hrbarer Quelltext verf\195\188gbar.","Scripts"); return end
             local chunk,err=loadstring(scriptSearch.source,selected.provider.."/"..selected.slug)
             if not chunk then notify(tostring(err):sub(1,160),"Script konnte nicht kompiliert werden"); return end
-            task.spawn(function() local ok,message=pcall(chunk); if alive then notify(ok and "Script ausgeführt." or tostring(message):sub(1,160),selected.title) end end)
+            task.spawn(function() local ok,message=pcall(chunk); if alive then notify(ok and "Script ausgef\195\188hrt." or tostring(message):sub(1,160),selected.title) end end)
         end)
         if scriptSearch.source then
             local sourceCard=make("Frame",{Name="ScriptSourceCard",BackgroundColor3=C.panel,Size=UDim2.new(1,0,0,160),ClipsDescendants=true},content)
@@ -2726,7 +2727,7 @@ local function drawScriptSearch()
         end
         return
     end
-    if #scriptSearch.rows==0 and not scriptSearch.error then plainCard(scriptSearch.discovery=="Favoriten" and "Deine Skript-Favoriten" or "Keine Ergebnisse",scriptSearch.discovery=="Favoriten" and "Markiere Scripts über den Stern. Sie werden automatisch gespeichert." or "Diese Quelle hat keine passenden Scripts geliefert. Aktualisiere die Liste oder suche einen Begriff.",88) end
+    if #scriptSearch.rows==0 and not scriptSearch.error then plainCard(scriptSearch.discovery=="Favoriten" and "Deine Skript-Favoriten" or "Keine Ergebnisse",scriptSearch.discovery=="Favoriten" and "Markiere Scripts \195\188ber den Stern. Sie werden automatisch gespeichert." or "Diese Quelle hat keine passenden Scripts geliefert. Aktualisiere die Liste oder suche einen Begriff.",88) end
     for i=1,#scriptSearch.rows,2 do
         local pair=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,158)},content)
         for col=0,1 do
@@ -2742,7 +2743,7 @@ local function drawScriptSearch()
                 imageIcon(star,"star",17,UDim2.fromOffset(5,5),settings.scriptFavorites[entry.provider..":"..entry.slug] and C.accent or C.text)
                 local titleLabel=label(tile,entry.title,12,C.text,UDim2.fromOffset(14,86),UDim2.new(1,-28,0,34))
                 titleLabel.TextWrapped=true; titleLabel.TextYAlignment=Enum.TextYAlignment.Top
-                local gameLabel=label(tile,entry.game..(entry.views and "  ·  "..runtime.formatCount(entry.views).." Aufrufe" or ""),10,C.muted,UDim2.fromOffset(14,132),UDim2.new(1,-28,0,16))
+                local gameLabel=label(tile,entry.game..(entry.views and "  \194\183  "..runtime.formatCount(entry.views).." Aufrufe" or ""),10,C.muted,UDim2.fromOffset(14,132),UDim2.new(1,-28,0,16))
                 gameLabel.TextTruncate=Enum.TextTruncate.AtEnd
                 if entry.verified then
                     runtime.scriptVerifiedBadge(art,UDim2.fromOffset(12,46))
@@ -2768,7 +2769,7 @@ function runtime.playEmote(name)
     local animator=h:FindFirstChildOfClass("Animator")
     local before={}; if animator then for _,track in ipairs(animator:GetPlayingAnimationTracks()) do before[track]=true end end
     local ok,played=pcall(function() return h:PlayEmoteAsync(name) end)
-    if not ok or not played then notify("Dieses Emote ist für deinen Avatar nicht verfügbar.","Emote"); return end
+    if not ok or not played then notify("Dieses Emote ist f\195\188r deinen Avatar nicht verf\195\188gbar.","Emote"); return end
     if animator then for _,track in ipairs(animator:GetPlayingAnimationTracks()) do if not before[track] then table.insert(runtime.emoteTracks,track) end end end
 end
 function runtime.setShader(value)
@@ -2810,7 +2811,7 @@ function runtime.syncVoiceMic()
         local muted=runtime.voiceMuted==true
         runtime.voiceMic:FindFirstChild("MicIcon",true).Image="rbxasset://textures/ui/VoiceChat/MicLight/"..(muted and "Muted.png" or "Unmuted0.png")
         runtime.voiceMic.BackgroundColor3=muted and Color3.fromRGB(106,46,51) or C.panel
-        runtime.voiceMic:FindFirstChild("MicHint",true).Text=muted and "Mikrofon stumm · Einschalten" or "Mikrofon an · Stummschalten"
+        runtime.voiceMic:FindFirstChild("MicHint",true).Text=muted and "Mikrofon stumm \194\183 Einschalten" or "Mikrofon an \194\183 Stummschalten"
     end
 end
 function runtime.applyVoiceMute(muted)
@@ -2830,7 +2831,7 @@ function runtime.toggleVoiceMute()
     local current=runtime.voiceMuted
     if input and (current==nil or not runtime.voiceMuteAt or os.clock()-runtime.voiceMuteAt>3) then current=input.Muted==true end
     local muted=not (current==true); local applied=runtime.applyVoiceMute(muted)
-    if not applied then notify("Mikrofon-Steuerung ist hier nicht zugänglich.","Mikrofon"); return end
+    if not applied then notify("Mikrofon-Steuerung ist hier nicht zug\195\164nglich.","Mikrofon"); return end
     runtime.voiceMuted=muted; runtime.voiceMuteAt=os.clock(); runtime.syncVoiceMic()
     runtime.voiceMuteSerial=(runtime.voiceMuteSerial or 0)+1; local serial=runtime.voiceMuteSerial
     for _,delay in ipairs({.1,.35}) do task.delay(delay,function()
@@ -2898,7 +2899,7 @@ function runtime.stopRoleplay()
     local r=root(); if r then r.AssemblyLinearVelocity=Vector3.zero end
     if not state.noclip then restoreCollisions() end
     for _,item in ipairs(runtime.quickActionButtons or {}) do if item.button.Parent then item.button.BackgroundColor3=C.card end end
-    if runtime.quickState then runtime.quickState.Text="Bereit · Aktion auswählen" end
+    if runtime.quickState then runtime.quickState.Text="Bereit \194\183 Aktion ausw\195\164hlen" end
 end
 function runtime.roleplayPart(target,mode)
     local char=target and target.Character
@@ -2951,7 +2952,7 @@ function runtime.startRoleplay(mode)
     local part=runtime.roleplayPart(target,mode)
     local h,r=humanoid(),root()
     local targetH=target and target.Character and target.Character:FindFirstChildOfClass("Humanoid")
-    if not target or target==player or not target.Parent or not part or not h or not r or h.Health<=0 or not targetH or targetH.Health<=0 then notify("Wähle einen verfügbaren Spieler als Ziel.","Roleplay"); return end
+    if not target or target==player or not target.Parent or not part or not h or not r or h.Health<=0 or not targetH or targetH.Health<=0 then notify("W\195\164hle einen verf\195\188gbaren Spieler als Ziel.","Roleplay"); return end
     runtime.stopRoleplay(); runtime.stopEmote()
     if state.fly then state.fly=false; stopFly() end
     local owned={target=target,mode=mode,h=h,root=r,platformStand=h.PlatformStand,autoRotate=h.AutoRotate}
@@ -2985,10 +2986,10 @@ function runtime.startRoleplay(mode)
             if mode.id=="head" then
                 task.delay(2,function() if runtime.roleplay==owned then owned.frozenPose=true; pcall(function() track:AdjustSpeed(0); track.TimePosition=2 end) end end)
             end
-        else notify("Position aktiv; die Animation ist in diesem Spiel nicht verfügbar.","Roleplay") end
+        else notify("Position aktiv; die Animation ist in diesem Spiel nicht verf\195\188gbar.","Roleplay") end
     end
-    if runtime.quickState then runtime.quickState.Text=mode.name.." · "..target.DisplayName end
-    if runtime.quickTargetButton and not runtime.quickTarget then runtime.quickTargetButton.Text="Automatisch · "..target.DisplayName end
+    if runtime.quickState then runtime.quickState.Text=mode.name.." \194\183 "..target.DisplayName end
+    if runtime.quickTargetButton and not runtime.quickTarget then runtime.quickTargetButton.Text="Automatisch \194\183 "..target.DisplayName end
 end
 runtime.quickConnections={}
 function runtime.quickConnect(signal,fn)
@@ -2997,7 +2998,7 @@ end
 function runtime.quickButton(parent,text,pos,size,fn)
     local b=make("TextLabel",{Text=text,Font=Enum.Font.BuilderSansBold,TextSize=12,TextColor3=C.text,BackgroundColor3=C.card,Position=pos,Size=size},parent); round(b,12)
     runtime.bindPress(b,function() playUISound("tap"); fn() end,runtime.quickConnect)
-    if text=="×" then runtime.closeGlyph(b) end
+    if text=="\195\151" then runtime.closeGlyph(b) end
     return b
 end
 function runtime.buildQuickPanel()
@@ -3007,8 +3008,8 @@ function runtime.buildQuickPanel()
     round(runtime.quickPanel,18); runtime.glassSurface(runtime.quickPanel,18); stroke(runtime.quickPanel)
     runtime.quickScale=runtime.quickPanel:FindFirstChildOfClass("UIScale") or make("UIScale",{Scale=statusScale.Scale},runtime.quickPanel)
     local heading=label(runtime.quickPanel,"ISB / ROLEPLAY",14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-62,0,24)); heading.Font=Enum.Font.BuilderSansBold
-    runtime.quickButton(runtime.quickPanel,"×",UDim2.new(1,-42,0,10),UDim2.fromOffset(28,28),function() runtime.quickPanel.Visible=false end)
-    local targetButton=runtime.quickButton(runtime.quickPanel,runtime.quickTarget and runtime.quickTarget.DisplayName or "Automatisch · Nächster Spieler",UDim2.fromOffset(14,48),UDim2.new(1,-28,0,32),function() runtime.quickTargets.Visible=not runtime.quickTargets.Visible end)
+    runtime.quickButton(runtime.quickPanel,"\195\151",UDim2.new(1,-42,0,10),UDim2.fromOffset(28,28),function() runtime.quickPanel.Visible=false end)
+    local targetButton=runtime.quickButton(runtime.quickPanel,runtime.quickTarget and runtime.quickTarget.DisplayName or "Automatisch \194\183 N\195\164chster Spieler",UDim2.fromOffset(14,48),UDim2.new(1,-28,0,32),function() runtime.quickTargets.Visible=not runtime.quickTargets.Visible end)
     runtime.quickTargetButton=targetButton
     runtime.quickActionButtons={}
     for i,mode in ipairs(runtime.roleplayModes) do
@@ -3016,13 +3017,13 @@ function runtime.buildQuickPanel()
         b.Name="Roleplay_"..mode.id; table.insert(runtime.quickActionButtons,{button=b,mode=mode})
         b.BackgroundColor3=runtime.roleplay and runtime.roleplay.mode==mode and C.accent:Lerp(C.panel,.7) or C.card
     end
-    runtime.quickState=label(runtime.quickPanel,runtime.roleplay and (runtime.roleplay.mode.name.." · "..runtime.roleplay.target.DisplayName) or "Bereit · Aktion auswählen",11,C.muted,UDim2.fromOffset(14,286),UDim2.new(1,-28,0,20))
+    runtime.quickState=label(runtime.quickPanel,runtime.roleplay and (runtime.roleplay.mode.name.." \194\183 "..runtime.roleplay.target.DisplayName) or "Bereit \194\183 Aktion ausw\195\164hlen",11,C.muted,UDim2.fromOffset(14,286),UDim2.new(1,-28,0,20))
     runtime.quickButton(runtime.quickPanel,"Stoppen",UDim2.new(1,-100,0,310),UDim2.fromOffset(86,26),runtime.stopRoleplay)
     label(runtime.quickPanel,"Lokale Aktion",11,C.muted,UDim2.fromOffset(14,310),UDim2.new(1,-130,0,26))
     runtime.quickTargets=make("Frame",{Name="RoleplayTargets",Visible=false,BackgroundColor3=C.bg,Position=UDim2.fromOffset(14,86),Size=UDim2.new(1,-28,0,218),ZIndex=10,ClipsDescendants=true},runtime.quickPanel); round(runtime.quickTargets,14); stroke(runtime.quickTargets)
-    local query=make("TextBox",{Name="RoleplayTargetSearch",PlaceholderText="Spieler suchen …",Text="",ClearTextOnFocus=false,Font=Enum.Font.BuilderSansMedium,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.card,Position=UDim2.fromOffset(8,8),Size=UDim2.new(1,-16,0,32),ZIndex=11},runtime.quickTargets); round(query,10)
-    local auto=runtime.quickButton(runtime.quickTargets,"Automatisch · Nächster Spieler",UDim2.fromOffset(8,46),UDim2.new(1,-16,0,32),function()
-        runtime.stopRoleplay(); runtime.quickTarget=nil; targetButton.Text="Automatisch · Nächster Spieler"; runtime.quickTargets.Visible=false
+    local query=make("TextBox",{Name="RoleplayTargetSearch",PlaceholderText="Spieler suchen \226\128\166",Text="",ClearTextOnFocus=false,Font=Enum.Font.BuilderSansMedium,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.card,Position=UDim2.fromOffset(8,8),Size=UDim2.new(1,-16,0,32),ZIndex=11},runtime.quickTargets); round(query,10)
+    local auto=runtime.quickButton(runtime.quickTargets,"Automatisch \194\183 N\195\164chster Spieler",UDim2.fromOffset(8,46),UDim2.new(1,-16,0,32),function()
+        runtime.stopRoleplay(); runtime.quickTarget=nil; targetButton.Text="Automatisch \194\183 N\195\164chster Spieler"; runtime.quickTargets.Visible=false
     end); auto.ZIndex=11
     local list=make("ScrollingFrame",{Name="RoleplayRoster",BackgroundTransparency=1,Position=UDim2.fromOffset(8,84),Size=UDim2.new(1,-16,0,128),CanvasSize=UDim2.new(),AutomaticCanvasSize=Enum.AutomaticSize.Y,ScrollBarThickness=3,ZIndex=11,ClipsDescendants=true},runtime.quickTargets)
     make("UIListLayout",{Padding=UDim.new(0,5),SortOrder=Enum.SortOrder.LayoutOrder},list)
@@ -3036,7 +3037,7 @@ function runtime.buildQuickPanel()
         end); b.Name="RoleplayTarget_"..other.UserId; b.ZIndex=12
         local avatar=make("ImageLabel",{Name="TargetAvatar",Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",BackgroundTransparency=1,Position=UDim2.fromOffset(8,7),Size=UDim2.fromOffset(34,34),ZIndex=13},b); round(avatar,17)
         local title=label(b,other.DisplayName,12,C.text,UDim2.fromOffset(50,5),UDim2.new(1,-58,0,20)); title.Font=Enum.Font.BuilderSansBold; title.TextTruncate=Enum.TextTruncate.AtEnd; title.ZIndex=13
-        local d=distance(other); local info=label(b,"@"..other.Name.." · "..(d<math.huge and math.floor(d).." studs" or "Kein Charakter"),11,C.muted,UDim2.fromOffset(50,25),UDim2.new(1,-58,0,17)); info.TextTruncate=Enum.TextTruncate.AtEnd; info.ZIndex=13
+        local d=distance(other); local info=label(b,"@"..other.Name.." \194\183 "..(d<math.huge and math.floor(d).." studs" or "Kein Charakter"),11,C.muted,UDim2.fromOffset(50,25),UDim2.new(1,-58,0,17)); info.TextTruncate=Enum.TextTruncate.AtEnd; info.ZIndex=13
         table.insert(rows,{button=b,key=(other.DisplayName.." "..other.Name):lower()})
     end end
     local empty=label(runtime.quickTargets,"Keine passenden Spieler",11,C.muted,UDim2.fromOffset(12,94),UDim2.new(1,-24,0,24)); empty.ZIndex=13
@@ -3067,14 +3068,14 @@ function runtime.profileRequest(other,kind)
                 if kind=="history" or (entry.isEditable==true and entry.outfitType=="Avatar") then table.insert(entries,entry) end
             end
             cache[kind]={data=entries}
-        else cache[kind]={error=kind=="outfits" and "Gespeicherte Avatar-Outfits sind für diesen Spieler derzeit nicht öffentlich abrufbar." or "Daten sind derzeit nicht öffentlich abrufbar."} end
+        else cache[kind]={error=kind=="outfits" and "Gespeicherte Avatar-Outfits sind f\195\188r diesen Spieler derzeit nicht \195\182ffentlich abrufbar." or "Daten sind derzeit nicht \195\182ffentlich abrufbar."} end
         if alive and runtime.selectedPlayer==other then render() end
     end)
 end
 function runtime.drawPlayerDetails(other)
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
-    rowButton(back,"← Spieler",UDim2.new(),UDim2.fromOffset(120,28),function() runtime.selectedPlayer=nil; render() end)
-    local header=plainCard(other.DisplayName,"@"..other.Name.."  ·  "..(runtime.groupRoles[other] or "Player"),92)
+    rowButton(back,"\226\134\144 Spieler",UDim2.new(),UDim2.fromOffset(120,28),function() runtime.selectedPlayer=nil; render() end)
+    local header=plainCard(other.DisplayName,"@"..other.Name.."  \194\183  "..(runtime.groupRoles[other] or "Player"),92)
     if runtime.isRobloxVerified(other) then
         for _,child in ipairs(header:GetChildren()) do
             if child:IsA("TextLabel") and child.Text==other.DisplayName then
@@ -3088,7 +3089,7 @@ function runtime.drawPlayerDetails(other)
     local team=other.Team and other.Team.Name or "Kein Team"
     runtime.detailRefs={player=other,fields={}}
     local detailsGrid=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,228)},content)
-    for index,entry in ipairs({{"Benutzer-ID",tostring(other.UserId)},{"Accountalter",tostring(other.AccountAge or "—").." Tage"},{"Team",team},{"Gesundheit",h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verfügbar"},{"Beziehung",session.friends[other.UserId] and "Freund" or "Spieler"},{"Gruppenrolle",runtime.groupRoles[other] or "Nicht verfügbar"}}) do
+    for index,entry in ipairs({{"Benutzer-ID",tostring(other.UserId)},{"Accountalter",tostring(other.AccountAge or "\226\128\148").." Tage"},{"Team",team},{"Gesundheit",h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verf\195\188gbar"},{"Beziehung",session.friends[other.UserId] and "Freund" or "Spieler"},{"Gruppenrolle",runtime.groupRoles[other] or "Nicht verf\195\188gbar"}}) do
         local f=plainCard(entry[1],entry[2],70)
         f.Parent=detailsGrid; f.Size=UDim2.new(.5,-5,0,70); f.Position=UDim2.new((index-1)%2*.5,(index-1)%2*5,0,math.floor((index-1)/2)*76)
         for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-56,0,24); child.TextWrapped=false; child.TextTruncate=Enum.TextTruncate.AtEnd end end
@@ -3106,7 +3107,7 @@ function runtime.drawPlayerDetails(other)
     rowButton(controls,session.friends[other.UserId] and "Bereits befreundet" or "Freund anfragen",UDim2.new(),UDim2.fromOffset(154,28),function()
         if session.friends[other.UserId] then return end
         local ok=pcall(function() game:GetService("StarterGui"):SetCore("PromptSendFriendRequest",other) end)
-        if not ok then notify("Roblox-Freundschaftsdialog ist hier nicht verfügbar.","Freunde") end
+        if not ok then notify("Roblox-Freundschaftsdialog ist hier nicht verf\195\188gbar.","Freunde") end
     end)
     rowButton(controls,"Profil-Link",UDim2.fromOffset(164,0),UDim2.fromOffset(102,28),function() copyText("https://www.roblox.com/users/"..other.UserId.."/profile") end)
     local tabs=controls
@@ -3114,11 +3115,11 @@ function runtime.drawPlayerDetails(other)
     rowButton(tabs,"Outfits",UDim2.fromOffset(430,0),UDim2.fromOffset(100,28),function() runtime.profileTab="outfits"; runtime.profileRequest(other,"outfits"); render() end)
     local cache=runtime.profileData[other.UserId] or {}; local result=cache[runtime.profileTab or "history"]
     if result then
-        if result.loading then plainCard("Lädt …","Öffentliche Roblox-Daten werden abgerufen.",70)
-        elseif result.error then plainCard("Nicht verfügbar",result.error,76)
-        elseif #result.data==0 then plainCard("Keine Einträge","Roblox liefert für diesen Spieler keine Einträge.",76)
+        if result.loading then plainCard("L\195\164dt \226\128\166","\195\150ffentliche Roblox-Daten werden abgerufen.",70)
+        elseif result.error then plainCard("Nicht verf\195\188gbar",result.error,76)
+        elseif #result.data==0 then plainCard("Keine Eintr\195\164ge","Roblox liefert f\195\188r diesen Spieler keine Eintr\195\164ge.",76)
         else for i,entry in ipairs(result.data) do if i>20 then break end
-            local f=plainCard(tostring(entry.name or "Ohne Namen"),runtime.profileTab=="outfits" and "Gespeicherter Charakter" or "Früherer Benutzername",88)
+            local f=plainCard(tostring(entry.name or "Ohne Namen"),runtime.profileTab=="outfits" and "Gespeicherter Charakter" or "Fr\195\188herer Benutzername",88)
             if runtime.profileTab=="outfits" and tonumber(entry.id) then
                 make("ImageLabel",{Image="rbxthumb://type=Outfit&id="..string.format("%.0f",tonumber(entry.id)).."&w=150&h=150",BackgroundTransparency=1,Position=UDim2.new(1,-76,0,12),Size=UDim2.fromOffset(58,58)},f)
             end
@@ -3166,7 +3167,7 @@ function runtime.inspectorButton(parent,text,pos,size,fn)
     local button=make("TextLabel",{Text=text,Font=Enum.Font.BuilderSansBold,TextSize=12,TextColor3=C.text,BackgroundColor3=C.card,Position=pos,Size=size},parent)
     round(button,12)
     runtime.bindPress(button,function() playUISound("tap"); fn() end,runtime.inspectorConnect)
-    if text=="×" then runtime.closeGlyph(button) end
+    if text=="\195\151" then runtime.closeGlyph(button) end
     return button
 end
 function runtime.hideInspector()
@@ -3179,7 +3180,7 @@ function runtime.inspectorMembership(other)
     local legacyOK,legacy=pcall(function() return other.MembershipType end)
     if (ok and subscribed==true) or (legacyOK and legacy==Enum.MembershipType.Premium) then return "Ja" end
     if (ok and subscribed==false) or (legacyOK and legacy==Enum.MembershipType.None) then return "Nein" end
-    return "Nicht verfügbar"
+    return "Nicht verf\195\188gbar"
 end
 function runtime.requestInspectorProfile(other)
     local cache=runtime.inspectorProfiles[other.UserId] or {}; runtime.inspectorProfiles[other.UserId]=cache
@@ -3209,16 +3210,16 @@ end
 function runtime.inspectorPublicValues(other)
     local cache=runtime.inspectorProfiles[other.UserId] or {}
     local account,friends,history=cache.account,cache.friends,cache.history
-    local joined=account and account.loading and "Lädt …" or "Nicht verfügbar"
-    local age=tostring(other.AccountAge or "—").." Tage"
+    local joined=account and account.loading and "L\195\164dt \226\128\166" or "Nicht verf\195\188gbar"
+    local age=tostring(other.AccountAge or "\226\128\148").." Tage"
     if account and account.data then
         local year,month,day=account.data.created:match("^(%d%d%d%d)%-(%d%d)%-(%d%d)")
         if year then joined=day.."."..month.."."..year end
         local ok,days=pcall(function() return math.floor((DateTime.now().UnixTimestamp-DateTime.fromIsoDate(account.data.created).UnixTimestamp)/86400) end)
         if ok and days>=0 then age=tostring(days).." Tage" end
     end
-    local count=friends and friends.data and tostring(friends.data.count) or friends and friends.loading and "Lädt …" or "Nicht verfügbar"
-    local aliases=history and history.loading and "Lädt …" or "Nicht verfügbar"
+    local count=friends and friends.data and tostring(friends.data.count) or friends and friends.loading and "L\195\164dt \226\128\166" or "Nicht verf\195\188gbar"
+    local aliases=history and history.loading and "L\195\164dt \226\128\166" or "Nicht verf\195\188gbar"
     if history and history.data then
         local names={}; for _,entry in ipairs(history.data.data) do if type(entry.name)=="string" then table.insert(names,entry.name) end end
         aliases=#names==0 and "Keine" or table.concat(names,", ")
@@ -3258,8 +3259,8 @@ function runtime.refreshInspector()
     local b=player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     local age,joined,count,aliases=runtime.inspectorPublicValues(other)
     local values={tostring(other.UserId),age,other.Team and other.Team.Name or "Kein Team",
-        h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verfügbar",
-        a and b and string.format("%.0f Studs",(a.Position-b.Position).Magnitude) or "Nicht verfügbar",
+        h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verf\195\188gbar",
+        a and b and string.format("%.0f Studs",(a.Position-b.Position).Magnitude) or "Nicht verf\195\188gbar",
         runtime.groupRoles[other] or "Player",runtime.inspectorMembership(other),joined,count,aliases}
     for i,value in ipairs(values) do runtime.inspectorFields[i].Text=value end
     runtime.inspectorFields[7].TextColor3=values[7]=="Ja" and C.good or C.muted
@@ -3277,7 +3278,7 @@ function runtime.showInspector(other)
     local panel=make("CanvasGroup",{Name="ISBPlayerInspector",BackgroundTransparency=.08,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-6,0,58),Size=UDim2.fromOffset(360,516),ClipsDescendants=true},gui)
     runtime.inspectorPanel=panel; round(panel,18); runtime.glassSurface(panel,18); stroke(panel)
     local heading=label(panel,"ISB / SPIELERINFO",14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-62,0,24)); heading.Font=Enum.Font.BuilderSansBold
-    runtime.inspectorButton(panel,"×",UDim2.new(1,-42,0,10),UDim2.fromOffset(28,28),runtime.hideInspector)
+    runtime.inspectorButton(panel,"\195\151",UDim2.new(1,-42,0,10),UDim2.fromOffset(28,28),runtime.hideInspector)
     local header=make("Frame",{Name="InspectorIdentity",BackgroundTransparency=1,Position=UDim2.fromOffset(16,48),Size=UDim2.new(1,-32,0,78)},panel)
     round(header,14); runtime.contentSurface(header,14)
     local avatar=make("ImageLabel",{Name="InspectorAvatar",BackgroundColor3=C.panel,BackgroundTransparency=.25,Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",Position=UDim2.fromOffset(12,12),Size=UDim2.fromOffset(52,52)},header); round(avatar,26)
@@ -3289,7 +3290,7 @@ function runtime.showInspector(other)
     runtime.inspectorRelation.Font=Enum.Font.BuilderSansBold; runtime.inspectorRelation.TextXAlignment=Enum.TextXAlignment.Center
     runtime.inspectorFields={}
     local info=make("ScrollingFrame",{Name="InspectorInformation",BackgroundTransparency=1,BorderSizePixel=0,Position=UDim2.fromOffset(0,132),Size=UDim2.new(1,0,0,268),CanvasSize=UDim2.fromOffset(0,264),ScrollBarThickness=3,ScrollBarImageColor3=C.accent,ScrollingDirection=Enum.ScrollingDirection.Y},panel)
-    for i,title in ipairs({"Benutzer-ID","Accountalter","Team","Gesundheit","Entfernung","Gruppenrolle","Plus / Premium","Erstellt am","Freunde","Frühere Namen"}) do
+    for i,title in ipairs({"Benutzer-ID","Accountalter","Team","Gesundheit","Entfernung","Gruppenrolle","Plus / Premium","Erstellt am","Freunde","Fr\195\188here Namen"}) do
         local cell=make("Frame",{BackgroundTransparency=1,Position=UDim2.new((i-1)%2*.5,16-((i-1)%2)*8,0,8+math.floor((i-1)/2)*51),Size=UDim2.new(.5,-24,0,44)},info)
         cell.Name="InspectorMetric"..i; round(cell,10); runtime.contentSurface(cell,10)
         label(cell,title,11,C.muted,UDim2.fromOffset(10,5),UDim2.new(1,-20,0,14))
@@ -3301,7 +3302,7 @@ function runtime.showInspector(other)
     local friendButton=runtime.inspectorButton(actionRow,session.friends[other.UserId] and "Befreundet" or "Freund anfragen",UDim2.new(),UDim2.new(1/3,-20/3,1,0),function()
         if not other.Parent or session.friends[other.UserId] then return end
         local ok=pcall(function() game:GetService("StarterGui"):SetCore("PromptSendFriendRequest",other) end)
-        if not ok then notify("Roblox-Freundschaftsdialog ist hier nicht verfügbar.","Freunde") end
+        if not ok then notify("Roblox-Freundschaftsdialog ist hier nicht verf\195\188gbar.","Freunde") end
     end)
     friendButton.LayoutOrder=1
     for i,entry in ipairs({{"Outfits","outfits"},{"Namen","history"}}) do
@@ -3316,7 +3317,7 @@ function runtime.showInspector(other)
         if not other.Parent then runtime.hideInspector(); return end
         setDockVisible(true); page="Spieler"; query=""; runtime.selectedPlayer=other; runtime.profileTab=nil; render(); setOpen(true); runtime.hideInspector()
     end)
-    label(panel,"Item ausrüsten · anderen Spieler anklicken",10,C.muted,UDim2.fromOffset(16,492),UDim2.new(1,-32,0,18))
+    label(panel,"Item ausr\195\188sten \194\183 anderen Spieler anklicken",10,C.muted,UDim2.fromOffset(16,492),UDim2.new(1,-32,0,18))
     runtime.refreshInspector(); runtime.fitAuxiliary(); runtime.requestInspectorProfile(other)
 end
 function runtime.destroyInspectorTool()
@@ -3331,7 +3332,7 @@ function runtime.ensureInspectorTool()
     if runtime.inspectorTool and runtime.inspectorTool.Parent and (runtime.inspectorTool.Parent==backpack or runtime.inspectorTool.Parent==player.Character) then return end
     runtime.destroyInspectorTool()
     if not backpack then return end
-    local tool=make("Tool",{Name="ISB Spielerinfo",ToolTip="ISB · Ausrüsten und einen Spieler anklicken",RequiresHandle=false,CanBeDropped=false,TextureId=iconAsset("isb-inspect") or ""},backpack)
+    local tool=make("Tool",{Name="ISB Spielerinfo",ToolTip="ISB \194\183 Ausr\195\188sten und einen Spieler anklicken",RequiresHandle=false,CanBeDropped=false,TextureId=iconAsset("isb-inspect") or ""},backpack)
     runtime.inspectorTool=tool
     table.insert(runtime.inspectorToolConnections,tool.Equipped:Connect(function(mouse) runtime.inspectorMouse=mouse or player:GetMouse() end))
     table.insert(runtime.inspectorToolConnections,tool.Unequipped:Connect(function() runtime.inspectorMouse=nil; runtime.clearInspectorHover(); runtime.hideInspector() end))
@@ -3347,7 +3348,7 @@ connect(player.CharacterRemoving,function() runtime.destroyInspectorTool(); runt
 
 function runtime.drawPlayerCard(other,index)
             local relation=session.friends[other.UserId] and "Freund" or "Player"
-            local f=card(other.DisplayName,"@"..other.Name.."  ·  "..relation.."  ·  "..(runtime.groupRoles[other] or "Rolle wird geprüft"),104)
+            local f=card(other.DisplayName,"@"..other.Name.."  \194\183  "..relation.."  \194\183  "..(runtime.groupRoles[other] or "Rolle wird gepr\195\188ft"),104)
             for _,child in ipairs(f:GetChildren()) do
                 if child:IsA("TextLabel") then child.Position=UDim2.fromOffset(70,child.Position.Y.Offset); child.Size=UDim2.new(1,-86,0,child.Size.Y.Offset) end
             end
@@ -3388,13 +3389,13 @@ function runtime.drawPlayerCard(other,index)
                     end
                     spectating=other; workspace.CurrentCamera.CameraSubject=h; workspace.CurrentCamera.CameraType=Enum.CameraType.Custom
                     notify("Beobachtung: " .. other.DisplayName); render()
-                else notify("Charakter ist noch nicht verfügbar.") end
+                else notify("Charakter ist noch nicht verf\195\188gbar.") end
             end)
             rowButton(f,"Zum Spieler",UDim2.fromOffset(138,68),UDim2.fromOffset(112,26),function()
                 local target=other.Character and other.Character:FindFirstChild("HumanoidRootPart")
                 local r=root()
-                if target and r then r.CFrame=target.CFrame*CFrame.new(3,0,0); notify("Position lokal geändert.")
-                else notify("Charakter ist noch nicht verfügbar.") end
+                if target and r then r.CFrame=target.CFrame*CFrame.new(3,0,0); notify("Position lokal ge\195\164ndert.")
+                else notify("Charakter ist noch nicht verf\195\188gbar.") end
             end)
 
     f.LayoutOrder=index
@@ -3443,7 +3444,7 @@ local function drawPlayers()
     runtime.fillPlayerRows()
     runtime.fillPlayerRows()
 end
-addAction("antivoid","Bewegung","Anti-Void","Zum letzten Bodenpunkt zurück, bevor du die Fallgrenze erreichst","toggle",function() runtime.antiVoid=not runtime.antiVoid; runtime.safeGround=nil end,function() return runtime.antiVoid end)
+addAction("antivoid","Bewegung","Anti-Void","Zum letzten Bodenpunkt zur\195\188ck, bevor du die Fallgrenze erreichst","toggle",function() runtime.antiVoid=not runtime.antiVoid; runtime.safeGround=nil end,function() return runtime.antiVoid end)
 addAction("shader","Darstellung","Shader","Realistische Farben, Sonnenstrahlen und Himmel","toggle",function() runtime.setShader(not runtime.shader) end,function() return runtime.shader end)
 render = function()
     if not alive then return end
@@ -3461,7 +3462,7 @@ render = function()
     local remote=page=="Skripte" and not scriptSearch.localMode
     local searchable=(page=="Spieler" and not runtime.selectedPlayer) or page=="Server" or page=="Skripte" or page=="Favoriten"
     search.Visible=searchable
-    search.PlaceholderText=page=="Spieler" and "Spieler suchen …" or (page=="Server" and "Server-ID oder Spieleranzahl suchen …" or (page=="Favoriten" and "Favoriten suchen …" or (page=="Skripte" and "Skripte suchen …" or "Funktionen suchen …")))
+    search.PlaceholderText=page=="Spieler" and "Spieler suchen \226\128\166" or (page=="Server" and "Server-ID oder Spieleranzahl suchen \226\128\166" or (page=="Favoriten" and "Favoriten suchen \226\128\166" or (page=="Skripte" and "Skripte suchen \226\128\166" or "Funktionen suchen \226\128\166")))
     content.Position=UDim2.fromOffset(18,searchable and 104 or 60)
     content.Size=UDim2.new(1,-36,1,searchable and -124 or -80)
     local desired=remote and scriptSearch.query or query
@@ -3479,7 +3480,7 @@ render = function()
         b.BackgroundColor3=name == page and C.card or C.panel
         for _,part in ipairs(navIcons[name]) do part.obj[part.property]=name==page and C.accent or C.muted end
     end
-    indicator.Visible=page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="Änderungen"
+    indicator.Visible=page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
     if runtime.statusIcon then runtime.statusIcon.ImageColor3=C.accent end
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
@@ -3487,7 +3488,7 @@ render = function()
         drawDashboard(); updateDashboard()
     elseif page=="Wegpunkte" then
         runtime.drawWaypoints()
-    elseif page=="Änderungen" then
+    elseif page=="\195\132nderungen" then
         runtime.drawChangelog()
     elseif page=="Bewegung" and query=="" then
         drawCharacter()
@@ -3512,20 +3513,20 @@ render = function()
         round(input,8)
         rowButton(f,"Abspielen",UDim2.fromOffset(16,115),UDim2.fromOffset(108,28),function()
             local id=input.Text:match("^%s*(%d+)%s*$")
-            if not id or #id > 18 then notify("Bitte eine gültige numerische Audio-ID eingeben."); return end
+            if not id or #id > 18 then notify("Bitte eine g\195\188ltige numerische Audio-ID eingeben."); return end
             table.insert(musicQueue,id); playQueue(#musicQueue)
-            notify("Audio angefordert. Freigabe und Ladezeit hängen vom Asset ab.")
+            notify("Audio angefordert. Freigabe und Ladezeit h\195\164ngen vom Asset ab.")
             render()
         end)
         rowButton(f,"Pause / Weiter",UDim2.fromOffset(134,115),UDim2.fromOffset(122,28),function()
             if sound.IsPlaying then sound:Pause() else sound:Resume() end
         end)
         rowButton(f,"Stop",UDim2.fromOffset(266,115),UDim2.fromOffset(72,28),function() sound:Stop() end)
-        local queue=plainCard("Warteschlange",#musicQueue==0 and "Noch keine Audio-IDs hinzugefügt." or table.concat(musicQueue,"  ·  "),112)
-        rowButton(queue,"Zurück",UDim2.fromOffset(16,74),UDim2.fromOffset(88,28),function() playQueue(queueIndex-1) end)
+        local queue=plainCard("Warteschlange",#musicQueue==0 and "Noch keine Audio-IDs hinzugef\195\188gt." or table.concat(musicQueue,"  \194\183  "),112)
+        rowButton(queue,"Zur\195\188ck",UDim2.fromOffset(16,74),UDim2.fromOffset(88,28),function() playQueue(queueIndex-1) end)
         rowButton(queue,"Weiter",UDim2.fromOffset(114,74),UDim2.fromOffset(88,28),function() playQueue(queueIndex+1) end)
         rowButton(queue,"Leeren",UDim2.fromOffset(212,74),UDim2.fromOffset(88,28),function() sound:Stop(); table.clear(musicQueue); queueIndex=0; render() end)
-        drawAction({id="volume",name="Lautstärke",desc="Nur die Musik von ISB Menu",kind="slider",
+        drawAction({id="volume",name="Lautst\195\164rke",desc="Nur die Musik von ISB Menu",kind="slider",
             min=0,max=100,step=5,dragStep=.1,get=function() return math.floor(sound.Volume*10000+0.5)/100 end,fn=function(v) sound.Volume=v/100; settings.volume=v; save() end})
     elseif page == "Profil" then
         features.drawProfile()
@@ -3540,36 +3541,36 @@ render = function()
             end
         else
         local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-        rowButton(back,"← Einstellungen",UDim2.new(),UDim2.fromOffset(148,28),function() settingsSection=nil; render() end)
+        rowButton(back,"\226\134\144 Einstellungen",UDim2.new(),UDim2.fromOffset(148,28),function() settingsSection=nil; render() end)
         if settingsSection=="Protokoll" then
-            if #session.logs==0 then plainCard("Keine Einträge","Hinweise und Aktionen erscheinen hier.",78) end
-            for _,entry in ipairs(session.logs) do plainCard(entry.time.."  ·  "..entry.title,entry.message,78) end
+            if #session.logs==0 then plainCard("Keine Eintr\195\164ge","Hinweise und Aktionen erscheinen hier.",78) end
+            for _,entry in ipairs(session.logs) do plainCard(entry.time.."  \194\183  "..entry.title,entry.message,78) end
         elseif settingsSection=="Erkennung" then
             drawAction({id="friendmarkers",name="Freunde markieren",desc="Freunde aus deiner Roblox-Freundesliste leuchten blau",kind="toggle",get=function() return settings.friendHighlights end,fn=function() settings.friendHighlights=not settings.friendHighlights; save() end})
             drawAction({id="staffmarkers",name="Spiel-Admins markieren",desc="Owner, Admin, Developer und Moderator der Spiel-Gruppe leuchten rot",kind="toggle",get=function() return settings.staffHighlights end,fn=function() settings.staffHighlights=not settings.staffHighlights; save() end})
-            plainCard("Rollen-Erkennung","Verwendet öffentlich sichtbare Gruppenrollen und den Spielbesitzer. Rollenbezeichnungen sind Hinweise, keine verifizierten Berechtigungen.",92)
+            plainCard("Rollen-Erkennung","Verwendet \195\182ffentlich sichtbare Gruppenrollen und den Spielbesitzer. Rollenbezeichnungen sind Hinweise, keine verifizierten Berechtigungen.",92)
             plainCard("Executor",session.executor.." "..session.executorVersion,78)
-            plainCard("Fähigkeiten",string.format("Dateien: %s  ·  Clipboard: %s  ·  Asset-Icons: %s",tostring(capabilities.files),tostring(capabilities.clipboard),tostring(capabilities.icons)),82)
+            plainCard("F\195\164higkeiten",string.format("Dateien: %s  \194\183  Clipboard: %s  \194\183  Asset-Icons: %s",tostring(capabilities.files),tostring(capabilities.clipboard),tostring(capabilities.icons)),82)
         elseif settingsSection=="Performance" then
             drawAction({id="effects",name="Effekte reduzieren",desc="Partikel, Trails, Beam und Post-Effekte lokal pausieren",kind="toggle",get=function() return settings.lowEffects end,fn=function() settings.lowEffects=not settings.lowEffects; features.applyPerformance(); save() end})
             drawAction(findAction("shadows"))
             if type(setfpscap)=="function" then
-                local cap=plainCard("FPS-Limit",type(getfpscap)=="function" and "Das vorherige Limit wird beim Beenden wiederhergestellt." or "Der Executor unterstützt das Setzen, aber nicht das Auslesen des bisherigen Limits.",126)
+                local cap=plainCard("FPS-Limit",type(getfpscap)=="function" and "Das vorherige Limit wird beim Beenden wiederhergestellt." or "Der Executor unterst\195\188tzt das Setzen, aber nicht das Auslesen des bisherigen Limits.",126)
                 runtime.fpsStatus=label(cap,"Gemessen: "..session.fps.." FPS",11,C.muted,UDim2.fromOffset(16,94),UDim2.new(1,-32,0,22))
                 for i,value in ipairs({60,120,144,240}) do rowButton(cap,tostring(value),UDim2.fromOffset(16+(i-1)*72,58),UDim2.fromOffset(62,26),function()
                     runtime.applyFPSLimit(value)
                 end) end
             end
-            plainCard("Live-Messung",tostring(session.fps).." FPS  ·  "..tostring(session.ping or "—").." ms\nDie Statusleiste bleibt oben rechts sichtbar.",88)
+            plainCard("Live-Messung",tostring(session.fps).." FPS  \194\183  "..tostring(session.ping or "\226\128\148").." ms\nDie Statusleiste bleibt oben rechts sichtbar.",88)
         elseif settingsSection=="Tasten" then
-            for _,entry in ipairs({{"key","Menü öffnen / schließen"},{"dockKey","Dock einfahren / ausfahren"},{"searchKey","Skript-Schnellsuche"},{"flyKey","Fliegen an / aus"},{"noclipKey","Noclip an / aus"},{"espKey","Highlights / ESP an / aus"},{"speedKey","Laufgeschwindigkeit an / aus"},{"flightTierKey","Fluggeschwindigkeit: nächste Stufe"},{"freecamKey","Freecam an / aus"},{"freecamTeleportKey","Freecam: hierhin teleportieren und beenden"}}) do
+            for _,entry in ipairs({{"key","Men\195\188 \195\182ffnen / schlie\195\159en"},{"dockKey","Dock einfahren / ausfahren"},{"searchKey","Skript-Schnellsuche"},{"flyKey","Fliegen an / aus"},{"noclipKey","Noclip an / aus"},{"espKey","Highlights / ESP an / aus"},{"speedKey","Laufgeschwindigkeit an / aus"},{"flightTierKey","Fluggeschwindigkeit: n\195\164chste Stufe"},{"freecamKey","Freecam an / aus"},{"freecamTeleportKey","Freecam: hierhin teleportieren und beenden"}}) do
                 local field=entry[1]
-                local f=plainCard(entry[2],"Anklicken, Taste drücken. Escape bricht ab.",78)
+                local f=plainCard(entry[2],"Anklicken, Taste dr\195\188cken. Escape bricht ab.",78)
                 local b
-                b=rowButton(f,settings[field],UDim2.new(1,-120,0,23),UDim2.fromOffset(104,32),function() captureKey=field; b.Text="Taste …" end)
+                b=rowButton(f,settings[field],UDim2.new(1,-120,0,23),UDim2.fromOffset(104,32),function() captureKey=field; b.Text="Taste \226\128\166" end)
             end
         else
-        local f=card("Akzentfarbe","Liquid-Dark · dein persönlicher Farbakzent",104)
+        local f=card("Akzentfarbe","Liquid-Dark \194\183 dein pers\195\182nlicher Farbakzent",104)
         for i,name in ipairs({"Neutral","Blue","Mint","Amber"}) do
             local b=rowButton(f,name,UDim2.fromOffset(16+(i-1)*104,68),UDim2.fromOffset(94,26),function()
                 settings.theme=name; C.accent=themes[name]; save()
@@ -3580,16 +3581,16 @@ render = function()
         end
         local placement=plainCard("Position","Dock und Fenster gemeinsam ausrichten.",108)
         for i,item in ipairs({{"Links","Left"},{"Mitte","Center"},{"Rechts","Right"}}) do rowButton(placement,item[1],UDim2.fromOffset(16+(i-1)*116,68),UDim2.fromOffset(106,28),function() settings.alignment=item[2]; runtime.updateInventoryClearance(); fit(); save(); render() end) end
-        local sizeCard=plainCard("Menügröße","Größe in Prozent",132)
-        runtime.drawRuler(sizeCard,{id="uiscale",name="Menügröße",desc="Größe in Prozent",kind="slider",min=50,max=120,step=5,get=function() return settings.uiScale end,fn=function(v) settings.uiScale=math.clamp(v,50,120); fit(); save() end})
-        runtime.rulerResetButton(sizeCard,"Standard · 100 %",function() settings.uiScale=100; fit(); save(); runtime.refreshControls() end)
+        local sizeCard=plainCard("Men\195\188gr\195\182\195\159e","Gr\195\182\195\159e in Prozent",132)
+        runtime.drawRuler(sizeCard,{id="uiscale",name="Men\195\188gr\195\182\195\159e",desc="Gr\195\182\195\159e in Prozent",kind="slider",min=50,max=120,step=5,get=function() return settings.uiScale end,fn=function(v) settings.uiScale=math.clamp(v,50,120); fit(); save() end})
+        runtime.rulerResetButton(sizeCard,"Standard \194\183 100 %",function() settings.uiScale=100; fit(); save(); runtime.refreshControls() end)
         drawAction({id="notifications",name="Benachrichtigungen",desc="Hinweise unten rechts anzeigen",kind="toggle",get=function() return settings.notifications end,fn=function() settings.notifications=not settings.notifications; save() end})
-        drawAction({id="autoopen",name="Beim Start öffnen",desc="Fenster beim nächsten Start automatisch öffnen",kind="toggle",get=function() return settings.autoOpen end,fn=function() settings.autoOpen=not settings.autoOpen; save() end})
-        drawAction({id="uisounds",name="Interface-Sounds",desc="Dezente Klänge bei Öffnen, Schließen und Klicks",kind="toggle",get=function() return settings.sounds end,fn=function() settings.sounds=not settings.sounds; save() end})
-        local voice=card("Voice Chat","Status, Mikrofon und Verbindung prüfen",78)
-        rowButton(voice,"Öffnen",UDim2.new(1,-120,0,24),UDim2.fromOffset(104,32),function() query=""; selectPage("Voice") end)
-        plainCard("Automatisches Speichern",type(writefile)=="function" and "Änderungen werden automatisch lokal gespeichert. Kein zusätzlicher Speichern-Klick nötig." or "Dateizugriff fehlt: Einstellungen gelten nur für diese Sitzung.",86)
-        local exit=card("Hub beenden","Aktive Funktionen zurücksetzen und Oberfläche entfernen.")
+        drawAction({id="autoopen",name="Beim Start \195\182ffnen",desc="Fenster beim n\195\164chsten Start automatisch \195\182ffnen",kind="toggle",get=function() return settings.autoOpen end,fn=function() settings.autoOpen=not settings.autoOpen; save() end})
+        drawAction({id="uisounds",name="Interface-Sounds",desc="Dezente Kl\195\164nge bei \195\150ffnen, Schlie\195\159en und Klicks",kind="toggle",get=function() return settings.sounds end,fn=function() settings.sounds=not settings.sounds; save() end})
+        local voice=card("Voice Chat","Status, Mikrofon und Verbindung pr\195\188fen",78)
+        rowButton(voice,"\195\150ffnen",UDim2.new(1,-120,0,24),UDim2.fromOffset(104,32),function() query=""; selectPage("Voice") end)
+        plainCard("Automatisches Speichern",type(writefile)=="function" and "\195\132nderungen werden automatisch lokal gespeichert. Kein zus\195\164tzlicher Speichern-Klick n\195\182tig." or "Dateizugriff fehlt: Einstellungen gelten nur f\195\188r diese Sitzung.",86)
+        local exit=card("Hub beenden","Aktive Funktionen zur\195\188cksetzen und Oberfl\195\164che entfernen.")
         rowButton(exit,"Beenden",UDim2.new(1,-120,0,24),UDim2.fromOffset(104,32),function() env.ISBMenu.Destroy() end)
         end
         end
@@ -3600,7 +3601,7 @@ render = function()
             if include and matches(action.name .. " " .. action.desc .. " " .. action.category) then drawAction(action); count=count+1 end
         end
         if page=="Spieler" then drawPlayers() end
-        if count==0 and page~="Spieler" then card("Noch nichts gefunden", page=="Favoriten" and "Mit dem Stern an einer Funktion fügst du sie hier hinzu." or "Versuche einen anderen Suchbegriff.") end
+        if count==0 and page~="Spieler" then card("Noch nichts gefunden", page=="Favoriten" and "Mit dem Stern an einer Funktion f\195\188gst du sie hier hinzu." or "Versuche einen anderen Suchbegriff.") end
     end
     content.CanvasPosition=scroll
     runtime.pendingScroll={position=scroll,revision=revision}
@@ -3664,7 +3665,7 @@ connect(UIS.InputBegan,function(input,processed)
         captureKey=false
         if input.KeyCode~=Enum.KeyCode.Escape and input.KeyCode~=Enum.KeyCode.Unknown then
             for _,other in ipairs({"key","dockKey","searchKey","flyKey","noclipKey","espKey","speedKey","flightTierKey","freecamKey","freecamTeleportKey"}) do
-                if other~=field and settings[other]==pressed then notify("Diese Taste wird bereits verwendet.","Tastenkürzel"); render(); return end
+                if other~=field and settings[other]==pressed then notify("Diese Taste wird bereits verwendet.","Tastenk\195\188rzel"); render(); return end
             end
             settings[field]=pressed
             if field=="key" then CONFIG.ToggleKey=input.KeyCode end
@@ -3686,8 +3687,8 @@ connect(UIS.InputBegan,function(input,processed)
         for _,entry in ipairs({{"flyKey","fly"},{"noclipKey","noclip"},{"espKey","esp"},{"speedKey","speed"}}) do
             if pressed==settings[entry[1]] then
                 local action=findAction(entry[2]); local ok=pcall(action.fn)
-                if ok then playUISound("tap"); render(); notify(action.name..(action.get() and " aktiviert" or " deaktiviert"),"Tastenkürzel")
-                else notify("Aktion konnte nicht ausgeführt werden.","Tastenkürzel") end
+                if ok then playUISound("tap"); render(); notify(action.name..(action.get() and " aktiviert" or " deaktiviert"),"Tastenk\195\188rzel")
+                else notify("Aktion konnte nicht ausgef\195\188hrt werden.","Tastenk\195\188rzel") end
                 break
             end
         end
@@ -3754,7 +3755,7 @@ connect(Run.PreSimulation,function(dt)
             if h.FloorMaterial and h.FloorMaterial~=Enum.Material.Air and r.Position.Y>(workspace.FallenPartsDestroyHeight or -500)+100 then runtime.safeGround=r.CFrame end
             if runtime.safeGround and r.Position.Y<(workspace.FallenPartsDestroyHeight or -500)+75 and os.clock()>(runtime.voidCooldown or 0) then
                 r.CFrame=runtime.safeGround+Vector3.new(0,5,0); r.AssemblyLinearVelocity=Vector3.zero; runtime.voidCooldown=os.clock()+2
-                notify("Zum letzten Bodenpunkt zurückgekehrt.","Anti-Void")
+                notify("Zum letzten Bodenpunkt zur\195\188ckgekehrt.","Anti-Void")
             end
         end
     end
@@ -3813,7 +3814,7 @@ connect(Run.RenderStepped,function(dt)
 
     runtime.flightHud.Visible=state.fly
     if state.fly then
-        runtime.flightInfo.Text="ISB FLUG  ·  "..runtime.flightLevel().name.."  ·  "..runtime.flightLevel().speed.." studs/s"
+        runtime.flightInfo.Text="ISB FLUG  \194\183  "..runtime.flightLevel().name.."  \194\183  "..runtime.flightLevel().speed.." studs/s"
         runtime.flightInfo.TextColor3=runtime.flightLevel().color
         runtime.flightNext.Text=settings.flightTierKey.."  "..runtime.flightTier.."/4"
         local viewport=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.X or 1280
@@ -3850,7 +3851,7 @@ connect(Run.RenderStepped,function(dt)
         dockClock.Text=os.date("%H:%M"); runtime.dockDate.Text=os.date("%d.%m.")
         local ok,ping=pcall(function() return player:GetNetworkPing()*1000 end)
         session.fps=math.floor(frames/fpsTime+0.5); runtime.updateFPSLimit(fpsTime); session.ping=ok and math.floor(ping+0.5) or nil
-        metrics.Text=string.format('%d / %s Spieler  ·  <font color="%s">%s ms</font>  ·  <font color="%s">%d FPS</font>',#Players:GetPlayers(),tostring(Players.MaxPlayers or "—"),runtime.metricTint(session.ping,"ping"),session.ping and tostring(session.ping) or "--",runtime.metricTint(session.fps,"fps"),session.fps)
+        metrics.Text=string.format('%d / %s Spieler  \194\183  <font color="%s">%s ms</font>  \194\183  <font color="%s">%d FPS</font>',#Players:GetPlayers(),tostring(Players.MaxPlayers or "\226\128\148"),runtime.metricTint(session.ping,"ping"),session.ping and tostring(session.ping) or "--",runtime.metricTint(session.fps,"fps"),session.fps)
         runtime.updateStatusLayout()
         if page=="Start" then updateDashboard() end
         frames=0; fpsTime=0
@@ -3897,7 +3898,7 @@ connect(Run.RenderStepped,function(dt)
                 -- Pixel-sized labels retain readable type at every world distance.
                 shell:FindFirstChild("DistanceScale").Scale=1; tags[other].Size=UDim2.fromOffset(156,44)
                 shell:FindFirstChild("PlayerName").Text=other.DisplayName
-                shell:FindFirstChild("PlayerInfo").Text=distance.." studs"..(staff and " · Admin" or (friend and " · Freund" or ""))
+                shell:FindFirstChild("PlayerInfo").Text=distance.." studs"..(staff and " \194\183 Admin" or (friend and " \194\183 Freund" or ""))
                 shell:FindFirstChild("Badge").BackgroundColor3=color
             end
         end
@@ -3919,8 +3920,8 @@ end)
 function runtime.refreshDetails()
     local refs=runtime.detailRefs; if not refs or not refs.player.Parent then return end
     local other=refs.player; local h=other.Character and other.Character:FindFirstChildOfClass("Humanoid")
-    local values={["Team"]=other.Team and other.Team.Name or "Kein Team",["Gesundheit"]=h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verfügbar",
-        ["Beziehung"]=session.friends[other.UserId] and "Freund" or "Spieler",["Gruppenrolle"]=runtime.groupRoles[other] or "Nicht verfügbar"}
+    local values={["Team"]=other.Team and other.Team.Name or "Kein Team",["Gesundheit"]=h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verf\195\188gbar",
+        ["Beziehung"]=session.friends[other.UserId] and "Freund" or "Spieler",["Gruppenrolle"]=runtime.groupRoles[other] or "Nicht verf\195\188gbar"}
     for name,value in pairs(values) do local field=refs.fields[name]; if field then field.entry[2]=value; if field.label and field.label.Parent then if field.label.Text~=value then field.label.Text=value end end end end
 end
 refreshPlayers=function()
@@ -3959,9 +3960,9 @@ end
 function runtime.teleportFromFreecam()
     local owned=runtime.freecam; local part=root(); local h=humanoid()
     if not owned then return end
-    if not part or not h or h.Health<=0 then notify("Charakter ist gerade nicht verfügbar.","Freecam"); return end
+    if not part or not h or h.Health<=0 then notify("Charakter ist gerade nicht verf\195\188gbar.","Freecam"); return end
     if workspace.CurrentCamera~=owned.camera then
-        if not runtime.attachFreecamCamera() then notify("Kamera ist gerade nicht verfügbar.","Freecam"); return end
+        if not runtime.attachFreecamCamera() then notify("Kamera ist gerade nicht verf\195\188gbar.","Freecam"); return end
         owned.camera.CFrame=CFrame.new(owned.position)*CFrame.Angles(0,owned.yaw,0)*CFrame.Angles(owned.pitch,0,0)
     end
     local destination=owned.camera.CFrame.Position
@@ -3976,7 +3977,7 @@ function runtime.teleportFromFreecam()
     owned.focus=CFrame.new(focus)
     runtime.safeGround=nil
     runtime.stopFreecam(false)
-    notify("An Kameraposition teleportiert · Freecam beendet","Freecam","eye")
+    notify("An Kameraposition teleportiert \194\183 Freecam beendet","Freecam","eye")
 end
 function runtime.setFreecamSuspended(suspended)
     local owned=runtime.freecam; if not owned then return end
@@ -4043,7 +4044,7 @@ function runtime.toggleFreecam()
     end
     setOpen(false); setQuickSearch(false)
     Run:BindToRenderStep("ISBFreecam",Enum.RenderPriority.Camera.Value+1,runtime.updateFreecam)
-    notify("WASD bewegen · E/Q hoch/runter · Shift schneller · "..settings.freecamKey.." beenden · "..settings.freecamTeleportKey.." hierhin teleportieren","Freecam","eye")
+    notify("WASD bewegen \194\183 E/Q hoch/runter \194\183 Shift schneller \194\183 "..settings.freecamKey.." beenden \194\183 "..settings.freecamTeleportKey.." hierhin teleportieren","Freecam","eye")
 end
 
 local api = {}
@@ -4077,7 +4078,7 @@ api.Destroy = function()
 end
 -- Extend with your own client actions; callback errors are caught by the UI.
 api.AddAction = function(id, category, name, description, callback)
-    assert(type(id)=="string" and type(name)=="string" and type(callback)=="function", "Ungültige Aktion")
+    assert(type(id)=="string" and type(name)=="string" and type(callback)=="function", "Ung\195\188ltige Aktion")
     assert(table.find(navNames,category) and category~="Start" and category~="Musik" and category~="Einstellungen", "Bewegung, Spieler oder Darstellung verwenden")
     for _,action in ipairs(actions) do assert(action.id~=id,"Aktions-ID bereits vorhanden") end
     addAction(id,category,name,tostring(description or ""),"button",callback)
@@ -4142,7 +4143,7 @@ function runtime.resolveServerRegion(peer)
         if ok and type(data)=="table" and data.success==true and data.ip==ip then
             local city=tostring(data.city or data.region or "")
             local country=tostring(data.country_code or data.country or "")
-            if city~="" or country~="" then runtime.serverRegion="Verbindung: "..city..(city~="" and country~="" and " · " or "")..country end
+            if city~="" or country~="" then runtime.serverRegion="Verbindung: "..city..(city~="" and country~="" and " \194\183 " or "")..country end
         end
         if not runtime.serverRegion then runtime.serverRegion="Verbindungsregion nicht abrufbar" end
     end)
@@ -4207,7 +4208,7 @@ function runtime.startWelcomeIntro()
         end
         indicator.Visible=true; dock.GroupTransparency=0
         if welcome.Parent then welcome:Destroy() end
-        if not cancel and dockVisible then setOpen(settings.autoOpen); notify(CONFIG.Name.." bereit • "..settings.key.." öffnet das Menü") end
+        if not cancel and dockVisible then setOpen(settings.autoOpen); notify(CONFIG.Name.." bereit \226\128\162 "..settings.key.." \195\182ffnet das Men\195\188") end
     end
     animate(welcome,{GroupTransparency=0,Position=dock.Position}); animate(greeting,{TextTransparency=0})
     task.delay(settings.reducedMotion and 0 or 2.8,function()
