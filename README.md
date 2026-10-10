@@ -1,4 +1,8 @@
-# ISB Menu 2.6.42 · by Larsiopuw
+# ISB Menu 2.6.43 · by Larsiopuw
+
+## Änderungen in 2.6.43
+
+Automatische Sprache anhand von Player.LocaleId (Roblox-Kontosprache), ersatzweise LocalizationService.RobloxLocaleId. Deutsch verwendet deutsche Texte, alle anderen oder fehlenden Sprachen verwenden Englisch. Navigation, Hinweise, Einstellungen und alle 46 Changelog-Versionen sind lokal übersetzt; kein externer Übersetzungsdienst. Interne Kennungen, Nutzereingaben und gespeicherte Einstellungen bleiben erhalten. Die Upload-Datei bleibt ASCII.
 
 ## Änderungen in 2.6.42
 

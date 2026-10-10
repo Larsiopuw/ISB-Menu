@@ -1,7 +1,7 @@
--- ISB Menu 2.6.42 | Own-game universal client toolkit
+-- ISB Menu 2.6.43 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.42",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.43",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -173,6 +173,600 @@ local originals, collisions, highlights, tags = {}, {}, {}, {}
 local flyObjects, flyHumanoid, flyAutoRotate = {}, nil, nil
 local runtime={flightVelocity=Vector3.zero,flightAcceleration=Vector3.zero,gameStaff={},groupRoles={},profileData={},antiVoid=false,shader=false,
     role="Member", saveRevision=0,lastSaved=nil,saveError=nil, imageCache={},performanceOwned={},voiceMaintenance=0,tweens={}}
+runtime.english={
+    ["On"]="On",
+    ["Off"]="Off",
+    ["Huckepack \194\183 "]="Piggyback \194\183 ",
+    ["Huckepack 2 \194\183 "]="Piggyback 2 \194\183 ",
+    ["Tragen \194\183 "]="Carry \194\183 ",
+    ["Umarmen \194\183 "]="Hug \194\183 ",
+    ["Auf dem Kopf \194\183 "]="On the head \194\183 ",
+    ["Schulter sitzen \194\183 "]="Sit on shoulder \194\183 ",
+    ["Aktiv"]="Active",
+    ["BEREIT"]="READY",
+    ["Keine"]="None",
+    ["Bitte sp\195\164ter erneut versuchen."]="Please try again later.",
+
+    ["unbekannt"]="unknown",
+    ["Script-Suche"]="Script search",
+    ["Serverliste"]="Server list",
+    ["Kopieren"]="Copy",
+    ["Fluganimation"]="Flight animation",
+    ["FLUGSTYLES"]="FLIGHT STYLES",
+    ["Spielstandard"]="Game default",
+    ["Windows-Musikplayer"]="Windows music player",
+    ["Spiel-Admin"]="Game admin",
+    ["Charakter"]="Character",
+    ["Aktuell"]="Current",
+    ["Voll"]="Full",
+    ["Beitreten"]="Join",
+    ["Serversuche"]="Server search",
+    ["Voice-Verbindung"]="Voice connection",
+    ["Spiel-Erweiterungen"]="Game extensions",
+    ["Verifiziert"]="Verified",
+    ["Suchen"]="Search",
+    ["Lokal"]="Local",
+    ["Mikrofon"]="Microphone",
+    ["Profil-Link"]="Profile link",
+    ["Namenshistorie"]="Name history",
+    ["Keine"]="None",
+    ["Beenden"]="Exit",
+    ["Warteschlange"]="Queue",
+    ["Leeren"]="Clear",
+    ["Allgemein"]="General",
+    ["Interface-Sounds"]="Interface sounds",
+    ["Start"]="Home",
+    ["Bewegung"]="Movement",
+    ["Spieler"]="Players",
+    ["Freunde"]="Friends",
+    ["Darstellung"]="Visuals",
+    ["Skripte"]="Scripts",
+    ["Musik"]="Music",
+    ["Favoriten"]="Favorites",
+    ["Einstellungen"]="Settings",
+    ["Profil"]="Profile",
+    ["Wegpunkte"]="Waypoints",
+    ["Fliegen"]="Flight",
+    ["Flugstufe"]="Flight tier",
+    ["Mehrfachsprung"]="Multi-jump",
+    ["Laufgeschwindigkeit"]="Walk speed",
+    ["Sprungkraft"]="Jump power",
+    ["Spielermarkierungen"]="Player highlights",
+    ["Namensanzeigen"]="Name tags",
+    ["Helligkeit"]="Brightness",
+    ["Sichtfeld"]="Field of view",
+    ["Weiter"]="Next",
+    ["Abspielen"]="Play",
+    ["Stoppen"]="Stop",
+    ["Automatisch"]="Automatic",
+    ["Aktualisieren"]="Refresh",
+    ["Speichern"]="Save",
+    ["Umbenennen"]="Rename",
+    ["Beobachten"]="Spectate",
+    ["Freund"]="Friend",
+    ["SPIELER"]="PLAYER",
+    ["FREUND"]="FRIEND",
+    ["Befreundet"]="Friends",
+    ["Namen"]="Names",
+    ["Benutzer-ID"]="User ID",
+    ["Accountalter"]="Account age",
+    ["Gesundheit"]="Health",
+    ["Entfernung"]="Distance",
+    ["Gruppenrolle"]="Group role",
+    ["Beziehung"]="Relationship",
+    ["Ja"]="Yes",
+    ["Nein"]="No",
+    ["AKTIV"]="ACTIVE",
+    ["BEREIT"]="READY",
+    ["Zur\195\188cksetzen"]="Reset",
+    ["Standard"]="Default",
+    ["Links"]="Left",
+    ["Mitte"]="Center",
+    ["Rechts"]="Right",
+    ["Tasten"]="Keys",
+    ["Protokoll"]="Activity log",
+    ["Erkennung"]="Detection",
+    ["Rollen-Erkennung"]="Role detection",
+    ["Live-Messung"]="Live metrics",
+    ["Akzentfarbe"]="Accent color",
+    ["Benachrichtigungen"]="Notifications",
+    ["Anbieter"]="Provider",
+    ["Beliebt"]="Popular",
+    ["Neu"]="New",
+    ["Sitzung"]="Session",
+    ["Sitzungswerkzeuge"]="Session tools",
+    ["Diagnose"]="Diagnostics",
+    ["Testhinweis"]="Test notice",
+    ["Huckepack"]="Piggyback",
+    ["Umarmen"]="Hug",
+    ["Tragen"]="Carry",
+    ["Stumm"]="Mute",
+    ["Entstummen"]="Unmute",
+    ["Stoppuhr"]="Stopwatch",
+    ["Sammlung"]="Collection",
+    ["Skript-Schnellsuche"]="Quick script search",
+    ["Dateiname.lua"]="Filename.lua",
+    ["Lokale Dateien"]="Local files",
+    ["Ung\195\188ltig"]="Invalid",
+    ["Unbekannt"]="Unknown",
+    ["Nicht verf\195\188gbar"]="Unavailable",
+    ["ISB Menu muss auf dem Client gestartet werden."]="ISB Menu must be started on the client.",
+    ["Nicht erkannt"]="Not detected",
+    ["Spielname nicht verf\195\188gbar"]="Game name unavailable",
+    ["Nicht gepr\195\188ft"]="Not checked",
+    ["Ung\195\188ltige HTTP-Antwort"]="Invalid HTTP response",
+    ["F\195\188r diesen Anbieter wird ein HTTP-Provider mit Header-Unterst\195\188tzung ben\195\182tigt"]="This provider requires HTTP support with request headers",
+    ["Ung\195\188ltige Antwortgr\195\182\195\159e"]="Invalid response size",
+    ["Ung\195\188ltige JSON-Antwort"]="Invalid JSON response",
+    ["Voice-Modus beendet."]="Voice mode stopped.",
+    ["Die ben\195\182tigten Voice-Funktionen sind hier nicht verf\195\188gbar."]="The required voice features are unavailable here.",
+    ["Mikrofon-Steuerung konnte nicht ge\195\182ffnet werden."]="Microphone controls could not be opened.",
+    ["ISB Mikrofon: "]="ISB Microphone: ",
+    ["Voice-Verbindung nicht verf\195\188gbar."]="Voice connection unavailable.",
+    ["Voice-Verbindung erneuert und Client-Modus gestartet."]="Voice reconnected and client mode started.",
+    ["Universal / nicht angegeben"]="Universal / unspecified",
+    ["Nicht angegeben"]="Unspecified",
+    ["Suchbegriff: 2 bis 100 Zeichen eingeben."]="Search term: enter 2 to 100 characters.",
+    ["Ung\195\188ltige ScriptBlox-Antwort"]="Invalid ScriptBlox response",
+    ["RoScripts-Suchformat ge\195\164ndert oder keine lesbare Ergebnisliste"]="RoScripts search format changed or no readable results",
+    ["Kein lesbarer RoScripts-Loader gefunden"]="No readable RoScripts loader found",
+    ["Quelltext nicht verf\195\188gbar: "]="Source unavailable: ",
+    ["Anbieterantwort enth\195\164lt kein Lua-Script"]="Provider response contains no Lua script",
+    ["Bitte warte kurz und versuche es danach erneut."]="Please wait a moment and try again.",
+    ["Rate Limit erreicht"]="Rate limit reached",
+    ["Serverliste fehlt"]="Server list missing",
+    ["Zu viele Anfragen. Bitte warte kurz und versuche es danach erneut."]="Too many requests. Please wait a moment and try again.",
+    ["Die Serverliste konnte nicht geladen werden. Bitte versuche es sp\195\164ter erneut."]="The server list could not be loaded. Please try again later.",
+    ["TeleportService ist nicht verf\195\188gbar."]="TeleportService is unavailable.",
+    ["F\195\188r diesen Server ist keine Job-ID verf\195\188gbar."]="No job ID is available for this server.",
+    ["Verbindung wird angefordert \226\128\166"]="Requesting connection \226\128\166",
+    ["Verbindung fehlgeschlagen"]="Connection failed",
+    ["Serverliste geladen. W\195\164hle einen freien Server oder klicke anschlie\195\159end erneut auf Serverhop."]="Server list loaded. Choose an available server or click Serverhop again.",
+    ["Voice API nicht verf\195\188gbar"]="Voice API unavailable",
+    ["Voice f\195\188r deinen Account aktiviert"]="Voice enabled for your account",
+    ["Voice f\195\188r deinen Account nicht aktiviert"]="Voice not enabled for your account",
+    ["Voice-Status nicht abrufbar"]="Voice status unavailable",
+    ["Voice-Reconnect wird hier nicht unterst\195\188tzt."]="Voice reconnect is not supported here.",
+    ["Voice-Verbindung neu angefordert. Audio im Spiel \195\188berpr\195\188fen."]="Voice reconnect requested. Check the in-game audio.",
+    ["Voice-Verbindung konnte nicht angefordert werden."]="Voice reconnect could not be requested.",
+    ["Zwischenablage ist in diesem Executor nicht verf\195\188gbar."]="Clipboard access is unavailable in this executor.",
+    ["In die Zwischenablage kopiert."]="Copied to clipboard.",
+    ["Kopieren fehlgeschlagen."]="Copy failed.",
+    ["Dateizugriff nicht verf\195\188gbar"]="File access unavailable",
+    ["Aktion konnte nicht ausgef\195\188hrt werden."]="Action could not be completed.",
+    ["Dieser Flugstyle konnte im Spiel nicht geladen werden."]="This flight style could not be loaded in this game.",
+    ["ISB  /  -- Spieler  \194\183  -- ms  \194\183  -- FPS"]="ISB  /  -- players  \194\183  -- ms  \194\183  -- FPS",
+    ["Deine aktuelle Sitzung"]="Your current session",
+    ["Charakter und Bewegung"]="Character and movement",
+    ["Spieler im Server"]="Players in this server",
+    ["Server finden und wechseln"]="Find and switch servers",
+    ["Kamera und Darstellung"]="Camera and visuals",
+    ["Scripts suchen und verwalten"]="Find and manage scripts",
+    ["Deine Medien und Musik"]="Your media and music",
+    ["Deine gespeicherten Aktionen"]="Your saved actions",
+    ["Dein Men\195\188 anpassen"]="Customize your menu",
+    ["\195\156bersicht"]="Overview",
+    ["\195\132nderungen"]="Changes",
+    ["Dein Spiel. Dein Werkzeug."]="Your game. Your toolkit.",
+    ["Funktionen und Spieler suchen \226\128\166"]="Search features and players \226\128\166",
+    ["Scripts suchen \226\128\166"]="Search scripts \226\128\166",
+    ["Enter zum Suchen"]="Enter to search",
+    ["Aktion fehlgeschlagen."]="Action failed.",
+    ["Zur\195\188ck"]="Back",
+    ["WASD / Bewegung \226\128\162 Space hoch \226\128\162 Strg runter"]="WASD / Move \226\128\162 Space up \226\128\162 Ctrl down",
+    ["Kollision des eigenen Charakters ausschalten"]="Disable your character's collisions",
+    ["Auch in der Luft erneut springen"]="Jump again while in the air",
+    ["Laufgeschwindigkeit aktiv"]="Walk speed enabled",
+    ["Originalwert wird beim Ausschalten wiederhergestellt"]="Restores the original value when disabled",
+    ["Studs pro Sekunde"]="Studs per second",
+    ["Sprungkraft aktiv"]="Jump power enabled",
+    ["Unterst\195\188tzt JumpPower und JumpHeight"]="Supports JumpPower and JumpHeight",
+    ["Wert wird bei Bedarf in Sprungh\195\182he umgerechnet"]="Converts the value to jump height when needed",
+    ["Freunde blau \194\183 Admins rot \194\183 \195\188brige Spieler bei blauem Akzent goldgelb"]="Friends blue \194\183 admins red \194\183 other players gold with a blue accent",
+    ["Name und Entfernung \195\188ber dem Charakter"]="Name and distance above the character",
+    ["Lokale Beleuchtung von 0 bis 5"]="Local lighting from 0 to 5",
+    ["Helle Umgebung"]="Bright environment",
+    ["Lokales Tageslicht mit wiederherstellbaren Werten"]="Local daylight with restorable settings",
+    ["Schatten deaktivieren"]="Disable shadows",
+    ["Lokale Beleuchtung vereinfachen"]="Simplify local lighting",
+    ["Sichtfeld aktiv"]="Field of view enabled",
+    ["Kamerawinkel individuell anpassen"]="Customize the camera angle",
+    ["Kamerawinkel in Grad"]="Camera angle in degrees",
+    ["Freie Kamera \194\183 WASD \194\183 E/Q \194\183 Shift"]="Free camera \194\183 WASD \194\183 E/Q \194\183 Shift",
+    ["Eigene Kamera"]="Own camera",
+    ["Beobachtung beenden"]="Stop spectating",
+    ["Manueller Wert \194\183 "]="Manual value \194\183 ",
+    ["Skala ziehen \194\183 "]="Drag scale \194\183 ",
+    [" \194\183 Zahl antippen zum Eingeben"]=" \194\183 tap the number to edit",
+    ["Bitte eine Zahl zwischen "]="Please enter a number between ",
+    [" und "]=" and ",
+    [" eingeben."]=".",
+    ["Standard \194\183 35 %"]="Default \194\183 35 %",
+    ["Windows-Verbindung ist nicht gestartet."]="Windows connection has not started.",
+    ["Lokale HTTP-Verbindung nicht unterst\195\188tzt."]="Local HTTP connections are not supported.",
+    ["Windows-Verbindung nicht erreichbar."]="Windows connection unreachable.",
+    ["Player antwortet nicht."]="Player is not responding.",
+    ["Zeitdaten nicht verf\195\188gbar"]="Timeline unavailable",
+    ["Kein Player aktiv"]="No active player",
+    ["Windows-Musiksteuerung nicht verbunden"]="Windows music controls disconnected",
+    ["Windows-Musiksteuerung ben\195\182tigt die optionale ISBMediaBridge.exe"]="Windows music controls require the optional ISBMediaBridge.exe",
+    ["Windows-Bridge nicht erreichbar \194\183 ISBMediaBridge.exe starten"]="Windows bridge unreachable \194\183 start ISBMediaBridge.exe",
+    ["Starte ISBMediaBridge und \195\182ffne einen Medienplayer."]="Start ISBMediaBridge and open a media player.",
+    ["Dieser Player unterst\195\188tzt diese Aktion derzeit nicht."]="This player currently does not support this action.",
+    ["Player verarbeitet noch die vorherigen Aktionen."]="Player is still processing previous actions.",
+    ["Aktion nicht angenommen."]="Action not accepted.",
+    ["Windows-Musik einrichten"]="Set up Windows music",
+    ["Einmal in PowerShell einf\195\188gen \194\183 startet danach bei Windows-Anmeldung"]="Paste once into PowerShell \194\183 starts at Windows sign-in",
+    ["Einrichtungsbefehl kopieren"]="Copy setup command",
+    ["Windows-Player verbinden"]="Connect Windows player",
+    ["App-Lautst\195\164rke"]="App volume",
+    ["Gew\195\164hlte Windows-App \194\183 beim Browser gilt sie f\195\188r alle Tabs"]="Selected Windows app \194\183 applies to all tabs for browsers",
+    ["Kontrolle \195\188ber deinen Charakter."]="Take control of your character.",
+    ["Spieler finden, beobachten und erreichen."]="Find, spectate and reach players.",
+    ["Deine pers\195\182nliche Ansicht."]="Your personal view.",
+    ["Musik und Wiedergabe direkt steuern."]="Control music and playback directly.",
+    ["Deine wichtigsten Funktionen an einem Ort."]="Your key features in one place.",
+    ["Gestalte deinen Workspace."]="Customize your workspace.",
+    ["\195\150ffentliche Server, Sitzungsdaten und Verbindungen."]="Public servers, session details and connections.",
+    ["Eigene Aktionen und lokaler Script-Katalog."]="Custom actions and a local script catalog.",
+    ["Voice-Status und Mikrofonsteuerung."]="Voice status and microphone controls.",
+    ["Bitte einen Namen f\195\188r den Wegpunkt eingeben."]="Please enter a waypoint name.",
+    ["Charakter ist gerade nicht verf\195\188gbar."]="Character is currently unavailable.",
+    ["Maximal 50 Wegpunkte pro Spiel. L\195\182sche zuerst einen Eintrag."]="Up to 50 waypoints per game. Delete an entry first.",
+    ["Wegpunkt aktualisiert."]="Waypoint updated.",
+    ["Wegpunkt gespeichert."]="Waypoint saved.",
+    ["Wegpunkt f\195\188r diese Sitzung gespeichert \194\183 Dateispeicherung nicht verf\195\188gbar."]="Waypoint saved for this session \194\183 file storage unavailable.",
+    ["Bitte einen Namen eingeben."]="Please enter a name.",
+    ["Dieser Name wird bereits verwendet."]="This name is already in use.",
+    ["Kamera ist gerade nicht verf\195\188gbar."]="Camera is currently unavailable.",
+    ["Wegpunkt erreicht: "]="Waypoint reached: ",
+    ["\226\134\144 Start"]="\226\134\144 Home",
+    ["Deine Wegpunkte"]="Your waypoints",
+    [" / 50 gespeichert"]=" / 50 saved",
+    ["Nur Positionen aus diesem Spiel werden angezeigt."]="Only positions from this game are shown.",
+    ["Position speichern"]="Save position",
+    ["Speichert die aktuelle Freecam-Position und Blickrichtung."]="Saves the current Freecam position and direction.",
+    ["Speichert die aktuelle Charakterposition und Blickrichtung."]="Saves the current character position and direction.",
+    ["Name, z. B. Treffpunkt"]="Name, e.g. Meeting point",
+    ["Noch keine Wegpunkte"]="No waypoints yet",
+    ["Gib oben einen Namen ein und speichere deine erste Position."]="Enter a name above and save your first position.",
+    ["L\195\182schen"]="Delete",
+    ["\195\156bernehmen"]="Apply",
+    ["  \194\183  Aktuell"]="  \194\183  Latest",
+    ["Privater Server"]="Private server",
+    ["\195\150ffentlicher Server"]="Public server",
+    ["Diese Sitzung"]="This session",
+    [" Spieler"]=" players",
+    ["Spiellink kopieren"]="Copy game link",
+    ["Join-Script kopieren"]="Copy join script",
+    [" ist dem Server beigetreten."]=" joined the server.",
+    [" geh\195\182rt zur Spiel-Leitung."]=" is part of the game's staff.",
+    ["Admin beigetreten"]="Admin joined",
+    ["Dein Konto"]="Your account",
+    [" Tage"]=" days",
+    ["Deine Sammlung"]="Your collection",
+    [" Aktionen \194\183 "]=" actions \194\183 ",
+    ["Automatisches Speichern"]="Autosave",
+    ["Gespeichert \194\183 "]="Saved \194\183 ",
+    ["Aktiv \194\183 lokal"]="Enabled \194\183 local",
+    ["Deine Daten und gespeicherten Einstellungen exportieren."]="Export your data and saved settings.",
+    ["Profil kopieren"]="Copy profile",
+    ["Sitzung kopieren"]="Copy session",
+    ["ISB Verwaltung"]="ISB Management",
+    ["Lokale Diagnose, Testhinweise und Konfigurationskontrolle."]="Local diagnostics, test notices and configuration checks.",
+    [" / Dateien "]=" / Files ",
+    ["Oberfl\195\164che und Benachrichtigungen sind bereit."]="Interface and notifications are ready.",
+    ["ISB / Systemtest"]="ISB / System test",
+    ["Erkennung pr\195\188fen"]="Check detection",
+    ["Gruppenrollen werden erneut gepr\195\188ft."]="Checking group roles again.",
+    ["Willkommen, "]="Welcome, ",
+    [" im Server"]=" in server",
+    [" insgesamt"]=" total",
+    ["Funktionen abh\195\164ngig vom Executor"]="Features depend on your executor",
+    [" Hub aktiv"]=" Hub active",
+    ["Region wird gepr\195\188ft \226\128\166"]="Checking region \226\128\166",
+    ["Ausgew\195\164hlten Regler zur\195\188ckgesetzt."]="Selected slider reset.",
+    ["Sichtfeld zur\195\188cksetzen"]="Reset field of view",
+    ["Dieser Executor kann kein FPS-Limit setzen."]="This executor cannot set an FPS limit.",
+    ["FPS-Limit wurde vom Executor abgelehnt: "]="FPS limit rejected by the executor: ",
+    [" FPS \194\183 Wirkung wird gepr\195\188ft \226\128\166"]=" FPS \194\183 checking effect \226\128\166",
+    [" FPS \194\183 gemessen "]=" FPS \194\183 measured ",
+    [" angefordert \194\183 weiterhin "]=" requested \194\183 still ",
+    ["Weiterhin "]="Still ",
+    [" FPS. Pr\195\188fe das FPS-Limit in Roblox und im Executor; der gesetzte Wert wird offenbar nicht wirksam."]=" FPS. Check the FPS limits in Roblox and your executor; the requested value does not appear to take effect.",
+    ["Wenig Spieler"]="Fewer players",
+    ["Viele Spieler"]="More players",
+    ["Server werden geladen \226\128\166"]="Loading servers \226\128\166",
+    ["\195\150ffentliche Roblox-Server f\195\188r diesen Place."]="Public Roblox servers for this place.",
+    ["Serverliste nicht verf\195\188gbar"]="Server list unavailable",
+    ["%d / %d Spieler%s"]="%d / %d players%s",
+    ["Keine \195\182ffentlichen Server gefunden"]="No public servers found",
+    ["Private Server werden von dieser API nicht aufgelistet."]="Private servers are not listed by this API.",
+    ["Filtert Server-ID und Spieleranzahl auf dieser geladenen Seite. Spielernamen und private Servercodes liefert die Roblox-Serverliste nicht."]="Filters server IDs and player counts on this page. The Roblox server list does not provide player names or private server codes.",
+    ["Mikrofon und Verbindung"]="Microphone and connection",
+    ["Steuert den lokalen Voice-Client, sofern die APIs verf\195\188gbar sind."]="Controls the local voice client where its APIs are available.",
+    ["Status pr\195\188fen"]="Check status",
+    ["Voice-Verbindung wird erneuert \226\128\166"]="Reconnecting voice \226\128\166",
+    ["Lokaler Voice-Modus mit Reconnect"]="Local voice mode with reconnect",
+    ["Dieser Modus steuert ausschlie\195\159lich den lokalen Voice-Client. Ein Schutz vor serverseitigen Voice-Sperren ist nicht nachgewiesen."]="This mode only controls the local voice client. Protection against server-side voice bans has not been established.",
+    ["Zur Online-Suche"]="Online search",
+    ["Eigene Scripts"]="Your scripts",
+    ["Lokale Lua-Dateien aus deinem Executor-Workspace. Ausf\195\188hrung nur nach deinem Klick."]="Local Lua files from your executor workspace. Runs only after you click.",
+    ["Hinzuf\195\188gen"]="Add",
+    ["Eine lokale .lua-Datei ohne Verzeichnispfad angeben."]="Enter a local .lua filename without a directory path.",
+    ["readfile und loadstring werden ben\195\182tigt."]="readfile and loadstring are required.",
+    ["Datei nicht lesbar: "]="File unreadable: ",
+    ["Datei ist bereits im Katalog."]="File is already in the catalog.",
+    ["Lokale Datei \194\183 selbst hinzugef\195\188gt"]="Local file \194\183 added by you",
+    ["Ausf\195\188hren"]="Run",
+    ["Script ausgef\195\188hrt."]="Script executed.",
+    [" registrierte Aktionen. Eigene Funktionen lassen sich \195\188ber ISBMenu.AddAction erg\195\164nzen."]=" registered actions. Add your own features using ISBMenu.AddAction.",
+    ["Maximal 60 Skript-Favoriten."]="Up to 60 script favorites.",
+    ["Wird geladen \226\128\166"]="Loading \226\128\166",
+    ["Anbieter meldet einen Fehler"]="Provider reported an error",
+    ["Kein ausf\195\188hrbarer Quelltext verf\195\188gbar."]="No executable source available.",
+    ["Script konnte nicht kompiliert werden"]="Script could not be compiled",
+    ["Deine Skript-Favoriten"]="Your script favorites",
+    ["Keine Ergebnisse"]="No results",
+    ["Markiere Scripts \195\188ber den Stern. Sie werden automatisch gespeichert."]="Star scripts to save them automatically.",
+    ["Diese Quelle hat keine passenden Scripts geliefert. Aktualisiere die Liste oder suche einen Begriff."]="This source returned no matching scripts. Refresh the list or search for a term.",
+    [" Aufrufe"]=" views",
+    ["Quelle: "]="Source: ",
+    ["Dieses Emote ist f\195\188r deinen Avatar nicht verf\195\188gbar."]="This emote is unavailable for your avatar.",
+    ["Mikrofon stumm \194\183 Einschalten"]="Microphone muted \194\183 Unmute",
+    ["Mikrofon an \194\183 Stummschalten"]="Microphone on \194\183 Mute",
+    ["Mikrofon-Steuerung ist hier nicht zug\195\164nglich."]="Microphone controls are not accessible here.",
+    ["Mikrofon stummgeschaltet."]="Microphone muted.",
+    ["Mikrofon freigegeben."]="Microphone unmuted.",
+    ["Auf dem Kopf"]="On the head",
+    ["Huckepack 2"]="Piggyback 2",
+    ["Schulter sitzen"]="Sit on shoulder",
+    ["Bereit \194\183 Aktion ausw\195\164hlen"]="Ready \194\183 Select an action",
+    ["W\195\164hle einen verf\195\188gbaren Spieler als Ziel."]="Choose an available player as a target.",
+    ["Position aktiv; die Animation ist in diesem Spiel nicht verf\195\188gbar."]="Position active; animation unavailable in this game.",
+    ["Automatisch \194\183 "]="Automatic \194\183 ",
+    ["Automatisch \194\183 N\195\164chster Spieler"]="Automatic \194\183 Nearest player",
+    ["Lokale Aktion"]="Local action",
+    ["Spieler suchen \226\128\166"]="Search players \226\128\166",
+    ["Kein Charakter"]="No character",
+    ["Keine passenden Spieler"]="No matching players",
+    ["Gespeicherte Avatar-Outfits sind f\195\188r diesen Spieler derzeit nicht \195\182ffentlich abrufbar."]="Saved avatar outfits are currently not publicly available for this player.",
+    ["Daten sind derzeit nicht \195\182ffentlich abrufbar."]="Data is currently not publicly available.",
+    ["\226\134\144 Spieler"]="\226\134\144 Players",
+    ["Kein Team"]="No team",
+    ["Bereits befreundet"]="Already friends",
+    ["Freund anfragen"]="Send request",
+    ["Roblox-Freundschaftsdialog ist hier nicht verf\195\188gbar."]="The Roblox friendship dialog is unavailable here.",
+    ["L\195\164dt \226\128\166"]="Loading \226\128\166",
+    ["\195\150ffentliche Roblox-Daten werden abgerufen."]="Fetching public Roblox data.",
+    ["Keine Eintr\195\164ge"]="No entries",
+    ["Roblox liefert f\195\188r diesen Spieler keine Eintr\195\164ge."]="Roblox returned no entries for this player.",
+    ["Ohne Namen"]="Unnamed",
+    ["Gespeicherter Charakter"]="Saved character",
+    ["Fr\195\188herer Benutzername"]="Previous username",
+    ["ISB / SPIELERINFO"]="ISB / PLAYER INFO",
+    ["Erstellt am"]="Created on",
+    ["Fr\195\188here Namen"]="Previous names",
+    ["Alle Details"]="All details",
+    ["Item ausr\195\188sten \194\183 anderen Spieler anklicken"]="Equip the item \194\183 click another player",
+    ["ISB Spielerinfo"]="ISB Player Info",
+    ["ISB \194\183 Ausr\195\188sten und einen Spieler anklicken"]="ISB \194\183 Equip and click a player",
+    ["Rolle wird gepr\195\188ft"]="Checking role",
+    ["Beobachtung: "]="Spectating: ",
+    ["Charakter ist noch nicht verf\195\188gbar."]="Character is not available yet.",
+    ["Zum Spieler"]="Go to player",
+    ["Position lokal ge\195\164ndert."]="Position changed locally.",
+    ["Zum letzten Bodenpunkt zur\195\188ck, bevor du die Fallgrenze erreichst"]="Return to the last safe ground position before reaching the fall limit",
+    ["Realistische Farben, Sonnenstrahlen und Himmel"]="Realistic colors, sun rays and sky",
+    ["Eigene Erweiterungen"]="Custom extensions",
+    ["Server-ID oder Spieleranzahl suchen \226\128\166"]="Search server ID or player count \226\128\166",
+    ["Favoriten suchen \226\128\166"]="Search favorites \226\128\166",
+    ["Skripte suchen \226\128\166"]="Search scripts \226\128\166",
+    ["Funktionen suchen \226\128\166"]="Search features \226\128\166",
+    ["Deine Musik"]="Your music",
+    ["Roblox-Audio-ID eingeben. Das Asset muss im Spiel verwendbar sein."]="Enter a Roblox audio ID. The asset must be usable in this game.",
+    ["Bitte eine g\195\188ltige numerische Audio-ID eingeben."]="Please enter a valid numeric audio ID.",
+    ["Audio angefordert. Freigabe und Ladezeit h\195\164ngen vom Asset ab."]="Audio requested. Permissions and load time depend on the asset.",
+    ["Pause / Weiter"]="Pause / Resume",
+    ["Noch keine Audio-IDs hinzugef\195\188gt."]="No audio IDs added yet.",
+    ["Lautst\195\164rke"]="Volume",
+    ["Nur die Musik von ISB Menu"]="Only music from ISB Menu",
+    ["\226\134\144 Einstellungen"]="\226\134\144 Settings",
+    ["Hinweise und Aktionen erscheinen hier."]="Notices and actions appear here.",
+    ["Freunde markieren"]="Highlight friends",
+    ["Freunde aus deiner Roblox-Freundesliste leuchten blau"]="Friends from your Roblox friend list are highlighted in blue",
+    ["Spiel-Admins markieren"]="Highlight game admins",
+    ["Owner, Admin, Developer und Moderator der Spiel-Gruppe leuchten rot"]="Owners, admins, developers and moderators of the game's group are highlighted in red",
+    ["Verwendet \195\182ffentlich sichtbare Gruppenrollen und den Spielbesitzer. Rollenbezeichnungen sind Hinweise, keine verifizierten Berechtigungen."]="Uses public group roles and the game owner. Role titles are hints, not verified permissions.",
+    ["F\195\164higkeiten"]="Capabilities",
+    ["Dateien: %s  \194\183  Clipboard: %s  \194\183  Asset-Icons: %s"]="Files: %s  \194\183  Clipboard: %s  \194\183  Asset icons: %s",
+    ["Effekte reduzieren"]="Reduce effects",
+    ["Partikel, Trails, Beam und Post-Effekte lokal pausieren"]="Pause particles, trails, beams and post-processing locally",
+    ["Das vorherige Limit wird beim Beenden wiederhergestellt."]="Restores the previous limit when the menu closes.",
+    ["Der Executor unterst\195\188tzt das Setzen, aber nicht das Auslesen des bisherigen Limits."]="The executor can set the limit but cannot read the previous value.",
+    ["Gemessen: "]="Measured: ",
+    [" ms\nDie Statusleiste bleibt oben rechts sichtbar."]=" ms\nThe status bar remains visible at the top right.",
+    ["Men\195\188 \195\182ffnen / schlie\195\159en"]="Open / close menu",
+    ["Dock einfahren / ausfahren"]="Show / hide dock",
+    ["Fliegen an / aus"]="Flight on / off",
+    ["Noclip an / aus"]="Noclip on / off",
+    ["Highlights / ESP an / aus"]="Highlights / ESP on / off",
+    ["Laufgeschwindigkeit an / aus"]="Walk speed on / off",
+    ["Fluggeschwindigkeit: n\195\164chste Stufe"]="Flight speed: next tier",
+    ["Freecam an / aus"]="Freecam on / off",
+    ["Freecam: hierhin teleportieren und beenden"]="Freecam: teleport here and exit",
+    ["Anklicken, Taste dr\195\188cken. Escape bricht ab."]="Click, then press a key. Escape cancels.",
+    ["Taste \226\128\166"]="Key \226\128\166",
+    ["Liquid-Dark \194\183 dein pers\195\182nlicher Farbakzent"]="Liquid Dark \194\183 your personal accent color",
+    ["Dock und Fenster gemeinsam ausrichten."]="Align the dock and window together.",
+    ["Men\195\188gr\195\182\195\159e"]="Menu size",
+    ["Gr\195\182\195\159e in Prozent"]="Size as a percentage",
+    ["Standard \194\183 100 %"]="Default \194\183 100 %",
+    ["Hinweise unten rechts anzeigen"]="Show notices at the bottom of the screen",
+    ["Beim Start \195\182ffnen"]="Open on startup",
+    ["Fenster beim n\195\164chsten Start automatisch \195\182ffnen"]="Open the window automatically next time",
+    ["Dezente Kl\195\164nge bei \195\150ffnen, Schlie\195\159en und Klicks"]="Subtle sounds for opening, closing and clicking",
+    ["Status, Mikrofon und Verbindung pr\195\188fen"]="Check status, microphone and connection",
+    ["\195\150ffnen"]="Open",
+    ["\195\132nderungen werden automatisch lokal gespeichert. Kein zus\195\164tzlicher Speichern-Klick n\195\182tig."]="Changes are saved locally automatically. No extra save click needed.",
+    ["Dateizugriff fehlt: Einstellungen gelten nur f\195\188r diese Sitzung."]="No file access: settings apply to this session only.",
+    ["Hub beenden"]="Exit hub",
+    ["Aktive Funktionen zur\195\188cksetzen und Oberfl\195\164che entfernen."]="Reset active features and remove the interface.",
+    ["Noch nichts gefunden"]="Nothing found yet",
+    ["Mit dem Stern an einer Funktion f\195\188gst du sie hier hinzu."]="Star a feature to add it here.",
+    ["Versuche einen anderen Suchbegriff."]="Try another search term.",
+    ["Diese Taste wird bereits verwendet."]="This key is already in use.",
+    ["Tastenk\195\188rzel"]="Keybinds",
+    [" aktiviert"]=" enabled",
+    [" deaktiviert"]=" disabled",
+    ["Zum letzten Bodenpunkt zur\195\188ckgekehrt."]="Returned to the last safe ground position.",
+    ["ISB FLUG  \194\183  "]="ISB FLIGHT  \194\183  ",
+    ["%d / %s Spieler  \194\183  <font color=\"%s\">%s ms</font>  \194\183  <font color=\"%s\">%d FPS</font>"]="%d / %s players  \194\183  <font color=\"%s\">%s ms</font>  \194\183  <font color=\"%s\">%d FPS</font>",
+    [" \194\183 Freund"]=" \194\183 Friend",
+    [" hat den Server verlassen."]=" left the server.",
+    ["Freund verlassen"]="Friend left",
+    ["Admin verlassen"]="Admin left",
+    ["An Kameraposition teleportiert \194\183 Freecam beendet"]="Teleported to camera position \194\183 Freecam stopped",
+    ["WASD bewegen \194\183 E/Q hoch/runter \194\183 Shift schneller \194\183 "]="WASD move \194\183 E/Q up/down \194\183 Shift faster \194\183 ",
+    [" beenden \194\183 "]=" exit \194\183 ",
+    [" hierhin teleportieren"]=" teleport here",
+    ["Ung\195\188ltige Aktion"]="Invalid action",
+    ["Bewegung, Spieler oder Darstellung verwenden"]="Use Movement, Players or Visuals",
+    ["Aktions-ID bereits vorhanden"]="Action ID already exists",
+    ["Freund beigetreten"]="Friend joined",
+    ["Verbindung: "]="Connection: ",
+    ["Verbindungsregion nicht abrufbar"]="Connection region unavailable",
+    ["Server meldet keine Region"]="Server reports no region",
+    [" bereit \226\128\162 "]=" ready \226\128\162 ",
+    [" \195\182ffnet das Men\195\188"]=" opens the menu",
+}
+runtime.englishHistory={
+    ["2.6.42"]="Accents and symbols: ASCII byte escapes preserve UTF-8 text during upload.\nProtection compatibility: Fonts, language and menu features stay unchanged; AstroProtect can remain enabled.",
+    ["2.6.41"]="Readable release notes: Individual bullet points with consistent spacing.\nVersion headings and subtle dividers organize the history.\nNeutral descriptions throughout the release history.",
+    ["2.6.40"]="Version badge sits eight pixels after the measured menu title.\nChangelog cards fit their text without oversized backgrounds or blank spaces.",
+    ["2.6.39"]="Save, rename and delete waypoints for each game.\nTeleport or start Freecam at a waypoint.\nClick the version badge to open the scrollable history, newest first.\nVersion metadata is consistent throughout the script.",
+    ["2.6.38"]="Unequipping Player Info or equipping another item closes the player card.\nEquip it again and click a player to open a new selection.",
+    ["2.6.37"]="Freecam stays active through focus loss, respawn and camera replacement.\nMovement pauses while the window is unfocused and resumes at the same position.\nL exits manually; N teleports and exits.",
+    ["2.6.36"]="N aligns the normal Roblox camera with the Freecam view, including pitch.\nPreserves the previous zoom distance and normal character focus.\nL without teleporting restores the previous camera.",
+    ["2.6.35"]="Freecam teleport transfers the horizontal viewing direction to the character.\nThe character stays upright when looking up or down.\nTeleports to the exact camera position and exits Freecam.",
+    ["2.6.34"]="L toggles Freecam. WASD moves, E/Q changes height and the mouse turns the view.\nSpeed: 120 studs/s, or 360 while holding Shift.\nN teleports your character to the camera and exits Freecam.\nAvailable under Visuals; change its key under Keys.\nNormal character movement is paused during Freecam and restored on exit.",
+    ["2.6.33"]="Notifications move to the bottom left when the menu is aligned right.\nLeft and center alignment keep notifications at the bottom right.\nThe whole stack moves immediately, preserving scale and edge spacing.",
+    ["2.6.32"]="Player Info has a unified profile header with avatar, name and relationship badge.\nTen consistent information tiles emphasize values.\nThe top three actions have equal widths and ten-pixel gaps.",
+    ["2.6.31"]="Player Info shows Plus/Premium membership, with a fallback when needed.\nAdded account creation date, friend count and previous names with cached loading.\nDirect actions for friendship, outfits and name history.\nAn accent outline marks the player under the equipped tool cursor and clears on unequip.\nOther players' ping is not estimated; client-side GetNetworkPing is limited to LocalPlayer.",
+    ["2.6.30"]="New ISB Player Info inventory item: equip and click another player.\nThe right-side card shows identity, verification, relationship, account age, team, health, distance and group role.\nCopy a profile link or open full details.\nReturns after respawn without duplication; closes with X or Escape.\nGames with custom inventories may hide the Roblox hotbar.",
+    ["2.6.29"]="Friend and admin cards use one rounded surface and a uniform inner 1.25-pixel outline.\nKeeps a one-pixel margin from the clipping edge.",
+    ["2.6.28"]="Friend and admin cards have an even inner border with matching corners.\nThe outline is no longer clipped at the CanvasGroup edge.",
+    ["2.6.27"]="The music setup card disappears when the bridge connects, even without an active player.\nIt returns on disconnection and hides again when the bridge reconnects.",
+    ["2.6.26"]="Copy the Windows music setup command from the Music tab.\nPaste once into PowerShell to install without admin rights and start at Windows sign-in.\nDownloads are pinned and verified with SHA-256.\nReal is detected automatically; other executor workspaces can be specified.\nNo browser extension required.",
+    ["2.6.25"]="Removed the YouTube browser extension.\nOptional Windows music control uses ISBMediaBridge.exe.\nThe Roblox script alone cannot access external Spotify or browser players.\nMissing timelines show a clear notice instead of 00:00 / 00:00.\nOther menu features work without the bridge.",
+    ["2.6.23"]="Notification icons and text are vertically centered.\nCard height follows the text, with even top and bottom spacing.",
+    ["2.6.22"]="HTTP 429 shows a clear rate-limit notice and pauses requests for 30 seconds.\nRefresh requests are limited to one every two seconds.\nOther failures show readable messages; rejected clicks keep the current page.",
+    ["2.6.21"]="Scripts and servers share compact Back / page / Next navigation.\nA single server page displays 1 / 1.\nUnknown page totals display an ellipsis while further cursor pages exist.",
+    ["2.6.20"]="Compact script navigation places Back and Next together.\nView and page counts use thousands separators.",
+    ["2.6.19"]="The verified Roblox badge also appears beside names in player details.\nLong names leave room for the badge and avatar.",
+    ["2.6.18"]="Verified players show the Roblox badge beside their name, including friends and admins.\nLong names are shortened to preserve room for the badge.",
+    ["2.6.17"]="Main menu borders follow the visible rounded surface.\nEach welcome dock button has a subtle rising sound.\nIntro sounds respect disabled sound and reduced motion settings.",
+    ["2.6.16"]="Time and date keep their placement and typography.\nRemoved the extra background and border.",
+    ["2.6.15"]="Glass borders follow their visible surface, including Roleplay.\nClose buttons use a centered X drawn from two lines.",
+    ["2.6.14"]="Button outlines move with the surface and match its corners.\nGame link and join script share a row; player-detail actions are aligned.\nAll music sources highlight immediately when selected.\nDate appears beneath the dock clock.",
+    ["2.6.13"]="GlassEdge follows the half-pixel surface inset.\nRemoves the extra strip beneath status borders and other glass surfaces.",
+    ["2.6.12"]="Surfaces and outlines use matching dimensions and corners.\nA one-pixel border follows the moving surface, including friend and admin cards.\nDock icons remain centered during animation.",
+    ["2.6.11"]="Default buttons use centered text with an optical height correction.\nReset icon and text keep separate areas.",
+    ["2.6.10"]="Default button icons and text have separate areas with eight-pixel spacing.\nRemoved shared padding that pushed icons into text.\nBoth elements stay inside the animated face.",
+    ["2.6.9"]="Default buttons sit next to the value field at the top of each card.\nBrightness, volume and menu size no longer need an empty row.\nShader descriptions use neutral names.",
+    ["2.6.8"]="Reset changes only the selected slider.\nFlight tiers remain GLIDE 55, NORMAL 110, FAST 140 and TURBO 250 studs/s.\nTier changes require 48 pixels of dragging and all tiers are labeled.\nMulti-jump restores the jump impulse after physics, including R15 and JumpHeight.",
+    ["2.6.7"]="On the head keeps the avatar upright and follows the target's horizontal direction.\nKeeps the animation and pose frozen at two seconds.\nActual sitting height depends on the avatar.",
+    ["2.6.6"]="Inventory bars are cached; full GUI searches run only after relevant changes.\nBody parts are cached for Noclip and Roleplay and updated as parts are added.\nDetail values update only while their view is open.\nUnchanged jump height and frozen animations are no longer rewritten continuously.",
+    ["2.6.5"]="Player-detail copy buttons animate their surface, border and icon together.\nMovement and Visuals no longer have a search bar.\nServer search filters loaded IDs and player counts; private invite codes and names are unavailable.\nFavorites searches saved features.\nScripts uses Popular / New / Favorites filters.",
+    ["2.6.4"]="Welcome initialization moved into its own function for executor compatibility.\nFixed the unoptimized Luau compiler's 200-register overflow.\nCompilation passes at O0, O1 and O2; 1707 simulated interaction checks passed.",
+    ["2.6.3"]="Flight tiers use fixed speeds: GLIDE 55, NORMAL 110, FAST 140 and TURBO 250 studs/s.\nQ and the flight HUD button cycle the tiers.\nThe slider selects tiers 1\226\128\1474; Reset selects tier 1.\nAnimations and the HUD use the same tier definitions and smooth acceleration.",
+    ["2.6.2"]="Flight styles: Fly, Mysterious, Villain Fly, Superman and Halloween Fly.\nStyles remain saved and can change during flight.\nTiers 1/2 use calm poses; tiers 3/4 use forward poses based on actual speed.\nAnimation transitions blend smoothly.",
+    ["2.6.1"]="Button borders stay inside their moving surface.\nScroll content has safe top and left margins.\nFriend and admin cards share matching corners without duplicate backgrounds.\nWelcome buttons reserve space for hover motion.",
+    ["2.6.0"]="Friends have blue cards; game admins have red cards and labels.\nWith a blue accent, other ESP markers appear gold.\nRoleplay follows directly after character updates without interpolation delay.\nMoving-target synchronization still requires another player to verify.",
+    ["2.5.8"]="Removed the top activity capsule.\nMusic, timer and stopwatch live in the Music tab.\nBoth clocks support pause, resume and reset independently.\nBrightness is under Visuals; the dock greeting respects reduced motion.",
+    ["2.4"]="Ruler sliders adjust speed, jump, flight, FOV and volume under a fixed center mark.\nEditable values accept decimal commas and points and reject invalid input.\nRanges: movement up to 10,000, FOV 1\226\128\147120 degrees and volume up to 1,000 percent.\nSmoother acceleration and braking with stable speed across physics rates.\nOwn footsteps pause during flight and return on exit or respawn.\nF/Z/E/V toggle features; all bindings are editable and saved.\nRemoved the replacement cursor; click, touch, hover and keyboard navigation remain supported.",
+    ["2.3"]="Glossy dark design with customizable accent and consistent borders.\nDock hints appear only when the main panel and quick search are closed.\nStatus bar stays at the top right.\nProfile shows avatar, role, account, executor, version and session details.\nTools copy session data and export settings; staff get local diagnostics.\nSettings, keybinds, values, providers and favorites save automatically.\nScripts load Popular / New / Favorites views with available metadata.\nRemoved overhead integration and its server script.",
+    ["2.6.43"]="Language: Uses your Roblox language; German stays German and all other languages use English.\nTranslations: Navigation, settings, notices, Player Info and the full release history are bilingual.\nCompatibility: Existing settings and ASCII upload encoding are preserved.",
+}
+-- Local UI translations preserve internal identifiers and user content.
+runtime.language="en"
+function runtime.languageForLocale(locale)
+    local base=tostring(locale or ""):lower():match("^([a-z]+)")
+    return base=="de" and "de" or "en"
+end
+function runtime.detectLanguage()
+    local locale
+    pcall(function() locale=player.LocaleId end)
+    if type(locale)~="string" or locale=="" then
+        pcall(function() locale=game:GetService("LocalizationService").RobloxLocaleId end)
+    end
+    return runtime.languageForLocale(locale)
+end
+runtime.language=runtime.detectLanguage()
+runtime.localizationConnections={}
+runtime.localizedSources=setmetatable({},{__mode="k"})
+runtime.translationCache={}
+runtime.translationCacheCount=0
+runtime.translationFragments={}
+for source,target in pairs(runtime.english) do
+    if source~=target and (#source>=12 or source:match("^%s") or source:match("%s$")) then
+        table.insert(runtime.translationFragments,{source=source,target=target})
+    end
+end
+table.sort(runtime.translationFragments,function(a,b) return #a.source>#b.source end)
+function runtime.translate(text)
+    if runtime.language=="de" or type(text)~="string" or text=="" then return text end
+    if runtime.english[text] then return runtime.english[text] end
+    if not text:find("%a") then return text end
+    if runtime.translationCache[text] then return runtime.translationCache[text] end
+    -- One pass over the original text; translated output is never translated again.
+    local pieces={}; local index=1
+    while index<=#text do
+        local closest,match
+        for _,entry in ipairs(runtime.translationFragments) do
+            local at=text:find(entry.source,index,true)
+            if at and (not closest or at<closest) then closest=at; match=entry end
+        end
+        if not closest then table.insert(pieces,text:sub(index)); break end
+        table.insert(pieces,text:sub(index,closest-1)); table.insert(pieces,match.target)
+        index=closest+#match.source
+    end
+    local output=table.concat(pieces)
+    if runtime.translationCacheCount>=500 then table.clear(runtime.translationCache); runtime.translationCacheCount=0 end
+    runtime.translationCache[text]=output; runtime.translationCacheCount+=1
+    return output
+end
+function runtime.rawText(obj)
+    local data=runtime.localizedSources[obj]
+    return data and data.Text and not data.Text.disabled and data.Text.source or obj.Text
+end
+function runtime.preserveText(obj)
+    local data=runtime.localizedSources[obj]
+    if data and data.Text then data.Text.disabled=true end
+end
+function runtime.watchLocalized(obj,key)
+    if runtime.language=="de" then return end
+    local data=runtime.localizedSources[obj] or {}; runtime.localizedSources[obj]=data
+    local slot={}; data[key]=slot
+    local function update()
+        if slot.busy or slot.disabled then return end
+        local text=obj[key]
+        if text==slot.output then return end
+        slot.source=text; slot.output=runtime.translate(text)
+        if text~=slot.output then slot.busy=true; obj[key]=slot.output; slot.busy=false end
+    end
+    update()
+    local signal=obj:GetPropertyChangedSignal(key):Connect(update)
+    runtime.localizationConnections[signal]=true
+    local destroyed
+    destroyed=obj.Destroying:Connect(function()
+        signal:Disconnect(); runtime.localizationConnections[signal]=nil
+        destroyed:Disconnect(); runtime.localizationConnections[destroyed]=nil
+        runtime.localizedSources[obj]=nil
+    end)
+    runtime.localizationConnections[destroyed]=true
+end
+
 local lightingOriginal, cameraOriginal, spectating = nil, {}, nil
 local spectateOriginal={}
 local page, query, captureKey, activeSlider = "Start", "", false, nil
@@ -551,7 +1145,11 @@ end
 local function make(class, props, parent)
     local obj = Instance.new(class)
     if obj:IsA("GuiObject") then obj.BorderSizePixel=0 end
-    for k, v in pairs(props or {}) do obj[k] = v end
+    for k, v in pairs(props or {}) do if k~="Localize" then obj[k] = v end end
+    if obj:IsA("GuiObject") then obj.AutoLocalize=false end
+    if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and (not props or props.Localize~=false) then runtime.watchLocalized(obj,"Text") end
+    if obj:IsA("TextBox") then runtime.watchLocalized(obj,"PlaceholderText") end
+    if obj:IsA("Tool") then obj.Name=runtime.translate(obj.Name); obj.ToolTip=runtime.translate(obj.ToolTip) end
     obj.Parent = parent
     return obj
 end
@@ -661,8 +1259,8 @@ local function animate(obj, props)
         end
     end
 end
-local function label(parent, text, size, color, pos, dims)
-    return make("TextLabel", {BackgroundTransparency = 1, Text = text, Font = Enum.Font.BuilderSansMedium,
+local function label(parent, text, size, color, pos, dims, localize)
+    return make("TextLabel", {Localize=localize,BackgroundTransparency = 1, Text = text, Font = Enum.Font.BuilderSansMedium,
         TextSize = math.max(11,size or 14), TextColor3 = color or C.text, TextXAlignment = Enum.TextXAlignment.Left,
         Position = pos or UDim2.new(), Size = dims or UDim2.new(1,0,0,24)}, parent)
 end
@@ -672,7 +1270,7 @@ runtime.pressResets=setmetatable({},{__mode="k"})
 function runtime.bindPress(obj,callback,register)
     obj.Active=true; obj.Selectable=UIS.GamepadEnabled==true
     -- Keep the real input label fixed and animate a separate rendered face.
-    local face=make(obj.ClassName,{Name="ButtonFace",Active=false,Selectable=false,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromScale(1,1),ZIndex=obj.ZIndex or 1},obj)
+    local face=make(obj.ClassName,{Name="ButtonFace",Localize=false,Active=false,Selectable=false,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromScale(1,1),ZIndex=obj.ZIndex or 1},obj)
     local faceScale=make("UIScale",{Name="ButtonFaceScale",Scale=1},face)
     round(face,10)
     -- A single border uses the rendered face's own corner, including during motion.
@@ -1227,7 +1825,7 @@ make("UIListLayout",{Padding=UDim.new(0,8),VerticalAlignment=Enum.VerticalAlignm
 local notices={}
 notify = function(message,heading,iconName)
     if not alive then return end
-    message=tostring(message); heading=heading or "ISB Menu"
+    message=runtime.translate(tostring(message)); heading=heading or "ISB Menu"
     logEvent(heading,message)
     if not settings.notifications then return end
     playUISound(heading:find("beigetreten",1,true) and "join" or (heading:find("verlassen",1,true) and "leave" or "notice"))
@@ -1535,17 +2133,17 @@ function runtime.pagination(parent,name,current,total,previous,nextPage)
     counter.BackgroundColor3=C.panel; counter.BackgroundTransparency=.45; round(counter,10)
     rowButton(parent,"Weiter",UDim2.fromOffset(202,0),UDim2.fromOffset(90,30),nextPage)
 end
-local function card(text, desc, height)
+local function card(text, desc, height, localizeTitle)
     local f = make("CanvasGroup", {BackgroundColor3 = C.card, Size = UDim2.new(1,0,0,height or 80),GroupTransparency=0}, content)
     round(f,17); runtime.contentSurface(f,17)
-    local name = label(f,text,14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-150,0,24))
+    local name = label(f,text,14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-150,0,24),localizeTitle)
     name.Font = Enum.Font.BuilderSansBold
     local d = label(f,desc,11,C.muted,UDim2.fromOffset(16,38),UDim2.new(1,-150,0,31))
     d.TextWrapped = true; d.TextYAlignment = Enum.TextYAlignment.Top
     return f
 end
 local function matches(text)
-    return query == "" or string.find(string.lower(text), query, 1, true) ~= nil
+    return query == "" or string.find(string.lower(runtime.translate(text)), query, 1, true) ~= nil or string.find(string.lower(text), query, 1, true) ~= nil
 end
 local function addAction(id, category, name, desc, kind, fn, get, minimum, maximum, step)
     table.insert(actions, {id=id, category=category, name=name, desc=desc, kind=kind,
@@ -1770,7 +2368,7 @@ local function drawAction(action)
     local children=f:GetChildren()
     for _,child in ipairs(children) do
         if child:IsA("TextLabel") then
-            if child.Text==action.name then child.Position=UDim2.fromOffset(16,9); child.TextSize=14; child.Size=UDim2.new(1,(action.id=="volume" or action.id=="brightnessvalue") and -297 or -150,0,22)
+            if runtime.rawText(child)==action.name then child.Position=UDim2.fromOffset(16,9); child.TextSize=14; child.Size=UDim2.new(1,(action.id=="volume" or action.id=="brightnessvalue") and -297 or -150,0,22)
             else child.Position=UDim2.fromOffset(16,34); child.TextSize=11; child.Size=UDim2.new(1,-150,0,18) end
         end
     end
@@ -1863,8 +2461,8 @@ function runtime.mediaPaint()
     if not refs or not refs.title.Parent then return end
     refs.setup.Visible=not runtime.media.connected
     local data=runtime.media.state
-    refs.title.Text=runtime.media.connected and (data.title or data.message or "Kein Player aktiv") or "Windows-Musiksteuerung nicht verbunden"
-    refs.artist.Text=runtime.media.connected and ((data.source or "Windows")..(data.artist and data.artist~="" and " \194\183 "..data.artist or "")) or (runtime.media.reason or "Windows-Musiksteuerung ben\195\182tigt die optionale ISBMediaBridge.exe")
+    refs.title.Text=runtime.media.connected and (data.title or data.message or runtime.translate("Kein Player aktiv")) or runtime.translate("Windows-Musiksteuerung nicht verbunden")
+    refs.artist.Text=runtime.media.connected and ((data.source or "Windows")..(data.artist and data.artist~="" and " \194\183 "..data.artist or "")) or runtime.translate(runtime.media.reason or "Windows-Musiksteuerung ben\195\182tigt die optionale ISBMediaBridge.exe")
     refs.cover.Image=runtime.media.connected and runtime.media.coverAsset or ""
     if refs.cover.Image==nil then refs.cover.Image="" end
     refs.coverPlaceholder.Visible=refs.cover.Image==""
@@ -2003,8 +2601,8 @@ function runtime.drawMediaPlayer()
     local cover=make("ImageLabel",{Name="MediaCover",BackgroundColor3=C.bg,Image="",Position=UDim2.fromOffset(18,16),Size=UDim2.fromOffset(64,64),ScaleType=Enum.ScaleType.Crop},f); round(cover,12)
     local coverPlaceholder=make("Frame",{BackgroundTransparency=1,Size=UDim2.fromScale(1,1)},cover)
     imageIcon(coverPlaceholder,"musical-note",28,UDim2.fromOffset(18,18),C.muted)
-    local title=label(f,"Windows-Player verbinden",17,C.text,UDim2.fromOffset(98,16),UDim2.new(1,-116,0,26)); title.Font=Enum.Font.BuilderSansBold; title.TextTruncate=Enum.TextTruncate.AtEnd
-    local artist=label(f,"",11,C.muted,UDim2.fromOffset(98,47),UDim2.new(1,-116,0,32)); artist.TextWrapped=true
+    local title=label(f,runtime.translate("Windows-Player verbinden"),17,C.text,UDim2.fromOffset(98,16),UDim2.new(1,-116,0,26),false); title.Font=Enum.Font.BuilderSansBold; title.TextTruncate=Enum.TextTruncate.AtEnd
+    local artist=label(f,"",11,C.muted,UDim2.fromOffset(98,47),UDim2.new(1,-116,0,32),false); artist.TextWrapped=true
     local rail=make("Frame",{Name="MediaSeek",Active=true,BackgroundColor3=C.line,Position=UDim2.fromOffset(18,91),Size=UDim2.new(1,-36,0,8)},f); round(rail,4)
     local fill=make("Frame",{Name="MediaProgress",BackgroundColor3=C.accent,BorderSizePixel=0,Size=UDim2.fromScale(0,1)},rail); round(fill,4)
     local times=label(f,"00:00 / 00:00",10,C.muted,UDim2.fromOffset(18,104),UDim2.new(1,-36,0,18))
@@ -2065,9 +2663,9 @@ local function clearRows()
     content.CanvasPosition=Vector2.zero
     table.clear(dashboardRefs)
 end
-local function plainCard(name,description,height)
-    local f=card(name,description,height)
-    for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-32,0,child.Text==name and 24 or 36) end end
+local function plainCard(name,description,height,localizeTitle)
+    local f=card(name,description,height,localizeTitle)
+    for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-32,0,runtime.rawText(child)==name and 24 or 36) end end
     return f
 end
 function runtime.waypointList()
@@ -2152,7 +2750,7 @@ function runtime.drawWaypoints()
     rowButton(form,"Speichern",UDim2.new(1,-136,0,85),UDim2.fromOffset(120,32),function() runtime.saveWaypoint(input.Text) end)
     if #list==0 then plainCard("Noch keine Wegpunkte","Gib oben einen Namen ein und speichere deine erste Position.",88) end
     for index,entry in ipairs(list) do
-        local tile=plainCard(entry.name,string.format("X %.1f \194\183 Y %.1f \194\183 Z %.1f",table.unpack(entry.position)),runtime.editWaypoint==entry and 180 or 132)
+        local tile=plainCard(entry.name,string.format("X %.1f \194\183 Y %.1f \194\183 Z %.1f",table.unpack(entry.position)),runtime.editWaypoint==entry and 180 or 132,false)
         tile.Name="WaypointCard"; tile.LayoutOrder=index+3
         for _,child in ipairs(tile:GetChildren()) do if child:IsA("TextLabel") then child.TextTruncate=Enum.TextTruncate.AtEnd end end
         for i,action in ipairs({{"Teleport",function() runtime.visitWaypoint(entry,false) end},{"Freecam",function() runtime.visitWaypoint(entry,true) end},{"Umbenennen",function() if runtime.editWaypoint==entry then runtime.editWaypoint=nil else runtime.editWaypoint=entry end; render() end},{"L\195\182schen",function() runtime.deleteWaypoint(entry) end}}) do
@@ -2215,9 +2813,9 @@ function runtime.drawChangelog()
         local heading=label(tile,"Version "..entry.version..(index==1 and "  \194\183  Aktuell" or ""),15,index==1 and C.accent or C.text,UDim2.fromOffset(16,14),UDim2.new(1,-32,0,22)); heading.Font=Enum.Font.BuilderSansBold
         make("Frame",{Name="ChangelogDivider",BackgroundColor3=C.muted,BackgroundTransparency=.85,BorderSizePixel=0,Position=UDim2.fromOffset(16,43),Size=UDim2.new(1,-32,0,1)},tile)
         local ref={tile=tile,points={}}
-        for text in entry.text:gmatch("[^\n]+") do
+        for text in ((runtime.language=="en" and runtime.englishHistory[entry.version]) or entry.text):gmatch("[^\n]+") do
             local dot=make("Frame",{Name="ChangelogBullet",BackgroundColor3=index==1 and C.accent or C.muted,BorderSizePixel=0,Size=UDim2.fromOffset(4,4)},tile); round(dot,2)
-            local body=label(tile,text,13,C.muted,UDim2.fromOffset(34,54),UDim2.new(1,-50,0,22)); body.Name="ChangelogPoint"; body.TextWrapped=true; body.TextYAlignment=Enum.TextYAlignment.Top
+            local body=label(tile,text,13,C.muted,UDim2.fromOffset(34,54),UDim2.new(1,-50,0,22),false); body.Name="ChangelogPoint"; body.TextWrapped=true; body.TextYAlignment=Enum.TextYAlignment.Top
             table.insert(ref.points,{body=body,dot=dot})
         end
         table.insert(refs,ref)
@@ -2253,6 +2851,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.43",text="Sprache: Das Men\195\188 verwendet die Roblox-Sprache; Deutsch bleibt Deutsch, alle anderen Sprachen erhalten Englisch.\n\195\156bersetzungen: Navigation, Einstellungen, Hinweise, Spielerinfo und die gesamte \195\132nderungshistorie sind zweisprachig.\nKompatibilit\195\164t: Gespeicherte Einstellungen und ASCII-Upload-Kodierung bleiben erhalten."},
     {version="2.6.42",text="Umlaute und Symbole: Texte bleiben beim Upload als ASCII-Byte-Escapes erhalten und werden zur Laufzeit wieder als UTF-8 angezeigt.\nSchutz-Kompatibilit\195\164t: Keine \195\132nderung an Schriftarten, Sprache oder Men\195\188funktionen; AstroProtect kann aktiviert bleiben."},
     {version="2.6.41",text="Lesbarere Versionsnotizen: Jede \195\132nderung steht als eigener Punkt mit gleichm\195\164\195\159igen Abst\195\164nden.\n\195\156bersichtliche Karten: Versions\195\188berschrift und Trennlinie gliedern die Historie; l\195\164ngere Punkte umbrechen sauber.\nNeutrale Beschreibungen: Bez\195\188ge auf andere Men\195\188s wurden aus der gesamten \195\132nderungshistorie entfernt."},
     {version="2.6.40",text="Versionsbutton sitzt acht Pixel hinter dem gemessenen Men\195\188titel.\nChangelog-Karten berechnen ihre H\195\182he aus dem Text; dekorative Fl\195\164chen beeinflussen das Layout nicht mehr.\nLeerfl\195\164chen und \195\188bergro\195\159e Karten sind entfernt."},
@@ -2306,7 +2905,7 @@ function runtime.drawSessionCard(includeJoin)
     local f=make("Frame",{Name="SessionCard",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,270)},content); round(f,18); runtime.contentSurface(f,18)
     local thumbnail=make("ImageLabel",{Name="GameIcon",BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,16),Size=UDim2.fromOffset(52,52),Image="rbxthumb://type=GameIcon&id="..tostring(game.GameId).."&w=150&h=150"},f); round(thumbnail,13)
     label(f,"Diese Sitzung",10,C.muted,UDim2.fromOffset(82,14),UDim2.new(1,-98,0,18))
-    local name=label(f,session.placeName,16,C.text,UDim2.fromOffset(82,34),UDim2.new(1,-98,0,28)); name.Font=Enum.Font.BuilderSansBold; name.TextTruncate=Enum.TextTruncate.AtEnd
+    local name=label(f,session.placeName,16,C.text,UDim2.fromOffset(82,34),UDim2.new(1,-98,0,28),false); name.Font=Enum.Font.BuilderSansBold; name.TextTruncate=Enum.TextTruncate.AtEnd
     local function copyField(title,value,pos,dims)
         local tile=rowButton(f,"",pos,dims,function() copyText(value) end); tile.BackgroundColor3=C.panel; round(tile,12)
         label(tile,title,10,C.muted,UDim2.fromOffset(12,6),UDim2.new(1,-44,0,16))
@@ -2384,7 +2983,7 @@ function features.drawProfile()
     local hero=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,96)},content)
     local avatar=make("ImageLabel",{Image=profile.Image,BackgroundColor3=C.card,Position=UDim2.fromOffset(0,6),Size=UDim2.fromOffset(72,72)},hero); round(avatar,36)
     rowConnect(profile:GetPropertyChangedSignal("Image"),function() if avatar.Parent then avatar.Image=profile.Image end end)
-    local name=label(hero,player.DisplayName,22,C.text,UDim2.fromOffset(90,9),UDim2.new(1,-104,0,30)); name.Font=Enum.Font.BuilderSansBold
+    local name=label(hero,player.DisplayName,22,C.text,UDim2.fromOffset(90,9),UDim2.new(1,-104,0,30),false); name.Font=Enum.Font.BuilderSansBold
     label(hero,"@"..player.Name.."  \194\183  "..runtime.role,12,C.accent,UDim2.fromOffset(90,45),UDim2.new(1,-104,0,22))
     local count,scripts=0,0; for _ in pairs(settings.favorites) do count=count+1 end; for _ in pairs(settings.scriptFavorites) do scripts=scripts+1 end
     local stats=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,168)},content)
@@ -2412,7 +3011,7 @@ function features.drawProfile()
 end
 local function drawDashboard()
     local f=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,298)},content)
-    local greeting=label(f,"Willkommen, "..player.DisplayName,18,C.text,UDim2.fromOffset(0,0),UDim2.new(1,0,0,24))
+    local greeting=label(f,runtime.translate("Willkommen, ")..player.DisplayName,18,C.text,UDim2.fromOffset(0,0),UDim2.new(1,0,0,24),false)
     greeting.Font=Enum.Font.BuilderSansBold
     label(f,"ISB / "..runtime.role.."  \194\183  "..session.placeName,12,C.muted,UDim2.fromOffset(0,27),UDim2.new(1,0,0,22))
     local data={{"Server","server-stack","server"},{"Freunde","users","friends"},{"Executor","code-bracket-square","executor"},{"Sitzung","globe-alt","session"}}
@@ -2700,9 +3299,9 @@ local function drawScriptSearch()
     if scriptSearch.error then plainCard("Anbieter meldet einen Fehler",scriptSearch.error,94) end
     if scriptSearch.selected then
         local selected=scriptSearch.selected
-        local detail=plainCard(selected.title,selected.game.."  \194\183  @"..selected.owner..(selected.key and "  \194\183  Key-System" or ""),selected.verified and 152 or 124)
+        local detail=plainCard(selected.title,selected.game.."  \194\183  @"..selected.owner..(selected.key and "  \194\183  Key-System" or ""),selected.verified and 152 or 124,false)
         for _,child in ipairs(detail:GetChildren()) do if child:IsA("TextLabel") then
-            if child.Text==selected.title then child.Size=UDim2.new(1,-64,0,36); child.TextWrapped=true; child.TextYAlignment=Enum.TextYAlignment.Top
+            if runtime.rawText(child)==selected.title then child.Size=UDim2.new(1,-64,0,36); child.TextWrapped=true; child.TextYAlignment=Enum.TextYAlignment.Top
             else child.Position=UDim2.fromOffset(16,52); child.Size=UDim2.new(1,-32,0,26) end
         end end
         if selected.verified then runtime.scriptVerifiedBadge(detail,UDim2.fromOffset(16,80)) end
@@ -2741,7 +3340,7 @@ local function drawScriptSearch()
                 features.scriptThumbnail(art,entry)
                 local star=rowButton(tile,"",UDim2.new(1,-36,0,9),UDim2.fromOffset(27,27),function() features.scriptBookmark(entry) end); star.ZIndex=4
                 imageIcon(star,"star",17,UDim2.fromOffset(5,5),settings.scriptFavorites[entry.provider..":"..entry.slug] and C.accent or C.text)
-                local titleLabel=label(tile,entry.title,12,C.text,UDim2.fromOffset(14,86),UDim2.new(1,-28,0,34))
+                local titleLabel=label(tile,entry.title,12,C.text,UDim2.fromOffset(14,86),UDim2.new(1,-28,0,34),false)
                 titleLabel.TextWrapped=true; titleLabel.TextYAlignment=Enum.TextYAlignment.Top
                 local gameLabel=label(tile,entry.game..(entry.views and "  \194\183  "..runtime.formatCount(entry.views).." Aufrufe" or ""),10,C.muted,UDim2.fromOffset(14,132),UDim2.new(1,-28,0,16))
                 gameLabel.TextTruncate=Enum.TextTruncate.AtEnd
@@ -2989,7 +3588,7 @@ function runtime.startRoleplay(mode)
         else notify("Position aktiv; die Animation ist in diesem Spiel nicht verf\195\188gbar.","Roleplay") end
     end
     if runtime.quickState then runtime.quickState.Text=mode.name.." \194\183 "..target.DisplayName end
-    if runtime.quickTargetButton and not runtime.quickTarget then runtime.quickTargetButton.Text="Automatisch \194\183 "..target.DisplayName end
+    if runtime.quickTargetButton and not runtime.quickTarget then runtime.quickTargetButton.Text=runtime.translate("Automatisch \194\183 ")..target.DisplayName end
 end
 runtime.quickConnections={}
 function runtime.quickConnect(signal,fn)
@@ -3010,7 +3609,7 @@ function runtime.buildQuickPanel()
     local heading=label(runtime.quickPanel,"ISB / ROLEPLAY",14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-62,0,24)); heading.Font=Enum.Font.BuilderSansBold
     runtime.quickButton(runtime.quickPanel,"\195\151",UDim2.new(1,-42,0,10),UDim2.fromOffset(28,28),function() runtime.quickPanel.Visible=false end)
     local targetButton=runtime.quickButton(runtime.quickPanel,runtime.quickTarget and runtime.quickTarget.DisplayName or "Automatisch \194\183 N\195\164chster Spieler",UDim2.fromOffset(14,48),UDim2.new(1,-28,0,32),function() runtime.quickTargets.Visible=not runtime.quickTargets.Visible end)
-    runtime.quickTargetButton=targetButton
+    runtime.quickTargetButton=targetButton; runtime.preserveText(targetButton)
     runtime.quickActionButtons={}
     for i,mode in ipairs(runtime.roleplayModes) do
         local b=runtime.quickButton(runtime.quickPanel,mode.name,UDim2.new(((i-1)%2)*.5,14-((i-1)%2)*5,0,92+math.floor((i-1)/2)*64),UDim2.new(.5,-23,0,54),function() runtime.startRoleplay(mode) end)
@@ -3023,7 +3622,7 @@ function runtime.buildQuickPanel()
     runtime.quickTargets=make("Frame",{Name="RoleplayTargets",Visible=false,BackgroundColor3=C.bg,Position=UDim2.fromOffset(14,86),Size=UDim2.new(1,-28,0,218),ZIndex=10,ClipsDescendants=true},runtime.quickPanel); round(runtime.quickTargets,14); stroke(runtime.quickTargets)
     local query=make("TextBox",{Name="RoleplayTargetSearch",PlaceholderText="Spieler suchen \226\128\166",Text="",ClearTextOnFocus=false,Font=Enum.Font.BuilderSansMedium,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.card,Position=UDim2.fromOffset(8,8),Size=UDim2.new(1,-16,0,32),ZIndex=11},runtime.quickTargets); round(query,10)
     local auto=runtime.quickButton(runtime.quickTargets,"Automatisch \194\183 N\195\164chster Spieler",UDim2.fromOffset(8,46),UDim2.new(1,-16,0,32),function()
-        runtime.stopRoleplay(); runtime.quickTarget=nil; targetButton.Text="Automatisch \194\183 N\195\164chster Spieler"; runtime.quickTargets.Visible=false
+        runtime.stopRoleplay(); runtime.quickTarget=nil; targetButton.Text=runtime.translate("Automatisch \194\183 N\195\164chster Spieler"); runtime.quickTargets.Visible=false
     end); auto.ZIndex=11
     local list=make("ScrollingFrame",{Name="RoleplayRoster",BackgroundTransparency=1,Position=UDim2.fromOffset(8,84),Size=UDim2.new(1,-16,0,128),CanvasSize=UDim2.new(),AutomaticCanvasSize=Enum.AutomaticSize.Y,ScrollBarThickness=3,ZIndex=11,ClipsDescendants=true},runtime.quickTargets)
     make("UIListLayout",{Padding=UDim.new(0,5),SortOrder=Enum.SortOrder.LayoutOrder},list)
@@ -3036,7 +3635,7 @@ function runtime.buildQuickPanel()
             runtime.stopRoleplay(); runtime.quickTarget=other; targetButton.Text=other.DisplayName; runtime.quickTargets.Visible=false
         end); b.Name="RoleplayTarget_"..other.UserId; b.ZIndex=12
         local avatar=make("ImageLabel",{Name="TargetAvatar",Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",BackgroundTransparency=1,Position=UDim2.fromOffset(8,7),Size=UDim2.fromOffset(34,34),ZIndex=13},b); round(avatar,17)
-        local title=label(b,other.DisplayName,12,C.text,UDim2.fromOffset(50,5),UDim2.new(1,-58,0,20)); title.Font=Enum.Font.BuilderSansBold; title.TextTruncate=Enum.TextTruncate.AtEnd; title.ZIndex=13
+        local title=label(b,other.DisplayName,12,C.text,UDim2.fromOffset(50,5),UDim2.new(1,-58,0,20),false); title.Font=Enum.Font.BuilderSansBold; title.TextTruncate=Enum.TextTruncate.AtEnd; title.ZIndex=13
         local d=distance(other); local info=label(b,"@"..other.Name.." \194\183 "..(d<math.huge and math.floor(d).." studs" or "Kein Charakter"),11,C.muted,UDim2.fromOffset(50,25),UDim2.new(1,-58,0,17)); info.TextTruncate=Enum.TextTruncate.AtEnd; info.ZIndex=13
         table.insert(rows,{button=b,key=(other.DisplayName.." "..other.Name):lower()})
     end end
@@ -3078,7 +3677,7 @@ function runtime.drawPlayerDetails(other)
     local header=plainCard(other.DisplayName,"@"..other.Name.."  \194\183  "..(runtime.groupRoles[other] or "Player"),92)
     if runtime.isRobloxVerified(other) then
         for _,child in ipairs(header:GetChildren()) do
-            if child:IsA("TextLabel") and child.Text==other.DisplayName then
+            if child:IsA("TextLabel") and runtime.rawText(child)==other.DisplayName then
                 child.Size=UDim2.new(1,-96,0,24)
                 runtime.playerVerifiedIcon(header,child); break
             end
@@ -3094,7 +3693,7 @@ function runtime.drawPlayerDetails(other)
         f.Parent=detailsGrid; f.Size=UDim2.new(.5,-5,0,70); f.Position=UDim2.new((index-1)%2*.5,(index-1)%2*5,0,math.floor((index-1)/2)*76)
         for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") then child.Size=UDim2.new(1,-56,0,24); child.TextWrapped=false; child.TextTruncate=Enum.TextTruncate.AtEnd end end
         local body
-        for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") and child.Text==entry[2] then body=child end end
+        for _,child in ipairs(f:GetChildren()) do if child:IsA("TextLabel") and runtime.rawText(child)==entry[2] then body=child end end
         runtime.detailRefs.fields[entry[1]]={entry=entry,label=body}
         local copy=rowButton(f,"",UDim2.new(1,-42,0,23),UDim2.fromOffset(30,28),function() copyText(entry[2]) end); copy.Name="Copy_"..entry[1]
         local icon=make("Frame",{Name="ButtonGlyph",BackgroundTransparency=1,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(14,16)},copy)
@@ -3282,7 +3881,7 @@ function runtime.showInspector(other)
     local header=make("Frame",{Name="InspectorIdentity",BackgroundTransparency=1,Position=UDim2.fromOffset(16,48),Size=UDim2.new(1,-32,0,78)},panel)
     round(header,14); runtime.contentSurface(header,14)
     local avatar=make("ImageLabel",{Name="InspectorAvatar",BackgroundColor3=C.panel,BackgroundTransparency=.25,Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",Position=UDim2.fromOffset(12,12),Size=UDim2.fromOffset(52,52)},header); round(avatar,26)
-    local name=label(header,other.DisplayName,16,C.text,UDim2.fromOffset(76,12),UDim2.new(1,-88,0,24)); name.Font=Enum.Font.BuilderSansBold
+    local name=label(header,other.DisplayName,16,C.text,UDim2.fromOffset(76,12),UDim2.new(1,-88,0,24),false); name.Font=Enum.Font.BuilderSansBold
     if runtime.isRobloxVerified(other) then runtime.playerVerifiedIcon(header,name,runtime.inspectorConnect) end
     label(header,"@"..other.Name,11,C.muted,UDim2.fromOffset(76,36),UDim2.new(1,-88,0,16))
     local relation=make("Frame",{Name="InspectorRelationBadge",BackgroundColor3=C.card,BorderSizePixel=0,Position=UDim2.fromOffset(76,56),Size=UDim2.fromOffset(82,18)},header); round(relation,7)
@@ -3348,7 +3947,7 @@ connect(player.CharacterRemoving,function() runtime.destroyInspectorTool(); runt
 
 function runtime.drawPlayerCard(other,index)
             local relation=session.friends[other.UserId] and "Freund" or "Player"
-            local f=card(other.DisplayName,"@"..other.Name.."  \194\183  "..relation.."  \194\183  "..(runtime.groupRoles[other] or "Rolle wird gepr\195\188ft"),104)
+            local f=card(other.DisplayName,"@"..other.Name.."  \194\183  "..relation.."  \194\183  "..(runtime.groupRoles[other] or "Rolle wird gepr\195\188ft"),104,false)
             for _,child in ipairs(f:GetChildren()) do
                 if child:IsA("TextLabel") then child.Position=UDim2.fromOffset(70,child.Position.Y.Offset); child.Size=UDim2.new(1,-86,0,child.Size.Y.Offset) end
             end
@@ -3373,7 +3972,7 @@ function runtime.drawPlayerCard(other,index)
             end
             if runtime.isRobloxVerified(other) then
                 for _,child in ipairs(f:GetChildren()) do
-                    if child:IsA("TextLabel") and child.Text==other.DisplayName then runtime.playerVerifiedIcon(f,child); break end
+                    if child:IsA("TextLabel") and runtime.rawText(child)==other.DisplayName then runtime.playerVerifiedIcon(f,child); break end
                 end
             end
             local avatar=make("ImageLabel",{BackgroundColor3=C.panel,Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",Position=UDim2.fromOffset(14,12),Size=UDim2.fromOffset(40,40)},f)
@@ -3598,7 +4197,7 @@ render = function()
         local count=0
         for _,action in ipairs(actions) do
             local include=page~="Spieler" and ((page=="Favoriten" and settings.favorites[action.id]) or (page~="Favoriten" and (query ~= "" or action.category==page)))
-            if include and matches(action.name .. " " .. action.desc .. " " .. action.category) then drawAction(action); count=count+1 end
+            if include and matches(runtime.translate(action.name) .. " " .. runtime.translate(action.desc) .. " " .. runtime.translate(action.category)) then drawAction(action); count=count+1 end
         end
         if page=="Spieler" then drawPlayers() end
         if count==0 and page~="Spieler" then card("Noch nichts gefunden", page=="Favoriten" and "Mit dem Stern an einer Funktion f\195\188gst du sie hier hinzu." or "Versuche einen anderen Suchbegriff.") end
@@ -3889,7 +4488,7 @@ connect(Run.RenderStepped,function(dt)
                     local shell=make("Frame",{Name="NameCard",Size=UDim2.fromOffset(156,44),BackgroundColor3=C.panel,BackgroundTransparency=.12},tag); round(shell,14); stroke(shell)
                     make("UIScale",{Name="DistanceScale",Scale=1},shell)
                     local badge=make("ImageLabel",{Image="rbxthumb://type=AvatarHeadShot&id="..other.UserId.."&w=150&h=150",Name="Badge",BackgroundColor3=color,Position=UDim2.fromOffset(8,10),Size=UDim2.fromOffset(24,24)},shell); round(badge,14)
-                    local name=label(shell,other.DisplayName,14,C.text,UDim2.fromOffset(38,4),UDim2.new(1,-46,0,20)); name.Name="PlayerName"; name.Font=Enum.Font.BuilderSansBold; name.TextTruncate=Enum.TextTruncate.AtEnd
+                    local name=label(shell,other.DisplayName,14,C.text,UDim2.fromOffset(38,4),UDim2.new(1,-46,0,20),false); name.Name="PlayerName"; name.Font=Enum.Font.BuilderSansBold; name.TextTruncate=Enum.TextTruncate.AtEnd
                     local info=label(shell,"",12,C.muted,UDim2.fromOffset(38,24),UDim2.new(1,-46,0,16)); info.Name="PlayerInfo"
                     tags[other]=tag
                 end
@@ -3922,7 +4521,7 @@ function runtime.refreshDetails()
     local other=refs.player; local h=other.Character and other.Character:FindFirstChildOfClass("Humanoid")
     local values={["Team"]=other.Team and other.Team.Name or "Kein Team",["Gesundheit"]=h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verf\195\188gbar",
         ["Beziehung"]=session.friends[other.UserId] and "Freund" or "Spieler",["Gruppenrolle"]=runtime.groupRoles[other] or "Nicht verf\195\188gbar"}
-    for name,value in pairs(values) do local field=refs.fields[name]; if field then field.entry[2]=value; if field.label and field.label.Parent then if field.label.Text~=value then field.label.Text=value end end end end
+    for name,value in pairs(values) do local field=refs.fields[name]; if field then field.entry[2]=value; if field.label and field.label.Parent then if runtime.rawText(field.label)~=value then field.label.Text=value end end end end
 end
 refreshPlayers=function()
     if page=="Spieler" and runtime.selectedPlayer then runtime.refreshDetails(); return end
@@ -4061,6 +4660,7 @@ api.Destroy = function()
     settings.lowEffects=false; features.applyPerformance()
     if runtime.performanceOwned.fps~=nil and type(setfpscap)=="function" then pcall(setfpscap,runtime.performanceOwned.fps) end
     state.fly=false; state.noclip=false; state.fullbright=false; state.shadows=false
+    for con in pairs(runtime.localizationConnections) do con:Disconnect() end; table.clear(runtime.localizationConnections)
     for _,con in ipairs(connections) do con:Disconnect() end
     for _,con in ipairs(rowConnections) do con:Disconnect() end
     stopFly(); restoreCollisions(); clearVisuals(); applyLighting(); restoreCamera(); stopAntiVC()
@@ -4084,6 +4684,7 @@ api.AddAction = function(id, category, name, description, callback)
     addAction(id,category,name,tostring(description or ""),"button",callback)
     render()
 end
+api.Language=runtime.language
 api.Notify=notify
 env.ISBMenu=api
 runtime.ensureInspectorTool()
@@ -4183,7 +4784,7 @@ function runtime.startWelcomeIntro()
         AnchorPoint=dock.AnchorPoint,Position=dock.Position+UDim2.fromOffset(0,16),Size=dock.Size,
         GroupTransparency=1,ZIndex=30},host)
     round(welcome,28); runtime.glassSurface(welcome,28); stroke(welcome)
-    local greeting=label(welcome,"Hey "..player.DisplayName,18,C.text,UDim2.fromOffset(22,17),UDim2.new(1,-44,0,24))
+    local greeting=label(welcome,"Hey "..player.DisplayName,18,C.text,UDim2.fromOffset(22,17),UDim2.new(1,-44,0,24),false)
     greeting.TextTransparency=1; greeting.ZIndex=31
     local stages={}; local ordered={runtime.dockClockPanel}
     for _,name in ipairs(navNames) do table.insert(ordered,navButtons[name]) end
