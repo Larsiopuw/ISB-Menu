@@ -1,24 +1,31 @@
-# ISB Menu 2.6.43 · by Larsiopuw
+# ISB Menu 2.6.44 · by Larsiopuw
+
+## Änderungen in 2.6.44
+
+- Die Änderungshistorie beschreibt Funktionen, Verbesserungen und Fehlerbehebungen im Menü jetzt kürzer und verständlicher.
 
 ## Änderungen in 2.6.43
 
-Automatische Sprache anhand von Player.LocaleId (Roblox-Kontosprache), ersatzweise LocalizationService.RobloxLocaleId. Deutsch verwendet deutsche Texte, alle anderen oder fehlenden Sprachen verwenden Englisch. Navigation, Hinweise, Einstellungen und alle 46 Changelog-Versionen sind lokal übersetzt; kein externer Übersetzungsdienst. Interne Kennungen, Nutzereingaben und gespeicherte Einstellungen bleiben erhalten. Die Upload-Datei bleibt ASCII.
+- Das Menü verwendet automatisch deine Roblox-Sprache: Deutsch bei deutscher Spracheinstellung, sonst Englisch.
+- Navigation, Einstellungen, Hinweise, Spielerinfo und Änderungshistorie sind auf Deutsch und Englisch verfügbar.
 
 ## Änderungen in 2.6.42
 
-Die Lua-Upload-Datei enthält nur ASCII-Zeichen. Umlaute und Symbole stehen in String-Literalen als feste dezimale UTF-8-Byte-Escapes; ihre Laufzeitwerte bleiben unverändert. Das umgeht Zeichenverluste beim Einlesen von Quelltext durch Schutzdienste. AstroProtect selbst muss nach dem erneuten Sirius-Upload getestet werden.
+- Fehlerhafte Zeichen in Menütexten behoben: Umlaute und Symbole werden wieder richtig angezeigt.
 
 ## Änderungen in 2.6.41
 
-Versionsnotizen als getrennte Stichpunkte mit einheitlichen Abständen, Versionsüberschrift und Trennlinie. Ältere Einträge sind ebenfalls strukturiert; Bezüge auf andere Menüs wurden entfernt.
+- Änderungen werden als einzelne Stichpunkte mit gleichmäßigen Abständen angezeigt.
+- Versionsüberschriften und Trennlinien erleichtern das Lesen; längere Texte umbrechen übersichtlich.
 
 ## Änderungen in 2.6.40
 
-Versionsbutton sitzt acht Pixel hinter dem gemessenen Menütitel. Changelog-Karten berechnen ihre Höhe aus dem Text; dekorative Flächen beeinflussen das Layout nicht mehr. Leerflächen und übergroße Karten sind entfernt.
+- Der Versionsbutton sitzt näher am Menütitel.
+- Leere Flächen und übergroße Karten in der Änderungshistorie wurden entfernt.
 
 ## Änderungen in 2.6.39
 
-Wegpunkte pro Spiel speichern, umbenennen und löschen. Teleport oder Freecam direkt am Wegpunkt starten. Klickbare Versionsanzeige im Startmenü mit scrollbarer Änderungshistorie; neueste Version zuerst. Versionsangaben im Skript vereinheitlicht.
+Wegpunkte pro Spiel speichern, umbenennen und löschen. Teleport oder Freecam direkt am Wegpunkt starten. Klickbare Versionsanzeige im Startmenü mit scrollbarer Änderungshistorie; neueste Version zuerst. 
 
 Bis zu 50 Wegpunkte je Roblox-Place. Namen mit bis zu 40 Zeichen; Speichern unter gleichem Namen aktualisiert die Position. Datei-Zugriff speichert Wegpunkte dauerhaft in den vorhandenen Einstellungen, sonst gelten sie für die Sitzung. Unzulässige Dateidaten werden beim Laden verworfen. Die Funktionen sind vom Startmenü und unter Bewegung erreichbar.
 
