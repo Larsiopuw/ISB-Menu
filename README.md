@@ -1,4 +1,9 @@
-# ISB Menu 2.6.48 · by Larsiopuw
+# ISB Menu 2.6.49 · by Larsiopuw
+
+## Änderungen in 2.6.49
+
+- Das Dock steht mit mehr Abstand über dem geöffneten Rucksackfenster, auch wenn es leer ist.
+- Beim Schließen des Rucksacks kehrt das Dock zur normalen Position über der Inventarleiste zurück.
 
 ## Änderungen in 2.6.48
 

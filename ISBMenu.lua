@@ -1,7 +1,7 @@
--- ISB Menu 2.6.48 | Own-game universal client toolkit
+-- ISB Menu 2.6.49 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.48",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.49",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -641,6 +641,7 @@ runtime.english={
     [" \195\182ffnet das Men\195\188"]=" opens the menu",
 }
 runtime.englishHistory={
+    ["2.6.49"]="The dock sits above the open backpack window with more spacing, even when it is empty.\nClosing the backpack restores the usual dock position above the hotbar.",
     ["2.6.48"]="The dock moves back down when no occupied hotbar slot is visible.\nA single visible item still moves the dock upward.",
     ["2.6.47"]="The dock reserves space for items even when the Roblox hotbar cannot be read.\nSpacing updates immediately when the Player Info item is added.",
     ["2.6.46"]="Session duration shows hours, minutes and seconds.\nThe dock also moves above a hotbar containing just one item, including ISB Player Info.",
@@ -2020,6 +2021,14 @@ function runtime.updateInventoryClearance()
                         local absolute,size=obj.AbsolutePosition,obj.AbsoluteSize
                         local origin=gui.AbsolutePosition
                         local position=Vector2.new(absolute.X-origin.X,absolute.Y-origin.Y)
+                        local ownName=obj.Name:lower()
+                        local inventoryPanel=(ownName:find("inventory",1,true) or ownName:find("backpack",1,true))
+                            and size.X>=120 and size.Y>=120 and size.Y<=viewport.Y*.9
+                        if inventoryPanel then
+                            if position.Y<0 or position.Y>=viewport.Y or position.X+size.X<center-half or position.X>center+half then return nil end
+                            -- An open backpack blocks the dock even when all its slots are empty.
+                            return position.Y-12
+                        end
                         -- A native hotbar with only the inspector Tool is a single narrow slot.
                         if size.X<32 or size.Y<20 or size.Y>math.min(220,viewport.Y*.3) then return nil end
                         if position.Y<viewport.Y*.65 or position.Y>=viewport.Y or position.Y+size.Y<=0 then return nil end
@@ -2880,6 +2889,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.49",text="Das Dock steht mit mehr Abstand \195\188ber dem ge\195\182ffneten Rucksackfenster, auch wenn es leer ist.\nBeim Schlie\195\159en des Rucksacks kehrt das Dock zur normalen Position \195\188ber der Inventarleiste zur\195\188ck."},
     {version="2.6.48",text="Das Dock r\195\188ckt wieder nach unten, wenn kein belegter Inventar-Slot mehr sichtbar ist.\nEin einzelnes sichtbares Item hebt das Dock weiterhin an."},
     {version="2.6.47",text="Das Dock reserviert auch bei nicht auslesbarer Roblox-Inventarleiste Platz f\195\188r vorhandene Items.\nDer Abstand wird direkt beim Hinzuf\195\188gen des Spielerinfo-Items angepasst."},
     {version="2.6.46",text="Die Sitzungsdauer wird als Stunden, Minuten und Sekunden angezeigt.\nDas Dock weicht auch einer Inventarleiste mit nur einem Item aus, einschlie\195\159lich ISB Spielerinfo."},
