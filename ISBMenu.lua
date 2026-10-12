@@ -1,7 +1,7 @@
--- ISB Menu 2.6.46 | Own-game universal client toolkit
+-- ISB Menu 2.6.47 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.46",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.47",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -641,6 +641,7 @@ runtime.english={
     [" \195\182ffnet das Men\195\188"]=" opens the menu",
 }
 runtime.englishHistory={
+    ["2.6.47"]="The dock reserves space for items even when the Roblox hotbar cannot be read.\nSpacing updates immediately when the Player Info item is added.",
     ["2.6.46"]="Session duration shows hours, minutes and seconds.\nThe dock also moves above a hotbar containing just one item, including ISB Player Info.",
     ["2.6.45"]="Waypoints sits beside Rejoin, Serverhop and Respawn in Movement.\nPlayer detail fields and their copy buttons display more reliably.",
     ["2.6.44"]="Release notes now describe menu features, improvements and fixes in shorter, clearer language.",
@@ -1963,6 +1964,23 @@ for _,source in ipairs(runtime.inventoryRoots) do
     if source.DescendantRemoving then connect(source.DescendantRemoving,runtime.inventoryChanged) end
     connect(source.ChildAdded,runtime.inventoryChanged)
 end
+function runtime.nativeInventoryClearance(viewport,center,half)
+    -- CoreGui descendants can be unavailable even while Roblox draws its hotbar.
+    local enabled=true
+    local ok,value=pcall(function() return game:GetService("StarterGui"):GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) end)
+    if ok then enabled=value~=false end
+    if not enabled then return 18 end
+    local count=0
+    local function countTools(parent)
+        if parent then for _,item in ipairs(parent:GetChildren()) do if item:IsA("Tool") then count+=1 end end end
+    end
+    countTools(player:FindFirstChildOfClass("Backpack")); countTools(player.Character)
+    if count==0 then return 18 end
+    local width=math.min(viewport.X,math.min(count,10)*70)
+    local left=(viewport.X-width)*.5
+    if left+width<center-half or left>center+half then return 18 end
+    return 96
+end
 function runtime.updateInventoryClearance()
     local camera=workspace.CurrentCamera
     if not camera then return end
@@ -1970,6 +1988,7 @@ function runtime.updateInventoryClearance()
     local clearance,order=18,90
     local half=300*scale.Scale
     local center=settings.alignment=="Left" and 12+half or (settings.alignment=="Right" and viewport.X-12-half or viewport.X*.5)
+    clearance=math.max(clearance,runtime.nativeInventoryClearance(viewport,center,half))
     if runtime.inventoryDirty then runtime.rebuildInventoryCache() end
     for _,record in ipairs(runtime.inventoryCache) do
         local source=record.source
@@ -2855,6 +2874,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.47",text="Das Dock reserviert auch bei nicht auslesbarer Roblox-Inventarleiste Platz f\195\188r vorhandene Items.\nDer Abstand wird direkt beim Hinzuf\195\188gen des Spielerinfo-Items angepasst."},
     {version="2.6.46",text="Die Sitzungsdauer wird als Stunden, Minuten und Sekunden angezeigt.\nDas Dock weicht auch einer Inventarleiste mit nur einem Item aus, einschlie\195\159lich ISB Spielerinfo."},
     {version="2.6.45",text="Wegpunkte stehen im Bewegungsmen\195\188 neben Rejoin, Serverhop und Respawn.\nDie Felder der Spielerdetails und ihre Kopierbuttons werden zuverl\195\164ssiger dargestellt."},
     {version="2.6.44",text="Die \195\132nderungshistorie beschreibt Funktionen, Verbesserungen und Fehlerbehebungen im Men\195\188 jetzt k\195\188rzer und verst\195\164ndlicher."},
@@ -3956,6 +3976,7 @@ function runtime.ensureInspectorTool()
     if not backpack then return end
     local tool=make("Tool",{Name="ISB Spielerinfo",ToolTip="ISB \194\183 Ausr\195\188sten und einen Spieler anklicken",RequiresHandle=false,CanBeDropped=false,TextureId=iconAsset("isb-inspect") or ""},backpack)
     runtime.inspectorTool=tool
+    runtime.inventoryDirty=true; runtime.updateInventoryClearance()
     table.insert(runtime.inspectorToolConnections,tool.Equipped:Connect(function(mouse) runtime.inspectorMouse=mouse or player:GetMouse() end))
     table.insert(runtime.inspectorToolConnections,tool.Unequipped:Connect(function() runtime.inspectorMouse=nil; runtime.clearInspectorHover(); runtime.hideInspector() end))
     table.insert(runtime.inspectorToolConnections,tool.Activated:Connect(function()

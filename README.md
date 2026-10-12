@@ -1,4 +1,9 @@
-# ISB Menu 2.6.46 · by Larsiopuw
+# ISB Menu 2.6.47 · by Larsiopuw
+
+## Änderungen in 2.6.47
+
+- Das Dock reserviert auch bei nicht auslesbarer Roblox-Inventarleiste Platz für vorhandene Items.
+- Der Abstand wird direkt beim Hinzufügen des Spielerinfo-Items angepasst.
 
 ## Änderungen in 2.6.46
 
