@@ -1,7 +1,7 @@
--- ISB Menu 2.6.45 | Own-game universal client toolkit
+-- ISB Menu 2.6.46 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.45",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.46",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -641,6 +641,7 @@ runtime.english={
     [" \195\182ffnet das Men\195\188"]=" opens the menu",
 }
 runtime.englishHistory={
+    ["2.6.46"]="Session duration shows hours, minutes and seconds.\nThe dock also moves above a hotbar containing just one item, including ISB Player Info.",
     ["2.6.45"]="Waypoints sits beside Rejoin, Serverhop and Respawn in Movement.\nPlayer detail fields and their copy buttons display more reliably.",
     ["2.6.44"]="Release notes now describe menu features, improvements and fixes in shorter, clearer language.",
     ["2.6.43"]="The menu automatically follows your Roblox language: German for German settings, English for all other languages.\nNavigation, settings, notices, Player Info and release notes are available in German and English.",
@@ -1994,7 +1995,8 @@ function runtime.updateInventoryClearance()
                         local absolute,size=obj.AbsolutePosition,obj.AbsoluteSize
                         local origin=gui.AbsolutePosition
                         local position=Vector2.new(absolute.X-origin.X,absolute.Y-origin.Y)
-                        if size.X<120 or size.Y<20 or size.Y>math.min(220,viewport.Y*.3) then return nil end
+                        -- A native hotbar with only the inspector Tool is a single narrow slot.
+                        if size.X<32 or size.Y<20 or size.Y>math.min(220,viewport.Y*.3) then return nil end
                         if position.Y<viewport.Y*.65 or position.Y>=viewport.Y or position.Y+size.Y<=0 then return nil end
                         if position.X+size.X<center-half or position.X>center+half then return nil end
                         local occupied=false
@@ -2853,6 +2855,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.46",text="Die Sitzungsdauer wird als Stunden, Minuten und Sekunden angezeigt.\nDas Dock weicht auch einer Inventarleiste mit nur einem Item aus, einschlie\195\159lich ISB Spielerinfo."},
     {version="2.6.45",text="Wegpunkte stehen im Bewegungsmen\195\188 neben Rejoin, Serverhop und Respawn.\nDie Felder der Spielerdetails und ihre Kopierbuttons werden zuverl\195\164ssiger dargestellt."},
     {version="2.6.44",text="Die \195\132nderungshistorie beschreibt Funktionen, Verbesserungen und Fehlerbehebungen im Men\195\188 jetzt k\195\188rzer und verst\195\164ndlicher."},
     {version="2.6.43",text="Das Men\195\188 verwendet automatisch deine Roblox-Sprache: Deutsch bei deutscher Spracheinstellung, sonst Englisch.\nNavigation, Einstellungen, Hinweise, Spielerinfo und \195\132nderungshistorie sind auf Deutsch und Englisch verf\195\188gbar."},
@@ -3036,6 +3039,10 @@ local function drawDashboard()
     rowButton(f,"Voice",UDim2.fromOffset(230,260),UDim2.fromOffset(96,30),function() page="Voice"; query=""; render(); refreshVoice() end)
     rowButton(f,"Wegpunkte",UDim2.fromOffset(336,260),UDim2.fromOffset(110,30),function() selectPage("Wegpunkte") end)
 end
+function runtime.sessionTimeString(seconds)
+    local whole=math.max(0,math.floor(seconds))
+    return string.format("%02d:%02d:%02d",math.floor(whole/3600),math.floor(whole/60)%60,whole%60)
+end
 local function updateDashboard()
     local fields=dashboardRefs
     if fields.server then
@@ -3047,7 +3054,7 @@ local function updateDashboard()
         fields.friends.sub.Text=tostring(session.onlineFriends or "\226\128\148").." online  \194\183  "..tostring(session.friendTotal or "\226\128\148").." insgesamt"
         fields.executor.value.Text=session.executor
         fields.executor.sub.Text=session.executorVersion~="" and session.executorVersion or "Funktionen abh\195\164ngig vom Executor"
-        fields.session.value.Text=string.format("%02d:%02d",math.floor((os.clock()-startedAt)/60),math.floor(os.clock()-startedAt)%60).." Hub aktiv"
+        fields.session.value.Text=runtime.sessionTimeString(os.clock()-startedAt).." Hub aktiv"
         fields.session.sub.Text=runtime.serverRegion or "Region wird gepr\195\188ft \226\128\166"
     end
 end

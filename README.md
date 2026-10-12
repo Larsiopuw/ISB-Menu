@@ -1,4 +1,9 @@
-# ISB Menu 2.6.45 · by Larsiopuw
+# ISB Menu 2.6.46 · by Larsiopuw
+
+## Änderungen in 2.6.46
+
+- Die Sitzungsdauer wird als Stunden, Minuten und Sekunden angezeigt.
+- Das Dock weicht auch einer Inventarleiste mit nur einem Item aus, einschließlich ISB Spielerinfo.
 
 ## Änderungen in 2.6.45
 
