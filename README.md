@@ -1,4 +1,9 @@
-# ISB Menu 2.6.47 · by Larsiopuw
+# ISB Menu 2.6.48 · by Larsiopuw
+
+## Änderungen in 2.6.48
+
+- Das Dock rückt wieder nach unten, wenn kein belegter Inventar-Slot mehr sichtbar ist.
+- Ein einzelnes sichtbares Item hebt das Dock weiterhin an.
 
 ## Änderungen in 2.6.47
 

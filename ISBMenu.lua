@@ -1,7 +1,7 @@
--- ISB Menu 2.6.47 | Own-game universal client toolkit
+-- ISB Menu 2.6.48 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.47",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.48",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -641,6 +641,7 @@ runtime.english={
     [" \195\182ffnet das Men\195\188"]=" opens the menu",
 }
 runtime.englishHistory={
+    ["2.6.48"]="The dock moves back down when no occupied hotbar slot is visible.\nA single visible item still moves the dock upward.",
     ["2.6.47"]="The dock reserves space for items even when the Roblox hotbar cannot be read.\nSpacing updates immediately when the Player Info item is added.",
     ["2.6.46"]="Session duration shows hours, minutes and seconds.\nThe dock also moves above a hotbar containing just one item, including ISB Player Info.",
     ["2.6.45"]="Waypoints sits beside Rejoin, Serverhop and Respawn in Movement.\nPlayer detail fields and their copy buttons display more reliably.",
@@ -1924,6 +1925,7 @@ function runtime.rebuildInventoryCache()
     for _,source in ipairs(runtime.inventoryRoots) do
         local record={source=source,screens={},containers={}}
         local ok,objects=pcall(function() return source:GetDescendants() end)
+        record.readable=ok
         if ok then for _,obj in ipairs(objects) do
             if source==playerGui and obj:IsA("ScreenGui") and obj~=gui then table.insert(record.screens,obj) end
             if obj:IsA("GuiObject") then
@@ -1965,7 +1967,10 @@ for _,source in ipairs(runtime.inventoryRoots) do
     connect(source.ChildAdded,runtime.inventoryChanged)
 end
 function runtime.nativeInventoryClearance(viewport,center,half)
-    -- CoreGui descendants can be unavailable even while Roblox draws its hotbar.
+    -- Readable hotbars use their visible slots, never the number of stored Tools.
+    for _,record in ipairs(runtime.inventoryCache) do
+        if record.source~=playerGui and record.readable then return 18 end
+    end
     local enabled=true
     local ok,value=pcall(function() return game:GetService("StarterGui"):GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) end)
     if ok then enabled=value~=false end
@@ -1974,7 +1979,8 @@ function runtime.nativeInventoryClearance(viewport,center,half)
     local function countTools(parent)
         if parent then for _,item in ipairs(parent:GetChildren()) do if item:IsA("Tool") then count+=1 end end end
     end
-    countTools(player:FindFirstChildOfClass("Backpack")); countTools(player.Character)
+    -- If CoreGui is inaccessible, only an equipped Tool justifies a fallback.
+    countTools(player.Character)
     if count==0 then return 18 end
     local width=math.min(viewport.X,math.min(count,10)*70)
     local left=(viewport.X-width)*.5
@@ -1988,8 +1994,8 @@ function runtime.updateInventoryClearance()
     local clearance,order=18,90
     local half=300*scale.Scale
     local center=settings.alignment=="Left" and 12+half or (settings.alignment=="Right" and viewport.X-12-half or viewport.X*.5)
-    clearance=math.max(clearance,runtime.nativeInventoryClearance(viewport,center,half))
     if runtime.inventoryDirty then runtime.rebuildInventoryCache() end
+    clearance=math.max(clearance,runtime.nativeInventoryClearance(viewport,center,half))
     for _,record in ipairs(runtime.inventoryCache) do
         local source=record.source
         for _,screen in ipairs(record.screens) do
@@ -2028,7 +2034,7 @@ function runtime.updateInventoryClearance()
                                 end
                                 if source~=playerGui then
                                     local slotName=slot.Name:lower()
-                                    shown=shown and (slotName=="toolicon" or slotName=="toolname")
+                                    shown=shown and (slotName=="toolicon" or slotName=="toolname" or slotName=="icon" or slotName=="itemicon" or slotName=="itemname")
                                 end
                                 if shown and ((slot:IsA("ImageLabel") or slot:IsA("ImageButton")) and slot.Image~=""
                                     or (slot:IsA("TextLabel") or slot:IsA("TextButton")) and slot.Text~="" and not tostring(slot.Text):match("^%d+$")) then occupied=true; break end
@@ -2874,6 +2880,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.48",text="Das Dock r\195\188ckt wieder nach unten, wenn kein belegter Inventar-Slot mehr sichtbar ist.\nEin einzelnes sichtbares Item hebt das Dock weiterhin an."},
     {version="2.6.47",text="Das Dock reserviert auch bei nicht auslesbarer Roblox-Inventarleiste Platz f\195\188r vorhandene Items.\nDer Abstand wird direkt beim Hinzuf\195\188gen des Spielerinfo-Items angepasst."},
     {version="2.6.46",text="Die Sitzungsdauer wird als Stunden, Minuten und Sekunden angezeigt.\nDas Dock weicht auch einer Inventarleiste mit nur einem Item aus, einschlie\195\159lich ISB Spielerinfo."},
     {version="2.6.45",text="Wegpunkte stehen im Bewegungsmen\195\188 neben Rejoin, Serverhop und Respawn.\nDie Felder der Spielerdetails und ihre Kopierbuttons werden zuverl\195\164ssiger dargestellt."},
