@@ -1,4 +1,9 @@
-# ISB Menu 2.6.51 · by Larsiopuw
+# ISB Menu 2.6.52 · by Larsiopuw
+
+## Änderungen in 2.6.52
+
+- Eine Änderung an Quick Actions wurde zurückgenommen, durch die der eigene Charakter für andere verschwinden oder an einer falschen Position erscheinen konnte.
+- Die Verbesserung der Verzögerung beim Folgen ist noch nicht abgeschlossen.
 
 ## Änderungen in 2.6.51
 
