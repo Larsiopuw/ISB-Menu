@@ -1,7 +1,7 @@
--- ISB Menu 2.6.49 | Own-game universal client toolkit
+-- ISB Menu 2.6.50 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.49",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.50",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -641,6 +641,7 @@ runtime.english={
     [" \195\182ffnet das Men\195\188"]=" opens the menu",
 }
 runtime.englishHistory={
+    ["2.6.50"]="Quick Actions use a consistent position update when following another player.\nMovement is stabilized against additional drifting; stopping restores normal controls.",
     ["2.6.49"]="The dock sits above the open backpack window with more spacing, even when it is empty.\nClosing the backpack restores the usual dock position above the hotbar.",
     ["2.6.48"]="The dock moves back down when no occupied hotbar slot is visible.\nA single visible item still moves the dock upward.",
     ["2.6.47"]="The dock reserves space for items even when the Roblox hotbar cannot be read.\nSpacing updates immediately when the Player Info item is added.",
@@ -2889,6 +2890,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.50",text="Quick Actions verwenden eine einheitliche Positionsaktualisierung beim Folgen eines Spielers.\nDie Bewegung wird gegen zus\195\164tzliches Nachdriften stabilisiert; beim Beenden wird die normale Steuerung wiederhergestellt."},
     {version="2.6.49",text="Das Dock steht mit mehr Abstand \195\188ber dem ge\195\182ffneten Rucksackfenster, auch wenn es leer ist.\nBeim Schlie\195\159en des Rucksacks kehrt das Dock zur normalen Position \195\188ber der Inventarleiste zur\195\188ck."},
     {version="2.6.48",text="Das Dock r\195\188ckt wieder nach unten, wenn kein belegter Inventar-Slot mehr sichtbar ist.\nEin einzelnes sichtbares Item hebt das Dock weiterhin an."},
     {version="2.6.47",text="Das Dock reserviert auch bei nicht auslesbarer Roblox-Inventarleiste Platz f\195\188r vorhandene Items.\nDer Abstand wird direkt beim Hinzuf\195\188gen des Spielerinfo-Items angepasst."},
@@ -3537,6 +3539,7 @@ function runtime.stopRoleplay()
     pcall(function() Run:UnbindFromRenderStep("ISBRoleplayFollow") end)
     local owned=runtime.roleplay; runtime.roleplay=nil
     if not owned then return end
+    if owned.hold then owned.hold:Destroy(); owned.hold=nil end
     if owned.track then pcall(function() owned.track:Stop(.15); owned.track:Destroy() end) end
     if owned.animation then owned.animation:Destroy() end
     if owned.seatedCaptured then pcall(function() owned.h:SetStateEnabled(Enum.HumanoidStateType.Seated,owned.seatedEnabled) end) end
@@ -3595,6 +3598,20 @@ function runtime.roleplayFrame(owned,part,dt,rendered)
     end
     return frame*CFrame.new(offset[1],offset[2],offset[3])*CFrame.Angles(0,mode.rotation or 0,0)
 end
+function runtime.syncRoleplay(dt)
+    local owned=runtime.roleplay
+    if not owned then return end
+    local part=runtime.roleplayPart(owned.target,owned.mode)
+    local targetHumanoid=owned.target.Character and owned.target.Character:FindFirstChildOfClass("Humanoid")
+    if not alive or not owned.target.Parent or not part or root()~=owned.root or humanoid()~=owned.h
+        or owned.h.Health<=0 or not targetHumanoid or targetHumanoid.Health<=0 then runtime.stopRoleplay(); return end
+    -- One physics frame is shared by local positioning and replication.
+    owned.root.CFrame=runtime.roleplayFrame(owned,part,dt or 0)
+    owned.root.AssemblyLinearVelocity=Vector3.zero
+    owned.root.AssemblyAngularVelocity=Vector3.zero
+    if owned.hold then owned.hold.Velocity=Vector3.zero end
+    owned.h.PlatformStand=true; owned.h.AutoRotate=false
+end
 function runtime.startRoleplay(mode)
     local target=runtime.quickTarget or runtime.nearestRoleplayTarget(mode)
     local part=runtime.roleplayPart(target,mode)
@@ -3606,12 +3623,8 @@ function runtime.startRoleplay(mode)
     local owned={target=target,mode=mode,h=h,root=r,platformStand=h.PlatformStand,autoRotate=h.AutoRotate}
     pcall(function() owned.seatedEnabled=h:GetStateEnabled(Enum.HumanoidStateType.Seated); owned.seatedCaptured=true; h:SetStateEnabled(Enum.HumanoidStateType.Seated,false) end)
     runtime.roleplay=owned; h.PlatformStand=true; h.AutoRotate=false
-    Run:BindToRenderStep("ISBRoleplayFollow",Enum.RenderPriority.Last.Value+1,function()
-        if not alive or runtime.roleplay~=owned then return end
-        local part=runtime.roleplayPart(owned.target,owned.mode)
-        if not owned.target.Parent or not part or root()~=owned.root then runtime.stopRoleplay(); return end
-        owned.root.CFrame=runtime.roleplayFrame(owned,part,0,true)
-    end)
+    owned.hold=make("BodyVelocity",{Name="ISBRoleplayHold",MaxForce=Vector3.new(1e8,1e8,1e8),P=8000,Velocity=Vector3.zero},r)
+    runtime.syncRoleplay(0)
     for _,item in ipairs(runtime.quickActionButtons or {}) do if item.button.Parent then item.button.BackgroundColor3=item.mode==mode and C.accent:Lerp(C.panel,.7) or C.card end end
     local animator=h:FindFirstChildOfClass("Animator")
     if animator and h.RigType~=Enum.HumanoidRigType.R6 then
@@ -4376,15 +4389,8 @@ connect(Run.Stepped,function()
 end)
 if Run.PostSimulation then connect(Run.PostSimulation,function()
     runtime.finishExtraJump()
-    local owned=runtime.roleplay
-    if not owned or not owned.root.Parent then return end
-    local part=runtime.roleplayPart(owned.target,owned.mode)
-    if part and owned.target.Parent then
-        owned.root.CFrame=runtime.roleplayFrame(owned,part,0)
-        owned.root.AssemblyLinearVelocity=part.AssemblyLinearVelocity or Vector3.zero
-        owned.root.AssemblyAngularVelocity=part.AssemblyAngularVelocity or Vector3.zero
-    end
 end) end
+connect(Run.Heartbeat,function(dt) runtime.syncRoleplay(dt) end)
 connect(Run.PreSimulation,function(dt)
     applyMovement()
     if runtime.roleplay then
@@ -4402,8 +4408,7 @@ connect(Run.PreSimulation,function(dt)
                     if math.abs(owned.track.TimePosition-2)>.001 then owned.track.TimePosition=2 end
                 end
             end) end
-            r.CFrame=runtime.roleplayFrame(owned,part,dt)
-            r.AssemblyLinearVelocity=part.AssemblyLinearVelocity or Vector3.zero; r.AssemblyAngularVelocity=part.AssemblyAngularVelocity or Vector3.zero; owned.h.PlatformStand=true; owned.h.AutoRotate=false
+            owned.h.PlatformStand=true; owned.h.AutoRotate=false
             pcall(function() if owned.h:GetState()==Enum.HumanoidStateType.Seated then owned.h:ChangeState(Enum.HumanoidStateType.Physics) end end)
         end
     end

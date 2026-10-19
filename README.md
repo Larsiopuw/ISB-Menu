@@ -1,4 +1,9 @@
-# ISB Menu 2.6.49 · by Larsiopuw
+# ISB Menu 2.6.50 · by Larsiopuw
+
+## Änderungen in 2.6.50
+
+- Quick Actions verwenden eine einheitliche Positionsaktualisierung beim Folgen eines Spielers.
+- Die Bewegung wird gegen zusätzliches Nachdriften stabilisiert; beim Beenden wird die normale Steuerung wiederhergestellt.
 
 ## Änderungen in 2.6.49
 
