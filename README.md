@@ -1,4 +1,9 @@
-# ISB Menu 2.6.52 · by Larsiopuw
+# ISB Menu 2.6.53 · by Larsiopuw
+
+## Änderungen in 2.6.53
+
+- Beim Fliegen pausieren die normale Laufanimation und eigene Schrittgeräusche; beim Landen werden die vorherigen Zustände wiederhergestellt.
+- Das Zahlenfeld der Flugstufen zeigt die Geschwindigkeit in Studs/s und erlaubt eigene Werte von 1 bis 10.000. Die Skala behält die vier festen Stufen.
 
 ## Änderungen in 2.6.52
 

@@ -1,7 +1,7 @@
--- ISB Menu 2.6.52 | Own-game universal client toolkit
+-- ISB Menu 2.6.53 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.52",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.53",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -118,6 +118,10 @@ if type(readfile) == "function" then
         if data.provider=="RoScripts" then settings.provider=data.provider end
         if data.discovery=="Neu" or data.discovery=="Favoriten" then settings.discovery=data.discovery end
         settings.volume=math.clamp(tonumber(data.volume) or 35,0,1000)
+        local tier=tonumber(data.flightTier)
+        if tier and tier==tier and tier>=1 and tier<=4 then settings.flightTier=math.floor(tier) end
+        local custom=tonumber(data.flightCustomSpeed)
+        if custom and custom==custom and custom>=1 and custom<=10000 then settings.flightCustomSpeed=custom end
         if type(data.values)=="table" then settings.values=data.values end
         if type(data.waypoints)=="table" then settings.waypoints=data.waypoints end
         if type(data.scriptFavorites)=="table" then
@@ -640,7 +644,9 @@ runtime.english={
     [" bereit \226\128\162 "]=" ready \226\128\162 ",
     [" \195\182ffnet das Men\195\188"]=" opens the menu",
 }
+runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.53"]="Normal walking animations and your footstep sounds pause during flight; landing restores their previous states.\nThe flight number field shows speed in studs/s and accepts custom values from 1 to 10,000. The ruler keeps the four fixed tiers.",
     ["2.6.52"]="Reverted a Quick Actions change that could make your character disappear or appear at an incorrect position to other players.\nReducing follow delay is still unresolved.",
     ["2.6.51"]="Quick Actions align network synchronization with the selected player when supported by the executor.\nStopping restores the previous synchronization; a notice appears when advanced synchronization is unavailable.",
     ["2.6.50"]="Quick Actions use a consistent position update when following another player.\nMovement is stabilized against additional drifting; stopping restores normal controls.",
@@ -1466,11 +1472,13 @@ local function applyMovement()
         else local height=state.jumpValue * state.jumpValue / (2 * math.max(workspace.Gravity, 1)); if h.JumpHeight~=height then h.JumpHeight=height end end
     end
 end
-runtime.flightSounds={}; runtime.flightConnections={}
+runtime.flightSounds={}; runtime.flightConnections={}; runtime.flightAnimateScripts={}
 function runtime.muteFlightSound(obj)
     if not (obj:IsA("Sound") or obj:IsA("AudioPlayer")) then return end
-    local name=obj.Name:lower()
-    local footsteps=name=="running" or name=="walking" or name=="walk" or name=="sprinting"
+    local ownName=obj.Name:lower(); local name=ownName
+    local ancestor=obj.Parent
+    while ancestor and ancestor~=player.Character do name=name.." "..ancestor.Name:lower(); ancestor=ancestor.Parent end
+    local footsteps=ownName=="run" or name:find("running",1,true) or name:find("walking",1,true) or ownName=="walk" or name:find("sprint",1,true)
         or name:find("footstep",1,true) or (obj:IsA("Sound") and tostring(obj.SoundId):lower():find("footstep",1,true))
     if not footsteps or runtime.flightSounds[obj]~=nil then return end
     runtime.flightSounds[obj]=obj.Volume
@@ -1479,6 +1487,32 @@ function runtime.muteFlightSound(obj)
         if state.fly and obj.Parent and obj.Volume~=0 then obj.Volume=0 end
     end))
 end
+function runtime.flightCharacterObject(obj)
+    if (obj:IsA("LocalScript") or obj:IsA("Script")) and obj.Name=="Animate" then
+        if runtime.flightAnimateScripts[obj]==nil then
+            runtime.flightAnimateScripts[obj]=obj.Disabled
+            obj.Disabled=true
+            table.insert(runtime.flightConnections,obj:GetPropertyChangedSignal("Disabled"):Connect(function()
+                if state.fly and obj.Parent and not obj.Disabled then obj.Disabled=true end
+            end))
+        end
+    elseif obj:IsA("Sound") or obj:IsA("AudioPlayer") then
+        runtime.muteFlightSound(obj)
+        table.insert(runtime.flightConnections,obj:GetPropertyChangedSignal("Name"):Connect(function() if state.fly then runtime.muteFlightSound(obj) end end))
+        if obj:IsA("Sound") then table.insert(runtime.flightConnections,obj:GetPropertyChangedSignal("SoundId"):Connect(function() if state.fly then runtime.muteFlightSound(obj) end end)) end
+    end
+end
+function runtime.suppressFlightLocomotion(track)
+    if not state.fly then return end
+    local ok,locomotion=pcall(function()
+        local animation=track.Animation
+        local name=(tostring(track.Name or "").." "..(animation and animation.Name or "")):lower()
+        if animation and animation.Name:sub(1,10)=="ISBFlight_" then return false end
+        return name:find("walk",1,true) or name:find("run",1,true)
+            or track.Priority==Enum.AnimationPriority.Core or track.Priority==Enum.AnimationPriority.Idle or track.Priority==Enum.AnimationPriority.Movement
+    end)
+    if ok and locomotion then pcall(function() track:Stop(0) end) end
+end
 -- Flight animation assets and speed-dependent glide/forward switching.
 runtime.flightLevels={
     {name="GLIDE",speed=55,color=Color3.fromRGB(100,200,255)},
@@ -1486,12 +1520,20 @@ runtime.flightLevels={
     {name="FAST",speed=140,color=Color3.fromRGB(255,150,100)},
     {name="TURBO",speed=250,color=Color3.fromRGB(255,80,80)},
 }
-function runtime.flightLevel() return runtime.flightLevels[runtime.flightTier or 1] end
+function runtime.flightLevel() return runtime.flightCustomLevel or runtime.flightLevels[runtime.flightTier or 1] end
 function runtime.setFlightTier(value)
     runtime.flightTier=math.clamp(math.floor(value+.5),1,4)
+    runtime.flightCustomLevel=nil; settings.flightCustomSpeed=nil; settings.flightTier=runtime.flightTier
     if runtime.actionRefresh and runtime.actionRefresh.flyspeed then runtime.actionRefresh.flyspeed() end
 end
-function runtime.nextFlightTier() runtime.setFlightTier((runtime.flightTier or 1)%4+1) end
+function runtime.setFlightSpeed(value)
+    if type(value)~="number" or value~=value or value<1 or value>10000 then return end
+    for index,level in ipairs(runtime.flightLevels) do if value==level.speed then runtime.setFlightTier(index); return end end
+    runtime.flightCustomLevel={name="CUSTOM",speed=value,color=runtime.flightLevels[4].color}
+    settings.flightCustomSpeed=value
+    if runtime.actionRefresh and runtime.actionRefresh.flyspeed then runtime.actionRefresh.flyspeed() end
+end
+function runtime.nextFlightTier() runtime.setFlightTier(runtime.flightCustomLevel and 1 or (runtime.flightTier or 1)%4+1); save() end
 runtime.flightStyles={
     {name="Fly",idle="89068086839142",fwd="101570135818967",glide="85697950221122",fwd2="115638214618522"},
     {name="Mysterious",idle="121818495967360",fwd="138488768673643",glide="101573394483995"},
@@ -1552,6 +1594,7 @@ end
 function runtime.updateFlightAnimation(speed,maximum)
     local tracks=runtime.flightTracks; if not tracks then return end
     local ratio=speed/math.max(maximum,1); local tier=runtime.flightTier or 1
+    if runtime.flightCustomLevel then tier=maximum>=250 and 4 or maximum>=140 and 3 or maximum>=110 and 2 or 1 end
     local mode="idle"
     if tier==1 then mode="glide"
     elseif tier>=3 and ratio>((runtime.flightCurrentMode=="fwd" or runtime.flightCurrentMode=="fwd2") and .45 or .7) then mode="fwd" end
@@ -1570,6 +1613,8 @@ local function stopFly()
     if runtime.flightStyleMenu then runtime.flightStyleMenu.Visible=false end
     for _,con in ipairs(runtime.flightConnections) do con:Disconnect() end
     table.clear(runtime.flightConnections)
+    for script,disabled in pairs(runtime.flightAnimateScripts) do if script.Parent then script.Disabled=disabled end end
+    table.clear(runtime.flightAnimateScripts)
     for obj,volume in pairs(runtime.flightSounds) do if obj.Parent then obj.Volume=volume end end
     table.clear(runtime.flightSounds)
     for _,obj in ipairs(flyObjects) do obj:Destroy() end
@@ -1587,8 +1632,15 @@ local function startFly()
     runtime.flyPlatformStand,runtime.flyRoot=h.PlatformStand,r
     h.AutoRotate = false; h.PlatformStand=true; h:ChangeState(Enum.HumanoidStateType.Physics)
     runtime.flightVelocity=r.AssemblyLinearVelocity or Vector3.zero; runtime.flightAcceleration=Vector3.zero
-    for _,obj in ipairs(player.Character:GetDescendants()) do runtime.muteFlightSound(obj) end
-    table.insert(runtime.flightConnections,player.Character.DescendantAdded:Connect(runtime.muteFlightSound))
+    for _,obj in ipairs(player.Character:GetDescendants()) do runtime.flightCharacterObject(obj) end
+    local flyingCharacter=player.Character
+    table.insert(runtime.flightConnections,flyingCharacter.DescendantAdded:Connect(function(obj)
+        runtime.flightCharacterObject(obj)
+        task.defer(function() if state.fly and player.Character==flyingCharacter and obj.Parent then runtime.muteFlightSound(obj) end end)
+    end))
+    local animator=h:FindFirstChildOfClass("Animator") or make("Animator",{},h)
+    if animator.AnimationPlayed then table.insert(runtime.flightConnections,animator.AnimationPlayed:Connect(runtime.suppressFlightLocomotion)) end
+    pcall(function() for _,track in ipairs(animator:GetPlayingAnimationTracks()) do runtime.suppressFlightLocomotion(track) end end)
     local attachment = make("Attachment", {Name = "ISBFlyAttachment"}, r)
     local velocity = make("LinearVelocity", {Name = "ISBFlyVelocity", Attachment0 = attachment,
         RelativeTo = Enum.ActuatorRelativeTo.World, MaxForce = math.huge, VectorVelocity = Vector3.zero}, r)
@@ -2270,7 +2322,8 @@ for i,caption in ipairs({"\226\134\145","\226\134\147"}) do
         if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then touchVertical=0 end
     end)
 end
-runtime.flightTier=1
+runtime.flightTier=math.clamp(math.floor(tonumber(settings.flightTier) or 1),1,4)
+if settings.flightCustomSpeed then runtime.setFlightSpeed(settings.flightCustomSpeed) end
 runtime.flightHud=make("CanvasGroup",{Name="FlightHUD",Visible=false,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(.5,0),Position=UDim2.new(.5,0,0,58),Size=UDim2.fromOffset(540,48)},gui)
 round(runtime.flightHud,16); runtime.glassSurface(runtime.flightHud,16); stroke(runtime.flightHud)
 runtime.flightInfo=label(runtime.flightHud,"",13,C.text,UDim2.fromOffset(14,7),UDim2.fromOffset(254,34)); runtime.flightInfo.Font=Enum.Font.BuilderSansBold
@@ -2354,7 +2407,7 @@ function runtime.drawRuler(parent,action)
     end
     local hint=label(parent,"",9,C.muted,UDim2.fromOffset(16,105),UDim2.new(1,-32,0,15))
     local function paint(value,soft)
-        valueBox.Text=formatValue(value)
+        valueBox.Text=formatValue(action.id=="flyspeed" and runtime.flightLevel().speed or value)
         local selected=math.clamp(value,action.min,action.max)
         for _,mark in ipairs(marks) do
             local x=action.id=="flyspeed" and (.5+(mark.value-selected)*48/math.max(viewport.AbsoluteSize.X,1)) or (.5+(mark.value-selected)/(action.max-action.min))
@@ -2371,6 +2424,7 @@ function runtime.drawRuler(parent,action)
             end
         end
         hint.Text=(value~=selected and "Manueller Wert \194\183 " or "Skala ziehen \194\183 ")..action.min.."\226\128\147"..action.max.." \194\183 Zahl antippen zum Eingeben"
+        if action.id=="flyspeed" then hint.Text="Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s" end
     end
     local function apply(value,dragging)
         if dragging and action.preview then action.preview(value) else action.fn(value); save() end
@@ -2393,12 +2447,13 @@ function runtime.drawRuler(parent,action)
     end)
     rowConnect(valueBox.FocusLost,function()
         local value=tonumber((valueBox.Text:gsub(",",".")))
-        local maximum=action.id=="flyspeed" and 4 or action.id=="uiscale" and 120 or (action.id=="mediavolume" and 100 or (action.id=="volume" and 1000 or (action.id=="fovvalue" and 120 or 10000)))
+        local maximum=action.id=="flyspeed" and 10000 or action.id=="uiscale" and 120 or (action.id=="mediavolume" and 100 or (action.id=="volume" and 1000 or (action.id=="fovvalue" and 120 or 10000)))
         local minimum=action.id=="flyspeed" and 1 or action.id=="uiscale" and 50 or (action.id=="fovvalue" and 1 or 0)
         if not value or value~=value or value<minimum or value>maximum then
             paint(action.get()); notify("Bitte eine Zahl zwischen "..minimum.." und "..maximum.." eingeben.",action.name); return
         end
-        apply(math.floor(value*100+.5)/100)
+        if action.id=="flyspeed" then runtime.setFlightSpeed(math.floor(value*100+.5)/100); save(); paint(action.get())
+        else apply(math.floor(value*100+.5)/100) end
     end)
 end
 function runtime.refreshControls()
@@ -2892,6 +2947,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.53",text="Beim Fliegen pausieren die normale Laufanimation und eigene Schrittger\195\164usche; beim Landen werden die vorherigen Zust\195\164nde wiederhergestellt.\nDas Zahlenfeld der Flugstufen zeigt die Geschwindigkeit in Studs/s und erlaubt eigene Werte von 1 bis 10.000. Die Skala beh\195\164lt die vier festen Stufen."},
     {version="2.6.52",text="Eine \195\132nderung an Quick Actions wurde zur\195\188ckgenommen, durch die der eigene Charakter f\195\188r andere verschwinden oder an einer falschen Position erscheinen konnte.\nDie Verbesserung der Verz\195\182gerung beim Folgen ist noch nicht abgeschlossen."},
     {version="2.6.51",text="Quick Actions passen die Netzwerksynchronisierung an den ausgew\195\164hlten Spieler an, sofern der Executor dies unterst\195\188tzt.\nBeim Beenden wird die vorherige Synchronisierung wiederhergestellt; fehlende Unterst\195\188tzung wird als Hinweis angezeigt."},
     {version="2.6.50",text="Quick Actions verwenden eine einheitliche Positionsaktualisierung beim Folgen eines Spielers.\nDie Bewegung wird gegen zus\195\164tzliches Nachdriften stabilisiert; beim Beenden wird die normale Steuerung wiederhergestellt."},
@@ -4427,6 +4483,7 @@ connect(Run.PreSimulation,function(dt)
     local camera=workspace.CurrentCamera
     if state.fly and camera and flyObjects[1] and flyObjects[1].Parent then
         local h=humanoid()
+        if h then h.PlatformStand=true; h.AutoRotate=false end
         local direction=h and h.MoveDirection or Vector3.zero
         local up=touchVertical
         if not UIS:GetFocusedTextBox() then
@@ -4481,7 +4538,7 @@ connect(Run.RenderStepped,function(dt)
     if state.fly then
         runtime.flightInfo.Text="ISB FLUG  \194\183  "..runtime.flightLevel().name.."  \194\183  "..runtime.flightLevel().speed.." studs/s"
         runtime.flightInfo.TextColor3=runtime.flightLevel().color
-        runtime.flightNext.Text=settings.flightTierKey.."  "..runtime.flightTier.."/4"
+        runtime.flightNext.Text=settings.flightTierKey.."  "..(runtime.flightCustomLevel and "CUSTOM" or runtime.flightTier.."/4")
         local viewport=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.X or 1280
         local width=math.min(540,math.max(260,viewport-24)); local compact=width<500
         local height=compact and 88 or 48
