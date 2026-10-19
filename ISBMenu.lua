@@ -1,7 +1,7 @@
--- ISB Menu 2.6.50 | Own-game universal client toolkit
+-- ISB Menu 2.6.51 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.50",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.51",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -640,7 +640,9 @@ runtime.english={
     [" bereit \226\128\162 "]=" ready \226\128\162 ",
     [" \195\182ffnet das Men\195\188"]=" opens the menu",
 }
+runtime.english["Erweiterte Spieler-Synchronisierung ist in diesem Executor nicht verf\195\188gbar. Normales Folgen bleibt aktiv."]="Advanced player synchronization is unavailable in this executor. Basic following remains active."
 runtime.englishHistory={
+    ["2.6.51"]="Quick Actions align network synchronization with the selected player when supported by the executor.\nStopping restores the previous synchronization; a notice appears when advanced synchronization is unavailable.",
     ["2.6.50"]="Quick Actions use a consistent position update when following another player.\nMovement is stabilized against additional drifting; stopping restores normal controls.",
     ["2.6.49"]="The dock sits above the open backpack window with more spacing, even when it is empty.\nClosing the backpack restores the usual dock position above the hotbar.",
     ["2.6.48"]="The dock moves back down when no occupied hotbar slot is visible.\nA single visible item still moves the dock upward.",
@@ -2890,6 +2892,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.51",text="Quick Actions passen die Netzwerksynchronisierung an den ausgew\195\164hlten Spieler an, sofern der Executor dies unterst\195\188tzt.\nBeim Beenden wird die vorherige Synchronisierung wiederhergestellt; fehlende Unterst\195\188tzung wird als Hinweis angezeigt."},
     {version="2.6.50",text="Quick Actions verwenden eine einheitliche Positionsaktualisierung beim Folgen eines Spielers.\nDie Bewegung wird gegen zus\195\164tzliches Nachdriften stabilisiert; beim Beenden wird die normale Steuerung wiederhergestellt."},
     {version="2.6.49",text="Das Dock steht mit mehr Abstand \195\188ber dem ge\195\182ffneten Rucksackfenster, auch wenn es leer ist.\nBeim Schlie\195\159en des Rucksacks kehrt das Dock zur normalen Position \195\188ber der Inventarleiste zur\195\188ck."},
     {version="2.6.48",text="Das Dock r\195\188ckt wieder nach unten, wenn kein belegter Inventar-Slot mehr sichtbar ist.\nEin einzelnes sichtbares Item hebt das Dock weiterhin an."},
@@ -3535,10 +3538,42 @@ function runtime.disableCharacterCollisions()
         end
     end
 end
+function runtime.restoreRoleplayReplication(owned)
+    if not owned or not owned.replicationCaptured then return end
+    local currentOK,current=pcall(owned.replicationGet,owned.root,"PhysicsRepRootPart")
+    if not currentOK or current==owned.replicationTarget then
+        pcall(owned.replicationSet,owned.root,"PhysicsRepRootPart",owned.replicationPrevious)
+    end
+    owned.replicationCaptured=false; owned.replicationTarget=nil
+end
+function runtime.roleplayReplicationUnavailable(owned)
+    if owned.replicationUnavailable then return end
+    owned.replicationUnavailable=true
+    notify("Erweiterte Spieler-Synchronisierung ist in diesem Executor nicht verf\195\188gbar. Normales Folgen bleibt aktiv.","Quick Actions")
+end
+function runtime.syncRoleplayReplication(owned)
+    local char=owned.target.Character
+    local targetRoot=char and char:FindFirstChild("HumanoidRootPart")
+    if not targetRoot then runtime.restoreRoleplayReplication(owned); return end
+    if owned.replicationUnavailable then return end
+    if not owned.replicationCaptured then
+        if type(gethiddenproperty)~="function" or type(sethiddenproperty)~="function" then
+            runtime.roleplayReplicationUnavailable(owned); return
+        end
+        local ok,previous=pcall(gethiddenproperty,owned.root,"PhysicsRepRootPart")
+        if not ok then runtime.roleplayReplicationUnavailable(owned); return end
+        owned.replicationGet=gethiddenproperty; owned.replicationSet=sethiddenproperty
+        owned.replicationPrevious=previous; owned.replicationCaptured=true
+    end
+    owned.replicationTarget=targetRoot
+    local ok=pcall(owned.replicationSet,owned.root,"PhysicsRepRootPart",targetRoot)
+    if not ok then runtime.restoreRoleplayReplication(owned); runtime.roleplayReplicationUnavailable(owned) end
+end
 function runtime.stopRoleplay()
     pcall(function() Run:UnbindFromRenderStep("ISBRoleplayFollow") end)
     local owned=runtime.roleplay; runtime.roleplay=nil
     if not owned then return end
+    runtime.restoreRoleplayReplication(owned)
     if owned.hold then owned.hold:Destroy(); owned.hold=nil end
     if owned.track then pcall(function() owned.track:Stop(.15); owned.track:Destroy() end) end
     if owned.animation then owned.animation:Destroy() end
@@ -3605,6 +3640,7 @@ function runtime.syncRoleplay(dt)
     local targetHumanoid=owned.target.Character and owned.target.Character:FindFirstChildOfClass("Humanoid")
     if not alive or not owned.target.Parent or not part or root()~=owned.root or humanoid()~=owned.h
         or owned.h.Health<=0 or not targetHumanoid or targetHumanoid.Health<=0 then runtime.stopRoleplay(); return end
+    runtime.syncRoleplayReplication(owned)
     -- One physics frame is shared by local positioning and replication.
     owned.root.CFrame=runtime.roleplayFrame(owned,part,dt or 0)
     owned.root.AssemblyLinearVelocity=Vector3.zero
@@ -4399,8 +4435,6 @@ connect(Run.PreSimulation,function(dt)
         if not owned.target.Parent or not part or not r or humanoid()~=owned.h or owned.h.Health<=0 or not targetH or targetH.Health<=0 then runtime.stopRoleplay()
         else
             runtime.disableCharacterCollisions()
-            -- Keep our character's replication root. Linking it to another
-            -- avatar can prevent that avatar's client from seeing us.
             if owned.track then pcall(function()
                 if not owned.track.IsPlaying then owned.track:Play(.05,1,1) end
                 if owned.frozenPose then

@@ -1,4 +1,9 @@
-# ISB Menu 2.6.50 · by Larsiopuw
+# ISB Menu 2.6.51 · by Larsiopuw
+
+## Änderungen in 2.6.51
+
+- Quick Actions passen die Netzwerksynchronisierung an den ausgewählten Spieler an, sofern der Executor dies unterstützt.
+- Beim Beenden wird die vorherige Synchronisierung wiederhergestellt; fehlende Unterstützung wird als Hinweis angezeigt.
 
 ## Änderungen in 2.6.50
 
