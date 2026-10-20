@@ -1,4 +1,9 @@
-# ISB Menu 2.6.56 · by Larsiopuw
+# ISB Menu 2.6.57 · by Larsiopuw
+
+## Änderungen in 2.6.57
+
+- Die Kamerahöhe passt sich jetzt an den sichtbaren Kopf des kopierten Avatars an – auch bei unterschiedlich großen Körpern und Kameras, die den bisherigen Höhenversatz ignorieren.
+- Beim Zurücksetzen, Respawn oder Beenden des Menüs entfällt die Kamerakorrektur wieder. Zoom, Blickrichtung, Freecam und Spielerbeobachtung bleiben erhalten.
 
 ## Änderungen in 2.6.56
 
