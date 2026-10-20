@@ -1,4 +1,9 @@
-# ISB Menu 2.6.58 · by Larsiopuw
+# ISB Menu 2.6.59 · by Larsiopuw
+
+## Änderungen in 2.6.59
+
+- Die Passform kopierter Accessoires wurde verbessert: Angepasste Befestigungen und gleich benannte Kleidungsstücke bleiben korrekt zugeordnet. Auch zuvor ausgelassene Outfit-Teile werden mitkopiert.
+- Mehrlagige Kleidung nutzt nun die Körperverformung des kopierten Avatars. Kopfbedeckungen und Kleidung behalten ihre vorhandenen Befestigungen statt pauschal neu ausgerichtet zu werden.
 
 ## Änderungen in 2.6.58
 

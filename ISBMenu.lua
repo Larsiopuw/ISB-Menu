@@ -1,7 +1,7 @@
--- ISB Menu 2.6.58 | Own-game universal client toolkit
+-- ISB Menu 2.6.59 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.58",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.59",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -661,6 +661,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.59"]="Improved fitting for copied accessories: custom joints and accessories sharing the same name remain correctly matched. Previously omitted outfit parts are now included.\nLayered clothing now uses the copied avatar's body deformation. Headwear and clothing retain existing joints instead of being realigned from attachment names alone.",
     ["2.6.58"]="Steadier camera with copied outfits: walking and head movement no longer change camera height. Original walking poses no longer appear while outfit animations are missing or loading.\nHeld items visually follow the copied body's hand locally. Unequipping items or restoring your outfit restores their original appearance.",
     ["2.6.57"]="Camera height now follows the copied avatar's visible head, including differently sized bodies and cameras that ignore the previous height offset.\nRestoring your outfit, respawning or closing the menu removes the camera adjustment. Zoom, viewing direction, freecam and spectating are preserved.",
     ["2.6.56"]="The body copy now uses the copied avatar's available idle, walk and run animations. Playback follows your own movement; flight poses are preserved.\nHair and other head accessories follow animated head attachments. Accessories without an original joint connection also stay attached to the appropriate body part.",
@@ -2967,6 +2968,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.59",text="Die Passform kopierter Accessoires wurde verbessert: Angepasste Befestigungen und gleich benannte Kleidungsst\195\188cke bleiben korrekt zugeordnet. Auch zuvor ausgelassene Outfit-Teile werden mitkopiert.\nMehrlagige Kleidung nutzt nun die K\195\182rperverformung des kopierten Avatars. Kopfbedeckungen und Kleidung behalten ihre vorhandenen Befestigungen statt pauschal neu ausgerichtet zu werden."},
     {version="2.6.58",text="Ruhigere Kamera bei kopierten Outfits: Lauf- und Kopfbewegungen verstellen die Kamerah\195\182he nicht mehr. Die urspr\195\188nglichen Laufposen erscheinen auch beim Laden fehlender Outfit-Animationen nicht mehr.\nGehaltene Items folgen lokal der Hand des kopierten K\195\182rpers. Beim Ablegen und Zur\195\188cksetzen wird ihre urspr\195\188ngliche Darstellung wiederhergestellt."},
     {version="2.6.57",text="Die Kamerah\195\182he passt sich jetzt an den sichtbaren Kopf des kopierten Avatars an \226\128\147 auch bei unterschiedlich gro\195\159en K\195\182rpern und Kameras, die den bisherigen H\195\182henversatz ignorieren.\nBeim Zur\195\188cksetzen, Respawn oder Beenden des Men\195\188s entf\195\164llt die Kamerakorrektur wieder. Zoom, Blickrichtung, Freecam und Spielerbeobachtung bleiben erhalten."},
     {version="2.6.56",text="Die K\195\182rperkopie verwendet jetzt die verf\195\188gbaren Stand-, Geh- und Laufanimationen des kopierten Avatars. Das Abspielen richtet sich nach deiner eigenen Bewegung; Flugposen bleiben erhalten.\nHaare und anderes Kopfzubeh\195\182r folgen den animierten Kopf-Attachments. Auch Accessoires ohne urspr\195\188ngliche Gelenkverbindung bleiben am passenden K\195\182rperteil befestigt."},
@@ -3942,51 +3944,71 @@ function runtime.updateOutfitAnimation(body)
     else body.animated=false end
 end
 function runtime.outfitAccessoryBindings(body,seen)
-    local attachments={}; local parts={}
+    local parts={}; local candidates={}
     for _,entry in ipairs(body.parts) do
         local part=entry.part; local ancestor=part.Parent; local accessory=false
-        while ancestor and ancestor~=body.model do if ancestor:IsA("Accessory") then accessory=true; break end; ancestor=ancestor.Parent end
+        while ancestor and ancestor~=body.model do if ancestor:IsA("Accessory") then accessory=true;break end;ancestor=ancestor.Parent end
         if not accessory and part~=body.bodyRoot then
             table.insert(parts,part)
-            for _,attachment in ipairs(part:GetDescendants()) do
-                if attachment:IsA("Attachment") then
-                    local attachmentPart=runtime.outfitAttachmentFrame(attachment)
-                    if attachmentPart==part and (not attachments[attachment.Name] or part.Name=="Head") then attachments[attachment.Name]=attachment end
-                end
-            end
+            for _,attachment in ipairs(part:GetDescendants()) do if attachment:IsA("Attachment") then
+                local owner=runtime.outfitAttachmentFrame(attachment)
+                if owner==part then candidates[attachment.Name]=candidates[attachment.Name] or {};table.insert(candidates[attachment.Name],attachment) end
+            end end
         end
-        entry.connected=seen[part]==true
-        part.Anchored=true
+        entry.connected=seen[part]==true;part.Anchored=true
     end
-    for _,accessory in ipairs(body.model:GetDescendants()) do
-        if accessory:IsA("Accessory") then
-            local handle=accessory:FindFirstChild("Handle")
-            if handle then
-                local attachment=handle:FindFirstChildOfClass("Attachment")
-                local target=attachment and attachments[attachment.Name]
-                local binding={handle=handle,attachment=attachment,target=target,parts={}}
-                if not target and not seen[handle] then
-                    local nearest,distance
+    for _,accessory in ipairs(body.model:GetDescendants()) do if accessory:IsA("Accessory") then
+        local handle=accessory:FindFirstChild("Handle")
+        if handle and handle:IsA("BasePart") then
+            local binding={handle=handle,parts={}}
+            -- Existing joints define custom fitting, including nonstandard/scaled accessories.
+            -- Keep their solved pose; attachments are a fallback for unattached handles only.
+            if not seen[handle] then
+                local best
+                for _,attachment in ipairs(handle:GetChildren()) do if attachment:IsA("Attachment") then
+                    for _,target in ipairs(candidates[attachment.Name] or {}) do
+                        local parent,targetFrame=runtime.outfitAttachmentFrame(target,true)
+                        local _,handleFrame=runtime.outfitAttachmentFrame(attachment,true)
+                        local predicted=parent.CFrame*targetFrame*handleFrame:Inverse()
+                        local distance=(predicted.Position-handle.CFrame.Position).Magnitude
+                        if not best or distance<best then
+                            best=distance;binding.attachment=attachment;binding.target=target
+                            binding.fit=predicted:ToObjectSpace(handle.CFrame)
+                        end
+                    end
+                end end
+                if not binding.target then
+                    local distance
                     for _,part in ipairs(parts) do
                         local delta=(handle.CFrame.Position-part.CFrame.Position).Magnitude
-                        if not distance or delta<distance then nearest=part; distance=delta end
+                        if not distance or delta<distance then binding.parent=part;distance=delta end
                     end
-                    binding.parent=nearest
-                    binding.offset=nearest and nearest.CFrame:ToObjectSpace(handle.CFrame)
+                    binding.offset=binding.parent and binding.parent.CFrame:ToObjectSpace(handle.CFrame)
                 end
-                if target or binding.parent then
-                    for _,part in ipairs(accessory:GetDescendants()) do
-                        if part:IsA("BasePart") and part~=handle then table.insert(binding.parts,{part=part,offset=handle.CFrame:ToObjectSpace(part.CFrame)}) end
+            else binding.jointed=true end
+            if binding.jointed or binding.target or binding.parent then
+                for _,part in ipairs(accessory:GetDescendants()) do
+                    if part:IsA("BasePart") and part~=handle and not seen[part] then
+                        table.insert(binding.parts,{part=part,offset=handle.CFrame:ToObjectSpace(part.CFrame)})
                     end
-                    table.insert(body.accessoryBindings,binding)
                 end
+                table.insert(body.accessoryBindings,binding)
             end
         end
-    end
+    end end
 end
+
 function runtime.outfitRigPath(item,model)
-    local path={item.ClassName}
-    while item and item~=model do table.insert(path,item.Name); item=item.Parent end
+    local path={}
+    while item and item~=model do
+        local ordinal=0;local parent=item.Parent
+        if parent then for _,sibling in ipairs(parent:GetChildren()) do
+            if sibling.ClassName==item.ClassName and sibling.Name==item.Name then ordinal+=1 end
+            if sibling==item then break end
+        end end
+        table.insert(path,item.ClassName..":"..#item.Name..":"..item.Name..":"..ordinal)
+        item=parent
+    end
     return table.concat(path,"/")
 end
 function runtime.createOutfitAnimationRig(body)
@@ -3995,7 +4017,8 @@ function runtime.createOutfitAnimationRig(body)
     for _,item in ipairs(model:GetDescendants()) do
         objects[runtime.outfitRigPath(item,model)]=item
         if item:IsA("BasePart") then
-            item.Transparency=1; item.LocalTransparencyModifier=1; item.CastShadow=false
+            if not body.nativeClothing then item.Transparency=1; item.CastShadow=false end
+            item.LocalTransparencyModifier=1
             item.CanCollide=false; item.CanTouch=false; item.CanQuery=false
         elseif item:IsA("JointInstance") or item:IsA("WeldConstraint") or item:IsA("AnimationConstraint") then
             item.Enabled=true
@@ -4004,7 +4027,10 @@ function runtime.createOutfitAnimationRig(body)
     end
     for _,entry in ipairs(body.parts) do
         local part=objects[runtime.outfitRigPath(entry.part,body.model)]
-        if part then part.Anchored=entry.part==body.bodyRoot or not entry.connected end
+        if part then
+            entry.driver=part
+            part.Anchored=entry.part==body.bodyRoot or not entry.connected
+        end
     end
     for _,edge in ipairs(body.ordered) do edge.joint.driver=objects[runtime.outfitRigPath(edge.joint.rig,body.model)] end
     body.animationBones={}
@@ -4013,6 +4039,7 @@ function runtime.createOutfitAnimationRig(body)
         if driver then table.insert(body.animationBones,{target=bone,driver=driver}) end
     end
     body.animationRoot=model:FindFirstChild("HumanoidRootPart")
+    model.PrimaryPart=body.animationRoot
     model.Parent=workspace
     body.animator=Instance.new("Animator"); body.animator.Parent=model:FindFirstChildOfClass("Humanoid")
     body.animator.PreferLodEnabled=false
@@ -4020,10 +4047,11 @@ end
 function runtime.updateOutfitAccessories(body)
     for _,binding in ipairs(body.accessoryBindings) do
         local frame
-        if binding.target and binding.target.Parent and binding.attachment.Parent then
+        if binding.jointed then frame=binding.handle.CFrame
+        elseif binding.target and binding.target.Parent and binding.attachment.Parent then
             local parent,targetFrame=runtime.outfitAttachmentFrame(binding.target,true)
             local _,handleFrame=runtime.outfitAttachmentFrame(binding.attachment,true)
-            if parent then frame=parent.CFrame*targetFrame*handleFrame:Inverse() end
+            if parent then frame=parent.CFrame*targetFrame*handleFrame:Inverse()*(binding.fit or CFrame.new()) end
         elseif binding.parent and binding.parent.Parent then frame=binding.parent.CFrame*binding.offset end
         if frame then
             binding.handle.CFrame=frame
@@ -4038,10 +4066,11 @@ function runtime.prepareOutfitBody(source,char,h)
         local sourceRoot=source:FindFirstChild("HumanoidRootPart")
         local sourceHead=source:FindFirstChild("Head")
         if not sourceRoot or not sourceHead or not (source:FindFirstChild("UpperTorso") or source:FindFirstChild("Torso")) then error("Body not fully loaded") end
-        local archivable=source.Archivable
-        source.Archivable=true
+        local archivable={[source]=source.Archivable}
+        for _,item in ipairs(source:GetDescendants()) do archivable[item]=item.Archivable end
+        for item in pairs(archivable) do item.Archivable=true end
         local cloned,copy=pcall(function() return source:Clone() end)
-        source.Archivable=archivable
+        for item,value in pairs(archivable) do item.Archivable=value end
         if not cloned or not copy then error("Body cannot be copied") end
         model=copy; model.Name="ISBLocalOutfitBody"
         for _,item in ipairs(model:GetChildren()) do
@@ -4075,6 +4104,7 @@ function runtime.prepareOutfitBody(source,char,h)
         end
         for _,item in ipairs(model:GetDescendants()) do
             owned[item]=true
+            if item:IsA("WrapLayer") then body.nativeClothing=true end
             if item:IsA("BasePart") then
                 table.insert(body.parts,{part=item,offset=bodyRoot.CFrame:ToObjectSpace(item.CFrame),transparency=item.LocalTransparencyModifier})
                 item.Anchored=true; item.CanCollide=false; item.CanTouch=false; item.CanQuery=false; item.Massless=true
@@ -4183,7 +4213,8 @@ function runtime.updateOutfitTools(body,firstPerson)
         if tool.Parent~=body.character or not visual.handle.Parent or body.toolsDirty then runtime.clearOutfitTool(body,tool) end
     end
     body.toolsDirty=false
-    local targetHand=body.model:FindFirstChild("RightHand") or body.model:FindFirstChild("Right Arm")
+    local visible=body.nativeClothing and body.animationModel or body.model
+    local targetHand=visible:FindFirstChild("RightHand") or visible:FindFirstChild("Right Arm")
     local ownHand=body.character:FindFirstChild("RightHand") or body.character:FindFirstChild("Right Arm")
     if not targetHand or not ownHand then return end
     for _,tool in ipairs(body.character:GetChildren()) do
@@ -4253,7 +4284,10 @@ function runtime.updateOutfitBody()
     if not body then return end
     if not alive or player.Character~=body.character or not body.root.Parent or not body.model.Parent or not body.bodyRoot.Parent or (body.animationModel and not body.animationModel.Parent) or body.humanoid.Health<=0 then runtime.clearOutfit(false); return end
     local frame=body.root.CFrame*CFrame.new(0,body.lift,0)
-    if body.animationRoot then body.animationRoot.CFrame=frame end
+    if body.animationRoot then
+        if body.nativeClothing then body.animationModel:PivotTo(frame*body.animationRoot.PivotOffset)
+        else body.animationRoot.CFrame=frame end
+    end
     for _,entry in ipairs(body.parts) do entry.part.CFrame=frame*entry.offset end
     if body.animated then
         for bone,transform in pairs(body.bonePose) do if bone.Parent then bone.Transform=transform end end
@@ -4281,7 +4315,13 @@ function runtime.updateOutfitBody()
     for part in pairs(body.hidden) do if part.Parent then part.LocalTransparencyModifier=1 end end
     local camera=workspace.CurrentCamera
     local firstPerson=camera and camera.CameraSubject==body.humanoid and camera.CameraType~=Enum.CameraType.Scriptable and (camera.CFrame.Position-camera.Focus.Position).Magnitude<1
-    for _,entry in ipairs(body.parts) do entry.part.LocalTransparencyModifier=firstPerson and 1 or entry.transparency end
+    for _,entry in ipairs(body.parts) do
+        entry.part.LocalTransparencyModifier=(firstPerson or body.nativeClothing) and 1 or entry.transparency
+        if body.nativeClothing and entry.driver then
+            entry.driver.LocalTransparencyModifier=firstPerson and 1 or entry.transparency
+            if not entry.connected then entry.driver.CFrame=entry.part.CFrame end
+        end
+    end
     runtime.updateOutfitTools(body,firstPerson)
 end
 function runtime.installOutfitBody(body)
@@ -4290,7 +4330,21 @@ function runtime.installOutfitBody(body)
     runtime.createOutfitAnimationRig(body)
     table.insert(body.connections,(Run.PreAnimation or Run.Heartbeat):Connect(function() if runtime.outfitBody==body then runtime.updateOutfitAnimation(body) end end))
     table.insert(body.connections,Run.PreSimulation:Connect(function()
-        if runtime.outfitBody~=body or not body.animated then return end
+        if runtime.outfitBody~=body then return end
+        if not body.animated then
+            for _,edge in ipairs(body.ordered) do
+                local joint=edge.joint
+                if joint.animated and joint.driver then joint.driver.Transform=body.actionPose and joint.motor and joint.motor.Parent and joint.motor.Transform or CFrame.new() end
+            end
+            for _,bone in ipairs(body.animationBones) do bone.driver.Transform=CFrame.new() end
+            if body.actionPose then
+                for _,bone in ipairs(body.bones) do
+                    local driver=body.animationBones
+                    for _,pair in ipairs(driver) do if pair.target==bone.target and bone.source.Parent then pair.driver.Transform=bone.source.Transform end end
+                end
+            end
+            return
+        end
         for _,edge in ipairs(body.ordered) do if edge.joint.animated and edge.joint.driver then body.pose[edge.joint.rig]=edge.joint.driver.Transform end end
         for _,bone in ipairs(body.animationBones) do body.bonePose[bone.target]=bone.driver.Transform end
     end))
