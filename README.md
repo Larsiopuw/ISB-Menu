@@ -414,9 +414,12 @@ Roleplay enthält Auf dem Kopf, Huckepack, Huckepack 2, Schulter sitzen, Umarmen
 ## Starten
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Larsiopuw/ISB-Menu/main/ISBMenu.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Larsiopuw/ISB-Menu/main/ISBMenu-GitHub-Loader.lua?isb="..game:GetService("HttpService"):GenerateGUID(false)))()
 -- by Larsiopuw
 ```
+
+Dieser Main-Loader fragt bei jedem Start den aktuellen GitHub-Commit ab und lädt dessen Skript. Eindeutige Abrufadressen verhindern die Wiederverwendung alter Cache-Antworten. Es muss keine Versionsnummer ausgewählt oder später im Loader geändert werden. Bei einem GitHub-API-Limit wird die Main-Datei mit einer neuen Abrufadresse geladen.
+
 
 Öffentlicher, lesbarer Quellcode. Der Loader lädt den aktuellen Stand von main. Alternativ ISBMenu.lua vollständig ausführen. Der lokale Loader lädt die Datei; der GitHub-Loader enthält Fehlerprüfung.
 
