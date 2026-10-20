@@ -1,4 +1,9 @@
-# ISB Menu 2.6.60 · by Larsiopuw
+# ISB Menu 2.6.61 · by Larsiopuw
+
+## Änderungen in 2.6.61
+
+- Schwert-Effekte und Leuchtspuren folgen der sichtbaren Item-Kopie, statt zusätzlich an der früheren Position zu erscheinen.
+- Beidhändig getragene Items übernehmen beide Armposen. Über dem Kopf getragene Gegenstände berücksichtigen die neue Kopfhöhe und ihre gesamte Größe.
 
 ## Änderungen in 2.6.60
 

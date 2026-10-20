@@ -1,7 +1,7 @@
--- ISB Menu 2.6.60 | Own-game universal client toolkit
+-- ISB Menu 2.6.61 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.60",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.61",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -661,6 +661,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.61"]="Sword effects and trails follow the visible item copy instead of also appearing at the original position.\nTwo-handed items use both arm poses. Items carried overhead account for the copied head height and the full size of the item.",
     ["2.6.60"]="Held items fit differently sized hands more accurately. Custom item grip offsets and rotations are preserved when copying an outfit.\nThe copied arm adopts the equipped item's holding pose and returns to the copied outfit's movement when the item is unequipped.",
     ["2.6.59"]="Improved fitting for copied accessories: custom joints and accessories sharing the same name remain correctly matched. Previously omitted outfit parts are now included.\nLayered clothing now uses the copied avatar's body deformation. Headwear and clothing retain existing joints instead of being realigned from attachment names alone.",
     ["2.6.58"]="Steadier camera with copied outfits: walking and head movement no longer change camera height. Original walking poses no longer appear while outfit animations are missing or loading.\nHeld items visually follow the copied body's hand locally. Unequipping items or restoring your outfit restores their original appearance.",
@@ -2969,6 +2970,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.61",text="Schwert-Effekte und Leuchtspuren folgen der sichtbaren Item-Kopie, statt zus\195\164tzlich an der fr\195\188heren Position zu erscheinen.\nBeidh\195\164ndig getragene Items \195\188bernehmen beide Armposen. \195\156ber dem Kopf getragene Gegenst\195\164nde ber\195\188cksichtigen die neue Kopfh\195\182he und ihre gesamte Gr\195\182\195\159e."},
     {version="2.6.60",text="Gehaltene Items sitzen besser in unterschiedlich gro\195\159en H\195\164nden. Zus\195\164tzliche Griffabst\195\164nde und Drehungen des Items bleiben beim Outfit-Wechsel erhalten.\nDer kopierte Arm \195\188bernimmt beim Ausr\195\188sten die Haltepose des Items. Beim Ablegen kehrt er zur Bewegung des kopierten Outfits zur\195\188ck."},
     {version="2.6.59",text="Die Passform kopierter Accessoires wurde verbessert: Angepasste Befestigungen und gleich benannte Kleidungsst\195\188cke bleiben korrekt zugeordnet. Auch zuvor ausgelassene Outfit-Teile werden mitkopiert.\nMehrlagige Kleidung nutzt nun die K\195\182rperverformung des kopierten Avatars. Kopfbedeckungen und Kleidung behalten ihre vorhandenen Befestigungen statt pauschal neu ausgerichtet zu werden."},
     {version="2.6.58",text="Ruhigere Kamera bei kopierten Outfits: Lauf- und Kopfbewegungen verstellen die Kamerah\195\182he nicht mehr. Die urspr\195\188nglichen Laufposen erscheinen auch beim Laden fehlender Outfit-Animationen nicht mehr.\nGehaltene Items folgen lokal der Hand des kopierten K\195\182rpers. Beim Ablegen und Zur\195\188cksetzen wird ihre urspr\195\188ngliche Darstellung wiederhergestellt."},
@@ -4206,10 +4208,15 @@ function runtime.clearOutfitTool(body,tool)
     for part,value in pairs(visual.hidden) do
         if part.Parent and part.LocalTransparencyModifier==1 then part.LocalTransparencyModifier=value end
     end
+    for _,connection in ipairs(visual.effectConnections) do connection:Disconnect() end
+    for _,entry in ipairs(visual.effects) do
+        if entry.source.Parent and entry.source[entry.property]==entry.mask then entry.source[entry.property]=entry.original end
+    end
+    for _,attachment in ipairs(visual.effectAttachments) do attachment:Destroy() end
     visual.model:Destroy(); body.toolVisuals[tool]=nil
 end
 function runtime.outfitHandAnchor(hand,reference)
-    local attachment=hand:FindFirstChild("RightGripAttachment")
+    local attachment=hand:FindFirstChild(hand.Name:sub(1,4)=="Left" and "LeftGripAttachment" or "RightGripAttachment")
     if attachment then return attachment.CFrame end
     -- R6/custom hands without an attachment still grip at the end of the limb.
     return CFrame.new(0,-hand.Size.Y*.5,0)*(reference and reference.Rotation or CFrame.new())
@@ -4227,12 +4234,19 @@ function runtime.outfitHeldFrame(ownHand,targetHand,handle,grip)
     return targetHand.CFrame*targetAnchor*ownAnchor:Inverse()*relative
 end
 function runtime.outfitHoldingArms(body)
-    local hand=body.character:FindFirstChild("RightHand") or body.character:FindFirstChild("Right Arm")
-    local grip=hand and hand:FindFirstChild("RightGrip")
-    if not grip or not grip:IsA("JointInstance") then return false end
-    local part=grip.Part0==hand and grip.Part1 or grip.Part1==hand and grip.Part0
-    local tool=part and part.Parent
-    return tool and tool:IsA("Tool") and tool.Parent==body.character or false
+    for _,tool in ipairs(body.character:GetChildren()) do
+        local handle=tool:IsA("Tool") and tool:FindFirstChild("Handle")
+        if handle and handle:IsA("BasePart") then
+            if tool.RequiresHandle~=false then return true end
+            for _,joint in ipairs(body.character:GetDescendants()) do
+                if joint:IsA("JointInstance") or joint:IsA("WeldConstraint") then
+                    local other=joint.Part0==handle and joint.Part1 or joint.Part1==handle and joint.Part0
+                    if other and other.Parent==body.character then return true end
+                end
+            end
+        end
+    end
+    return false
 end
 function runtime.outfitHeldArmPose(joint)
     local source=joint.motor
@@ -4256,7 +4270,148 @@ function runtime.releaseOutfitToolArms(body)
 end
 function runtime.outfitIsHoldingJoint(joint)
     local key=runtime.outfitJointKey(joint.rig.Name)
-    return key=="rightshoulder" or key=="rightelbow" or key=="rightwrist"
+    return key=="rightshoulder" or key=="rightelbow" or key=="rightwrist" or key=="leftshoulder" or key=="leftelbow" or key=="leftwrist"
+end
+
+function runtime.outfitToolMount(body,visual)
+    local handle=visual.handle
+    local function endpoints(joint)
+        if joint:IsA("JointInstance") or joint:IsA("WeldConstraint") then return joint.Part0,joint.Part1 end
+        if joint:IsA("AnimationConstraint") then
+            local a=runtime.outfitAttachmentFrame(joint.Attachment0)
+            local b=runtime.outfitAttachmentFrame(joint.Attachment1)
+            return a,b
+        end
+    end
+    local joint=visual.grip
+    local a,b
+    if joint and joint.Parent then a,b=endpoints(joint) end
+    local owner=a==handle and b or b==handle and a
+    if not owner or owner.Parent~=body.character then
+        owner=nil;joint=nil
+        for _,candidate in ipairs(body.character:GetDescendants()) do
+            local p0,p1=endpoints(candidate)
+            local other=p0==handle and p1 or p1==handle and p0
+            if other and other.Parent==body.character then joint=candidate;owner=other;break end
+        end
+        visual.grip=joint
+    end
+    local visible=body.nativeClothing and body.animationModel or body.model
+    if owner then
+        local target=visible:FindFirstChild(owner.Name)
+        if not target then
+            if owner.Name=="RightHand" then target=visible:FindFirstChild("Right Arm")
+            elseif owner.Name=="Right Arm" then target=visible:FindFirstChild("RightHand")
+            elseif owner.Name=="LeftHand" then target=visible:FindFirstChild("Left Arm")
+            elseif owner.Name=="Left Arm" then target=visible:FindFirstChild("LeftHand") end
+        end
+        if target then
+            if owner.Name=="RightHand" or owner.Name=="Right Arm" or owner.Name=="LeftHand" or owner.Name=="Left Arm" then
+                return runtime.outfitHeldFrame(owner,target,handle,joint)
+            end
+            return target.CFrame*owner.CFrame:ToObjectSpace(handle.CFrame)
+        end
+    end
+    local own=body.character:FindFirstChild("RightHand") or body.character:FindFirstChild("Right Arm")
+    local target=visible:FindFirstChild("RightHand") or visible:FindFirstChild("Right Arm")
+    return own and target and runtime.outfitHeldFrame(own,target,handle,nil)
+end
+function runtime.outfitOverheadFrame(body,visual,frame)
+    local handle=visual.handle
+    local function halfHeight(cf,size)
+        return (math.abs(cf.RightVector.Y)*size.X+math.abs(cf.UpVector.Y)*size.Y+math.abs(cf.LookVector.Y)*size.Z)*.5
+    end
+    local ownHead=body.ownHead
+    local ownTop=ownHead.CFrame.Position.Y+halfHeight(ownHead.CFrame,ownHead.Size)
+    local originalBottom,originalTop,targetBottom=math.huge,-math.huge,math.huge
+    for _,entry in ipairs(visual.parts) do
+        local part=entry.source
+        local original=part.CFrame;local projected=frame*handle.CFrame:ToObjectSpace(original)
+        local extent=halfHeight(original,part.Size)
+        originalBottom=math.min(originalBottom,original.Position.Y-extent)
+        originalTop=math.max(originalTop,original.Position.Y+extent)
+        targetBottom=math.min(targetBottom,projected.Position.Y-halfHeight(projected,part.Size))
+    end
+    if (originalBottom+originalTop)*.5<=ownTop or originalBottom<ownHead.CFrame.Position.Y then return frame end
+    local visible=body.nativeClothing and body.animationModel or body.model
+    local head=visible:FindFirstChild("Head")
+    if not head then return frame end
+    local targetTop=head.CFrame.Position.Y+halfHeight(head.CFrame,head.Size)
+    local lift=math.max(0,targetTop+math.max(0,originalBottom-ownTop)-targetBottom)
+    return frame+Vector3.new(0,lift,0)
+end
+function runtime.outfitToolEffectAttachment(body,visual,attachment)
+    if not attachment then return nil end
+    if visual.objects[attachment] then return visual.objects[attachment] end
+    local part,localFrame=runtime.outfitAttachmentFrame(attachment,true)
+    if not part or part.Parent~=body.character then return attachment end
+    local visible=body.nativeClothing and body.animationModel or body.model
+    local target=visible:FindFirstChild(part.Name)
+    if not target then
+        local aliases={RightHand="Right Arm",["Right Arm"]="RightHand",LeftHand="Left Arm",["Left Arm"]="LeftHand"}
+        target=aliases[part.Name] and visible:FindFirstChild(aliases[part.Name])
+    end
+    if not target then return nil end
+    local copy=target:FindFirstChild(attachment.Name,true)
+    if not copy or not copy:IsA("Attachment") then
+        copy=Instance.new("Attachment");copy.Name="ISBToolEffectAttachment"
+        local position=localFrame.Position
+        copy.CFrame=CFrame.new(position.X*target.Size.X/part.Size.X,position.Y*target.Size.Y/part.Size.Y,position.Z*target.Size.Z/part.Size.Z)*localFrame.Rotation
+        copy.Parent=target;table.insert(visual.effectAttachments,copy)
+    end
+    visual.objects[attachment]=copy
+    return copy
+end
+function runtime.outfitToolEffects(body,visual,firstPerson)
+    for source,copy in pairs(visual.objects) do
+        if source:IsA("Attachment") and source.Parent and copy.Parent then
+            local ancestor=source.Parent;local internal=false
+            while ancestor do if ancestor==visual.tool then internal=true;break end;ancestor=ancestor.Parent end
+            if internal then
+                copy.CFrame=source.CFrame
+                if source:IsA("Bone") then copy.Transform=source.Transform end
+            end
+        end
+    end
+    for _,entry in ipairs(visual.effects) do
+        local source,copy=entry.source,entry.copy
+        if source.Parent and copy.Parent then
+            local current=source[entry.property]
+            if current~=entry.mask then entry.original=current end
+            copy[entry.property]=firstPerson and entry.mask or entry.original
+            copy.Enabled=source.Enabled and not firstPerson and entry.valid~=false
+            source[entry.property]=entry.mask
+            if source:IsA("Beam") or source:IsA("Trail") then
+                for _,property in ipairs({"Attachment0","Attachment1"}) do
+                    local attachment=source[property]
+                    copy[property]=runtime.outfitToolEffectAttachment(body,visual,attachment)
+                end
+                copy.Enabled=copy.Enabled and copy.Attachment0~=nil and copy.Attachment1~=nil
+            end
+        elseif copy.Parent then copy.Enabled=false end
+    end
+end
+function runtime.prepareOutfitToolEffects(visual)
+    for source,copy in pairs(visual.objects) do
+        local property,mask
+        if source:IsA("ParticleEmitter") or source:IsA("Trail") or source:IsA("Beam") then property="LocalTransparencyModifier";mask=1
+        elseif source:IsA("PointLight") or source:IsA("SpotLight") or source:IsA("SurfaceLight") then property="Brightness";mask=0 end
+        if property and copy.Parent then
+            local entry={source=source,copy=copy,property=property,mask=mask,original=source[property]}
+            table.insert(visual.effects,entry)
+            if source.Changed then
+                table.insert(visual.effectConnections,source.Changed:Connect(function(changed)
+                    if changed==property then
+                        if source[property]~=mask then entry.original=source[property] end
+                    elseif changed~="Parent" and changed~="Attachment0" and changed~="Attachment1" then
+                        pcall(function() copy[changed]=source[changed] end)
+                    end
+                end))
+            end
+            copy.Enabled=false
+            if copy:IsA("ParticleEmitter") or copy:IsA("Trail") then copy:Clear() end
+        end
+    end
 end
 
 function runtime.updateOutfitTools(body,firstPerson)
@@ -4266,23 +4421,30 @@ function runtime.updateOutfitTools(body,firstPerson)
         if tool.Parent~=body.character or not visual.handle.Parent or body.toolsDirty then runtime.clearOutfitTool(body,tool) end
     end
     body.toolsDirty=false
-    local visible=body.nativeClothing and body.animationModel or body.model
-    local targetHand=visible:FindFirstChild("RightHand") or visible:FindFirstChild("Right Arm")
-    local ownHand=body.character:FindFirstChild("RightHand") or body.character:FindFirstChild("Right Arm")
-    if not targetHand or not ownHand then return end
     for _,tool in ipairs(body.character:GetChildren()) do
         local handle=tool:IsA("Tool") and tool:FindFirstChild("Handle")
         if handle and handle:IsA("BasePart") and not body.toolFailures[tool] then
             local visual=body.toolVisuals[tool]
             if not visual then
                 local model=Instance.new("Model"); model.Name="ISBOutfitToolVisual"
-                visual={model=model,handle=handle,parts={},hidden={}}
+                visual={model=model,tool=tool,handle=handle,parts={},hidden={},objects={},effects={},effectAttachments={},effectConnections={}}
                 body.toolVisuals[tool]=visual
                 local ok=pcall(function()
                     for _,part in ipairs(tool:GetDescendants()) do if part:IsA("BasePart") then
-                        local archivable=part.Archivable;part.Archivable=true
-                        local cloned,copy=pcall(function() return part:Clone() end);part.Archivable=archivable
+                        local flags={[part]=part.Archivable}
+                        for _,item in ipairs(part:GetDescendants()) do flags[item]=item.Archivable end
+                        for item in pairs(flags) do item.Archivable=true end
+                        local cloned,copy=pcall(function() return part:Clone() end)
+                        for item,value in pairs(flags) do item.Archivable=value end
                         if not cloned or not copy then error("Tool appearance unavailable") end
+                        local clonedObjects={}
+                        for _,item in ipairs(copy:GetDescendants()) do clonedObjects[runtime.outfitRigPath(item,copy)]=item end
+                        visual.objects[part]=copy
+                        for _,item in ipairs(part:GetDescendants()) do
+                            local ancestor=item.Parent;local nested=false
+                            while ancestor and ancestor~=part do if ancestor:IsA("BasePart") then nested=true;break end;ancestor=ancestor.Parent end
+                            if not nested and not item:IsA("BasePart") then visual.objects[item]=clonedObjects[runtime.outfitRigPath(item,part)] end
+                        end
                         -- Clone visuals only; gameplay stays on the untouched original Tool.
                         for _,item in ipairs(copy:GetDescendants()) do
                             if item:IsA("LuaSourceContainer") or item:IsA("BasePart") or item:IsA("JointInstance") or item:IsA("WeldConstraint") or item:IsA("Constraint") or item:IsA("BodyMover") or item:IsA("Sound") or item:IsA("ProximityPrompt") or item:IsA("ClickDetector") then item:Destroy() end
@@ -4293,17 +4455,20 @@ function runtime.updateOutfitTools(body,firstPerson)
                         visual.hidden[part]=part.LocalTransparencyModifier
                     end end
                 end)
-                if ok and #visual.parts>0 then model.Parent=workspace else runtime.clearOutfitTool(body,tool);body.toolFailures[tool]=true;visual=nil end
+                if ok and #visual.parts>0 then runtime.prepareOutfitToolEffects(visual);model.Parent=workspace else runtime.clearOutfitTool(body,tool);body.toolFailures[tool]=true;visual=nil end
             end
             if visual then
-                local grip=ownHand:FindFirstChild("RightGrip")
-                local frame=runtime.outfitHeldFrame(ownHand,targetHand,handle,grip)
+                local frame=runtime.outfitToolMount(body,visual)
+                if frame then
+                frame=runtime.outfitOverheadFrame(body,visual,frame)
                 for _,entry in ipairs(visual.parts) do if entry.source.Parent then
-                    entry.part.CFrame=frame*handle.CFrame:ToObjectSpace(entry.source.CFrame)
+                    entry.part.CFrame=frame and frame*handle.CFrame:ToObjectSpace(entry.source.CFrame) or entry.source.CFrame
                     entry.part.Transparency=entry.source.Transparency
                     entry.part.LocalTransparencyModifier=firstPerson and 1 or visual.hidden[entry.source]
                     entry.source.LocalTransparencyModifier=1
                 end end
+                runtime.outfitToolEffects(body,visual,firstPerson)
+                else runtime.clearOutfitTool(body,tool);body.toolFailures[tool]=true end
             end
         end
     end
