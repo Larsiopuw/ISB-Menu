@@ -1,4 +1,10 @@
-# ISB Menu 2.6.53 · by Larsiopuw
+# ISB Menu 2.6.54 · by Larsiopuw
+
+## Änderungen in 2.6.54
+
+- Outfit Stealer in den Spielerdetails und der Spielerinfo: Übernimm das Outfit eines Spielers für deine aktuelle Sitzung. Mit „Eigenes Outfit“ wechselst du zurück.
+- Die lokale Outfit-Kopie übernimmt Kleidung, Accessoires, Farben und Gesicht. Körperformen werden übernommen, wenn das Spiel dies unterstützt.
+- Verändert keine gekauften Gegenstände und speichert keinen Account-Avatar. Die Sichtbarkeit für andere Spieler wird nicht zugesichert.
 
 ## Änderungen in 2.6.53
 

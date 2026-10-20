@@ -1,7 +1,7 @@
--- ISB Menu 2.6.53 | Own-game universal client toolkit
+-- ISB Menu 2.6.54 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.53",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.54",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -538,6 +538,16 @@ runtime.english={
     ["Daten sind derzeit nicht \195\182ffentlich abrufbar."]="Data is currently not publicly available.",
     ["\226\134\144 Spieler"]="\226\134\144 Players",
     ["Kein Team"]="No team",
+    ["Eigenes Outfit"]="Own outfit",
+    ["Lokale Outfit-Kopie \194\183 nur f\195\188r diese Sitzung"]="Local outfit copy \194\183 this session only",
+    ["Outfit wird gerade geladen."]="An outfit is already loading.",
+    ["Dein eigenes Outfit ist bereits aktiv."]="Your own outfit is already active.",
+    ["Spieler ist gerade nicht verf\195\188gbar."]="Player is currently unavailable.",
+    ["Eigenes Outfit wiederhergestellt."]="Your own outfit has been restored.",
+    ["Outfit lokal \195\188bernommen."]="Outfit copied locally.",
+    ["Outfit lokal \195\188bernommen. K\195\182rperform bleibt unver\195\164ndert."]="Outfit copied locally. Body shape is unchanged.",
+    ["Outfit konnte nicht kopiert werden. Vorheriges Outfit wiederhergestellt."]="Could not copy the outfit. Your previous outfit has been restored.",
+    ["Outfit konnte nicht angewendet werden. Bitte erneut versuchen oder respawnen."]="Could not apply the outfit. Please try again or respawn.",
     ["Bereits befreundet"]="Already friends",
     ["Freund anfragen"]="Send request",
     ["Roblox-Freundschaftsdialog ist hier nicht verf\195\188gbar."]="The Roblox friendship dialog is unavailable here.",
@@ -646,6 +656,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.54"]="Outfit Stealer in player details and the player inspector: copy a player's outfit for your current session. Use \"Own outfit\" to switch back.\nThe local outfit copy includes clothing, accessories, colors and face. Body shapes are copied when supported by the game.",
     ["2.6.53"]="Normal walking animations and your footstep sounds pause during flight; landing restores their previous states.\nThe flight number field shows speed in studs/s and accepts custom values from 1 to 10,000. The ruler keeps the four fixed tiers.",
     ["2.6.52"]="Reverted a Quick Actions change that could make your character disappear or appear at an incorrect position to other players.\nReducing follow delay is still unresolved.",
     ["2.6.51"]="Quick Actions align network synchronization with the selected player when supported by the executor.\nStopping restores the previous synchronization; a notice appears when advanced synchronization is unavailable.",
@@ -2947,6 +2958,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.54",text="Outfit Stealer in den Spielerdetails und der Spielerinfo: \195\156bernimm das Outfit eines Spielers f\195\188r deine aktuelle Sitzung. Mit \226\128\158Eigenes Outfit\226\128\156 wechselst du zur\195\188ck.\nDie lokale Outfit-Kopie \195\188bernimmt Kleidung, Accessoires, Farben und Gesicht. K\195\182rperformen werden \195\188bernommen, wenn das Spiel dies unterst\195\188tzt."},
     {version="2.6.53",text="Beim Fliegen pausieren die normale Laufanimation und eigene Schrittger\195\164usche; beim Landen werden die vorherigen Zust\195\164nde wiederhergestellt.\nDas Zahlenfeld der Flugstufen zeigt die Geschwindigkeit in Studs/s und erlaubt eigene Werte von 1 bis 10.000. Die Skala beh\195\164lt die vier festen Stufen."},
     {version="2.6.52",text="Eine \195\132nderung an Quick Actions wurde zur\195\188ckgenommen, durch die der eigene Charakter f\195\188r andere verschwinden oder an einer falschen Position erscheinen konnte.\nDie Verbesserung der Verz\195\182gerung beim Folgen ist noch nicht abgeschlossen."},
     {version="2.6.51",text="Quick Actions passen die Netzwerksynchronisierung an den ausgew\195\164hlten Spieler an, sofern der Executor dies unterst\195\188tzt.\nBeim Beenden wird die vorherige Synchronisierung wiederhergestellt; fehlende Unterst\195\188tzung wird als Hinweis angezeigt."},
@@ -3812,6 +3824,186 @@ function runtime.playerDetailField(parent,title,value,position)
     round(frontSheet,2); make("UIStroke",{Color=C.text,Thickness=1.3},frontSheet)
     return tile
 end
+-- Session appearance copies keep the existing character, camera and tools.
+runtime.outfitGeneration=0
+function runtime.outfitItem(item)
+    return item:IsA("Accessory") or item:IsA("Shirt") or item:IsA("Pants") or item:IsA("ShirtGraphic") or item:IsA("BodyColors") or item:IsA("CharacterMesh")
+end
+function runtime.outfitClone(item)
+    local clone=item:Clone()
+    if not clone then error("Appearance cannot be cloned") end
+    local owned={[clone]=true}
+    for _,child in ipairs(clone:GetDescendants()) do owned[child]=true end
+    for _,child in ipairs(clone:GetDescendants()) do
+        if child:IsA("LuaSourceContainer") then child:Destroy()
+        elseif child:IsA("JointInstance") then
+            if child.Name=="AccessoryWeld" or not owned[child.Part0] or not owned[child.Part1] then child:Destroy() end
+        elseif child:IsA("Constraint") then
+            if (child.Attachment0 and not owned[child.Attachment0]) or (child.Attachment1 and not owned[child.Attachment1]) then child:Destroy() end
+        end
+    end
+    return clone
+end
+function runtime.captureOutfit(char)
+    local result={character=char,items={},face={},colors={}}
+    local ok,err=pcall(function()
+        for _,item in ipairs(char:GetChildren()) do
+            if runtime.outfitItem(item) then table.insert(result.items,runtime.outfitClone(item)) end
+            if item:IsA("BasePart") then result.colors[item]=item.Color end
+        end
+        local head=char:FindFirstChild("Head")
+        if head then
+            for _,item in ipairs(head:GetChildren()) do
+                if item:IsA("Decal") or item:IsA("SpecialMesh") then table.insert(result.face,runtime.outfitClone(item)) end
+            end
+        end
+        local h=char:FindFirstChildOfClass("Humanoid")
+        local got,description=pcall(function() return h:GetAppliedDescription() end)
+        if got and description then result.description=description end
+    end)
+    if not ok then runtime.disposeOutfit(result); error(err) end
+    return result
+end
+function runtime.disposeOutfit(snapshot)
+    if not snapshot then return end
+    for _,list in ipairs({snapshot.items,snapshot.face}) do for _,item in ipairs(list) do item:Destroy() end end
+    if snapshot.description then pcall(function() snapshot.description:Destroy() end) end
+end
+function runtime.attachOutfitItem(h,char,item)
+    if not item:IsA("Accessory") then item.Parent=char; return end
+    local handle=item:FindFirstChild("Handle")
+    if handle then
+        for _,part in ipairs(item:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide=false; part.Massless=true; part.Anchored=false end
+        end
+    end
+    -- AddAccessory may create its weld only on the server; attach locally too.
+    h:AddAccessory(item)
+    if handle and not handle:FindFirstChild("AccessoryWeld") then
+        local attachment=handle:FindFirstChildOfClass("Attachment")
+        local target
+        if attachment then
+            for _,part in ipairs(char:GetChildren()) do
+                if part:IsA("BasePart") then
+                    local match=part:FindFirstChild(attachment.Name)
+                    if match and match:IsA("Attachment") then target=match; break end
+                end
+            end
+        end
+        if target then
+            local weld=Instance.new("Weld"); weld.Name="AccessoryWeld"
+            weld.Part0=target.Parent; weld.Part1=handle; weld.C0=target.CFrame; weld.C1=attachment.CFrame; weld.Parent=handle
+        elseif not attachment and char:FindFirstChild("Head") then
+            local weld=Instance.new("Weld"); weld.Name="AccessoryWeld"; weld.Part0=char.Head; weld.Part1=handle
+            weld.C0=CFrame.new(0,.5,0); weld.C1=item.AttachmentPoint; weld.Parent=handle
+        else
+            error("Accessory attachment unavailable")
+        end
+    end
+end
+function runtime.applyOutfit(snapshot,char,h)
+    if snapshot.description then
+        local applied=pcall(function() h:ApplyDescriptionResetAsync(snapshot.description) end)
+        if applied then return true end
+    end
+    -- Clone all source objects before changing the live character.
+    local pending={}; local faces={}
+    local prepared,prepareError=pcall(function()
+        for _,item in ipairs(snapshot.items) do table.insert(pending,runtime.outfitClone(item)) end
+        for _,item in ipairs(snapshot.face) do table.insert(faces,runtime.outfitClone(item)) end
+    end)
+    if not prepared then
+        for _,item in ipairs(pending) do item:Destroy() end
+        for _,item in ipairs(faces) do item:Destroy() end
+        error(prepareError)
+    end
+    local previous,previousFace,previousColors={},{},{}
+    local head=char:FindFirstChild("Head")
+    local applied,applyError=pcall(function()
+        for _,item in ipairs(char:GetChildren()) do
+            if runtime.outfitItem(item) then table.insert(previous,item); item.Parent=nil end
+            if item:IsA("BasePart") then previousColors[item]=item.Color end
+        end
+        for part,color in pairs(snapshot.colors) do
+            local own=char:FindFirstChild(part.Name)
+            if own and own:IsA("BasePart") and own.Name~="HumanoidRootPart" then own.Color=color end
+        end
+        if head then
+            for _,item in ipairs(head:GetChildren()) do
+                if item:IsA("Decal") or item:IsA("SpecialMesh") then table.insert(previousFace,item); item.Parent=nil end
+            end
+            for _,item in ipairs(faces) do item.Parent=head end
+        end
+        for _,item in ipairs(pending) do runtime.attachOutfitItem(h,char,item) end
+    end)
+    if not applied then
+        for _,item in ipairs(pending) do item:Destroy() end
+        for _,item in ipairs(faces) do item:Destroy() end
+        for _,item in ipairs(previous) do item.Parent=char end
+        for _,item in ipairs(previousFace) do item.Parent=head end
+        for part,color in pairs(previousColors) do part.Color=color end
+        error({outfitRestored=true,reason=applyError})
+    end
+    for _,item in ipairs(previous) do item:Destroy() end
+    for _,item in ipairs(previousFace) do item:Destroy() end
+    for _,item in ipairs(faces) do if not item.Parent then item:Destroy() end end
+    return false
+end
+function runtime.copyOutfit(other,restore)
+    if runtime.outfitBusy then notify("Outfit wird gerade geladen.","Outfit Stealer"); return end
+    local char=player.Character; local h=humanoid()
+    if not char or not h or h.Health<=0 then notify("Charakter ist gerade nicht verf\195\188gbar.","Outfit Stealer"); return end
+    if restore and not runtime.ownOutfit then notify("Dein eigenes Outfit ist bereits aktiv.","Outfit Stealer"); return end
+    if not restore and (not other or other==player or not other.Parent or not other.Character or not other.Character:FindFirstChildOfClass("Humanoid")) then
+        notify("Spieler ist gerade nicht verf\195\188gbar.","Outfit Stealer"); return
+    end
+    runtime.outfitBusy=true
+    local generation=runtime.outfitGeneration
+    local source=not restore and other.Character
+    task.spawn(function()
+        local before,target
+        local ok,full=pcall(function()
+            before=runtime.captureOutfit(char)
+            target=restore and runtime.ownOutfit or runtime.captureOutfit(source)
+            if not alive or generation~=runtime.outfitGeneration or player.Character~=char or (not restore and (other.Character~=source or not other.Parent)) then error("Character changed") end
+            return runtime.applyOutfit(target,char,h)
+        end)
+        local current=alive and generation==runtime.outfitGeneration and player.Character==char
+        if current then
+            if ok then
+                if restore then runtime.disposeOutfit(runtime.ownOutfit); runtime.ownOutfit=nil
+                elseif not runtime.ownOutfit then runtime.ownOutfit=before; before=nil end
+                notify(restore and "Eigenes Outfit wiederhergestellt." or (full and "Outfit lokal \195\188bernommen." or "Outfit lokal \195\188bernommen. K\195\182rperform bleibt unver\195\164ndert."),"Outfit Stealer")
+            else
+                local recovered=type(full)=="table" and full.outfitRestored or (before and pcall(runtime.applyOutfit,before,char,h))
+                notify(recovered and "Outfit konnte nicht kopiert werden. Vorheriges Outfit wiederhergestellt." or "Outfit konnte nicht angewendet werden. Bitte erneut versuchen oder respawnen.","Outfit Stealer")
+            end
+        end
+        if not current and runtime.outfitRestoreOnFinish and player.Character==char and before then pcall(runtime.applyOutfit,runtime.ownOutfit or before,char,h) end
+        if target and not restore then runtime.disposeOutfit(target) end
+        runtime.disposeOutfit(before)
+        runtime.outfitBusy=false
+        if runtime.outfitClearPending then
+            local shouldRestore=runtime.outfitRestoreOnFinish
+            runtime.outfitClearPending=nil; runtime.outfitRestoreOnFinish=nil
+            runtime.clearOutfit(shouldRestore)
+        end
+    end)
+end
+function runtime.clearOutfit(restore)
+    runtime.outfitGeneration+=1
+    if runtime.outfitBusy then runtime.outfitClearPending=true; runtime.outfitRestoreOnFinish=restore; return end
+    local snapshot=runtime.ownOutfit; runtime.ownOutfit=nil
+    if not snapshot then return end
+    task.spawn(function()
+        if restore and player.Character==snapshot.character then
+            local h=snapshot.character:FindFirstChildOfClass("Humanoid")
+            if h then pcall(runtime.applyOutfit,snapshot,snapshot.character,h) end
+        end
+        runtime.disposeOutfit(snapshot)
+    end)
+end
+
 function runtime.drawPlayerDetails(other)
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
     rowButton(back,"\226\134\144 Spieler",UDim2.new(),UDim2.fromOffset(120,28),function() runtime.selectedPlayer=nil; render() end)
@@ -3845,6 +4037,10 @@ function runtime.drawPlayerDetails(other)
     local tabs=controls
     rowButton(tabs,"Namenshistorie",UDim2.fromOffset(276,0),UDim2.fromOffset(144,28),function() runtime.profileTab="history"; runtime.profileRequest(other,"history"); render() end)
     rowButton(tabs,"Outfits",UDim2.fromOffset(430,0),UDim2.fromOffset(100,28),function() runtime.profileTab="outfits"; runtime.profileRequest(other,"outfits"); render() end)
+    local outfitControls=make("Frame",{Name="PlayerOutfitActions",BackgroundTransparency=1,Size=UDim2.new(1,0,0,58)},content)
+    rowButton(outfitControls,"Outfit Stealer",UDim2.new(),UDim2.new(.5,-5,0,30),function() runtime.copyOutfit(other) end)
+    rowButton(outfitControls,"Eigenes Outfit",UDim2.new(.5,5,0,0),UDim2.new(.5,-5,0,30),function() runtime.copyOutfit(nil,true) end)
+    label(outfitControls,"Lokale Outfit-Kopie \194\183 nur f\195\188r diese Sitzung",11,C.muted,UDim2.fromOffset(0,35),UDim2.new(1,0,0,18))
     local cache=runtime.profileData[other.UserId] or {}; local result=cache[runtime.profileTab or "history"]
     if result then
         if result.loading then plainCard("L\195\164dt \226\128\166","\195\150ffentliche Roblox-Daten werden abgerufen.",70)
@@ -4007,7 +4203,7 @@ function runtime.showInspector(other)
     if runtime.inspectorPanel then runtime.inspectorPanel:Destroy() end
     if runtime.quickPanel then runtime.quickPanel.Visible=false end
     runtime.inspectedPlayer=other
-    local panel=make("CanvasGroup",{Name="ISBPlayerInspector",BackgroundTransparency=.08,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-6,0,58),Size=UDim2.fromOffset(360,516),ClipsDescendants=true},gui)
+    local panel=make("CanvasGroup",{Name="ISBPlayerInspector",BackgroundTransparency=.08,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-6,0,58),Size=UDim2.fromOffset(360,556),ClipsDescendants=true},gui)
     runtime.inspectorPanel=panel; round(panel,18); runtime.glassSurface(panel,18); stroke(panel)
     local heading=label(panel,"ISB / SPIELERINFO",14,C.text,UDim2.fromOffset(16,12),UDim2.new(1,-62,0,24)); heading.Font=Enum.Font.BuilderSansBold
     runtime.inspectorButton(panel,"\195\151",UDim2.new(1,-42,0,10),UDim2.fromOffset(28,28),runtime.hideInspector)
@@ -4049,7 +4245,9 @@ function runtime.showInspector(other)
         if not other.Parent then runtime.hideInspector(); return end
         setDockVisible(true); page="Spieler"; query=""; runtime.selectedPlayer=other; runtime.profileTab=nil; render(); setOpen(true); runtime.hideInspector()
     end)
-    label(panel,"Item ausr\195\188sten \194\183 anderen Spieler anklicken",10,C.muted,UDim2.fromOffset(16,492),UDim2.new(1,-32,0,18))
+    runtime.inspectorButton(panel,"Outfit Stealer",UDim2.fromOffset(16,492),UDim2.new(.5,-22,0,30),function() runtime.copyOutfit(other) end)
+    runtime.inspectorButton(panel,"Eigenes Outfit",UDim2.new(.5,6,0,492),UDim2.new(.5,-22,0,30),function() runtime.copyOutfit(nil,true) end)
+    label(panel,"Lokale Outfit-Kopie \194\183 nur f\195\188r diese Sitzung",10,C.muted,UDim2.fromOffset(16,532),UDim2.new(1,-32,0,18))
     runtime.refreshInspector(); runtime.fitAuxiliary(); runtime.requestInspectorProfile(other)
 end
 function runtime.destroyInspectorTool()
@@ -4627,6 +4825,7 @@ connect(Run.RenderStepped,function(dt)
     end
 end)
 connect(player.CharacterRemoving,function()
+    runtime.clearOutfit(false)
     runtime.safeGround=nil; runtime.stopEmote(); runtime.stopRoleplay()
     stopFly(); restoreCollisions()
     table.clear(originals)
@@ -4773,6 +4972,7 @@ local api = {}
 api.Destroy = function()
     if not alive then return end
     alive=false
+    runtime.clearOutfit(true)
     runtime.stopFreecam(false)
     runtime.destroyInspectorTool()
     for _,connection in ipairs(runtime.inspectorConnections) do connection:Disconnect() end; table.clear(runtime.inspectorConnections)
