@@ -1,7 +1,7 @@
--- ISB Menu 2.6.59 | Own-game universal client toolkit
+-- ISB Menu 2.6.60 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.59",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.60",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -661,6 +661,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.60"]="Held items fit differently sized hands more accurately. Custom item grip offsets and rotations are preserved when copying an outfit.\nThe copied arm adopts the equipped item's holding pose and returns to the copied outfit's movement when the item is unequipped.",
     ["2.6.59"]="Improved fitting for copied accessories: custom joints and accessories sharing the same name remain correctly matched. Previously omitted outfit parts are now included.\nLayered clothing now uses the copied avatar's body deformation. Headwear and clothing retain existing joints instead of being realigned from attachment names alone.",
     ["2.6.58"]="Steadier camera with copied outfits: walking and head movement no longer change camera height. Original walking poses no longer appear while outfit animations are missing or loading.\nHeld items visually follow the copied body's hand locally. Unequipping items or restoring your outfit restores their original appearance.",
     ["2.6.57"]="Camera height now follows the copied avatar's visible head, including differently sized bodies and cameras that ignore the previous height offset.\nRestoring your outfit, respawning or closing the menu removes the camera adjustment. Zoom, viewing direction, freecam and spectating are preserved.",
@@ -2968,6 +2969,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.60",text="Gehaltene Items sitzen besser in unterschiedlich gro\195\159en H\195\164nden. Zus\195\164tzliche Griffabst\195\164nde und Drehungen des Items bleiben beim Outfit-Wechsel erhalten.\nDer kopierte Arm \195\188bernimmt beim Ausr\195\188sten die Haltepose des Items. Beim Ablegen kehrt er zur Bewegung des kopierten Outfits zur\195\188ck."},
     {version="2.6.59",text="Die Passform kopierter Accessoires wurde verbessert: Angepasste Befestigungen und gleich benannte Kleidungsst\195\188cke bleiben korrekt zugeordnet. Auch zuvor ausgelassene Outfit-Teile werden mitkopiert.\nMehrlagige Kleidung nutzt nun die K\195\182rperverformung des kopierten Avatars. Kopfbedeckungen und Kleidung behalten ihre vorhandenen Befestigungen statt pauschal neu ausgerichtet zu werden."},
     {version="2.6.58",text="Ruhigere Kamera bei kopierten Outfits: Lauf- und Kopfbewegungen verstellen die Kamerah\195\182he nicht mehr. Die urspr\195\188nglichen Laufposen erscheinen auch beim Laden fehlender Outfit-Animationen nicht mehr.\nGehaltene Items folgen lokal der Hand des kopierten K\195\182rpers. Beim Ablegen und Zur\195\188cksetzen wird ihre urspr\195\188ngliche Darstellung wiederhergestellt."},
     {version="2.6.57",text="Die Kamerah\195\182he passt sich jetzt an den sichtbaren Kopf des kopierten Avatars an \226\128\147 auch bei unterschiedlich gro\195\159en K\195\182rpern und Kameras, die den bisherigen H\195\182henversatz ignorieren.\nBeim Zur\195\188cksetzen, Respawn oder Beenden des Men\195\188s entf\195\164llt die Kamerakorrektur wieder. Zoom, Blickrichtung, Freecam und Spielerbeobachtung bleiben erhalten."},
@@ -4147,7 +4149,7 @@ function runtime.prepareOutfitBody(source,char,h)
         if not seen[bodyHead] then error("Body joints not fully loaded") end
         runtime.outfitAccessoryBindings(body,seen)
         body.lift=runtime.outfitFloorHeight(model,bodyHumanoid,bodyRoot)-runtime.outfitFloorHeight(char,h,ownRoot)
-        body.bodyHead=bodyHead; body.ownHead=ownHead; body.cameraFrames={}; body.toolVisuals={}; body.toolFailures={}
+        body.bodyHead=bodyHead; body.ownHead=ownHead; body.cameraFrames={}; body.toolVisuals={}; body.toolFailures={}; body.toolArmOverrides={}
         local rest={[bodyRoot]=CFrame.new()}
         for _,edge in ipairs(body.ordered) do
             local joint=edge.joint; local frame=rest[edge.parent]
@@ -4206,6 +4208,57 @@ function runtime.clearOutfitTool(body,tool)
     end
     visual.model:Destroy(); body.toolVisuals[tool]=nil
 end
+function runtime.outfitHandAnchor(hand,reference)
+    local attachment=hand:FindFirstChild("RightGripAttachment")
+    if attachment then return attachment.CFrame end
+    -- R6/custom hands without an attachment still grip at the end of the limb.
+    return CFrame.new(0,-hand.Size.Y*.5,0)*(reference and reference.Rotation or CFrame.new())
+end
+function runtime.outfitHeldFrame(ownHand,targetHand,handle,grip)
+    local relative=ownHand.CFrame:ToObjectSpace(handle.CFrame)
+    local reference
+    if grip and grip:IsA("JointInstance") then
+        local transform=grip:IsA("Motor6D") and grip.Transform or CFrame.new()
+        if grip.Part0==ownHand and grip.Part1==handle then relative=grip.C0*transform*grip.C1:Inverse();reference=grip.C0
+        elseif grip.Part1==ownHand and grip.Part0==handle then relative=grip.C1*transform:Inverse()*grip.C0:Inverse();reference=grip.C1 end
+    end
+    local ownAnchor=runtime.outfitHandAnchor(ownHand,reference)
+    local targetAnchor=runtime.outfitHandAnchor(targetHand,ownAnchor)
+    return targetHand.CFrame*targetAnchor*ownAnchor:Inverse()*relative
+end
+function runtime.outfitHoldingArms(body)
+    local hand=body.character:FindFirstChild("RightHand") or body.character:FindFirstChild("Right Arm")
+    local grip=hand and hand:FindFirstChild("RightGrip")
+    if not grip or not grip:IsA("JointInstance") then return false end
+    local part=grip.Part0==hand and grip.Part1 or grip.Part1==hand and grip.Part0
+    local tool=part and part.Parent
+    return tool and tool:IsA("Tool") and tool.Parent==body.character or false
+end
+function runtime.outfitHeldArmPose(joint)
+    local source=joint.motor
+    if not source or not source.Parent then return nil end
+    local a,b,c0,c1
+    if source:IsA("AnimationConstraint") then
+        a,c0=runtime.outfitAttachmentFrame(source.Attachment0,true)
+        b,c1=runtime.outfitAttachmentFrame(source.Attachment1,true)
+    else a,b,c0,c1=source.Part0,source.Part1,source.C0,source.C1 end
+    if not a or not b or not c0 or not c1 then return nil end
+    -- Transfer resolved limb rotation only, retaining the copied limb lengths and pivots.
+    local rest=(c0*c1:Inverse()).Rotation
+    local rotation=a.CFrame:ToObjectSpace(b.CFrame).Rotation*rest:Inverse()
+    return joint.c0.Rotation:Inverse()*rotation*joint.c0.Rotation
+end
+function runtime.releaseOutfitToolArms(body)
+    for joint,owned in pairs(body.toolArmOverrides) do
+        if joint.Parent and joint.Transform==owned.applied then joint.Transform=owned.before end
+        body.toolArmOverrides[joint]=nil
+    end
+end
+function runtime.outfitIsHoldingJoint(joint)
+    local key=runtime.outfitJointKey(joint.rig.Name)
+    return key=="rightshoulder" or key=="rightelbow" or key=="rightwrist"
+end
+
 function runtime.updateOutfitTools(body,firstPerson)
     if body.toolsDirty then table.clear(body.toolFailures) end
     for tool in pairs(body.toolFailures) do if tool.Parent~=body.character then body.toolFailures[tool]=nil end end
@@ -4244,11 +4297,7 @@ function runtime.updateOutfitTools(body,firstPerson)
             end
             if visual then
                 local grip=ownHand:FindFirstChild("RightGrip")
-                local frame
-                if grip and grip:IsA("JointInstance") and grip.Part0==ownHand and grip.Part1==handle then
-                    local anchor=targetHand:FindFirstChild("RightGripAttachment")
-                    frame=targetHand.CFrame*(anchor and anchor.CFrame or grip.C0)*(grip:IsA("Motor6D") and grip.Transform or CFrame.new())*grip.C1:Inverse()
-                else frame=targetHand.CFrame*ownHand.CFrame:ToObjectSpace(handle.CFrame) end
+                local frame=runtime.outfitHeldFrame(ownHand,targetHand,handle,grip)
                 for _,entry in ipairs(visual.parts) do if entry.source.Parent then
                     entry.part.CFrame=frame*handle.CFrame:ToObjectSpace(entry.source.CFrame)
                     entry.part.Transparency=entry.source.Transparency
@@ -4295,12 +4344,16 @@ function runtime.updateOutfitBody()
         for _,bone in ipairs(body.allBones) do bone.Transform=CFrame.new() end
         if body.actionPose then for _,bone in ipairs(body.bones) do if bone.source.Parent then bone.target.Transform=bone.source.Transform end end end
     end
+    local holding=runtime.outfitHoldingArms(body)
     for _,edge in ipairs(body.ordered) do
         local joint=edge.joint
         local transform=CFrame.new()
         if joint.animated then
             if body.animated then transform=body.pose[joint.rig] or (joint.driver and joint.driver.Transform) or CFrame.new(); joint.rig.Transform=transform
             else transform=body.actionPose and joint.motor and joint.motor.Parent and joint.motor.Transform or CFrame.new(); joint.rig.Transform=transform end
+        end
+        if holding and joint.animated and runtime.outfitIsHoldingJoint(joint) then
+            transform=runtime.outfitHeldArmPose(joint) or CFrame.new(); joint.rig.Transform=transform
         end
         local c0,c1=joint.c0,joint.c1
         if joint.attachment0 then
@@ -4328,25 +4381,39 @@ function runtime.installOutfitBody(body)
     runtime.stopOutfitBody()
     runtime.outfitBody=body; body.model.Parent=workspace
     runtime.createOutfitAnimationRig(body)
-    table.insert(body.connections,(Run.PreAnimation or Run.Heartbeat):Connect(function() if runtime.outfitBody==body then runtime.updateOutfitAnimation(body) end end))
+    table.insert(body.connections,(Run.PreAnimation or Run.Heartbeat):Connect(function()
+        if runtime.outfitBody==body then runtime.releaseOutfitToolArms(body);runtime.updateOutfitAnimation(body) end
+    end))
     table.insert(body.connections,Run.PreSimulation:Connect(function()
         if runtime.outfitBody~=body then return end
+        local holding=runtime.outfitHoldingArms(body)
+        if not holding then runtime.releaseOutfitToolArms(body) end
         if not body.animated then
             for _,edge in ipairs(body.ordered) do
                 local joint=edge.joint
-                if joint.animated and joint.driver then joint.driver.Transform=body.actionPose and joint.motor and joint.motor.Parent and joint.motor.Transform or CFrame.new() end
+                if joint.animated and joint.driver then
+                    joint.driver.Transform=body.actionPose and joint.motor and joint.motor.Parent and joint.motor.Transform or CFrame.new()
+                end
             end
             for _,bone in ipairs(body.animationBones) do bone.driver.Transform=CFrame.new() end
             if body.actionPose then
                 for _,bone in ipairs(body.bones) do
-                    local driver=body.animationBones
-                    for _,pair in ipairs(driver) do if pair.target==bone.target and bone.source.Parent then pair.driver.Transform=bone.source.Transform end end
+                    for _,pair in ipairs(body.animationBones) do if pair.target==bone.target and bone.source.Parent then pair.driver.Transform=bone.source.Transform end end
                 end
             end
-            return
         end
-        for _,edge in ipairs(body.ordered) do if edge.joint.animated and edge.joint.driver then body.pose[edge.joint.rig]=edge.joint.driver.Transform end end
-        for _,bone in ipairs(body.animationBones) do body.bonePose[bone.target]=bone.driver.Transform end
+        for _,edge in ipairs(body.ordered) do
+            local joint=edge.joint
+            if joint.animated and joint.driver then
+                if holding and runtime.outfitIsHoldingJoint(joint) then
+                    local pose=runtime.outfitHeldArmPose(joint) or CFrame.new()
+                    local owned=body.toolArmOverrides[joint.driver] or {before=joint.driver.Transform}
+                    owned.applied=pose;body.toolArmOverrides[joint.driver]=owned; joint.driver.Transform=pose
+                end
+                if body.animated then body.pose[joint.rig]=joint.driver.Transform end
+            end
+        end
+        if body.animated then for _,bone in ipairs(body.animationBones) do body.bonePose[bone.target]=bone.driver.Transform end end
     end))
     runtime.updateOutfitAnimation(body)
     for _,item in ipairs(body.character:GetDescendants()) do runtime.hideOutfitPart(body,item) end

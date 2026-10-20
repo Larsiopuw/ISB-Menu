@@ -1,4 +1,9 @@
-# ISB Menu 2.6.59 · by Larsiopuw
+# ISB Menu 2.6.60 · by Larsiopuw
+
+## Änderungen in 2.6.60
+
+- Gehaltene Items sitzen besser in unterschiedlich großen Händen. Zusätzliche Griffabstände und Drehungen des Items bleiben beim Outfit-Wechsel erhalten.
+- Der kopierte Arm übernimmt beim Ausrüsten die Haltepose des Items. Beim Ablegen kehrt er zur Bewegung des kopierten Outfits zurück.
 
 ## Änderungen in 2.6.59
 
