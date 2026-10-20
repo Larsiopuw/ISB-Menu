@@ -1,7 +1,7 @@
--- ISB Menu 2.6.57 | Own-game universal client toolkit
+-- ISB Menu 2.6.58 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.57",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.58",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -661,6 +661,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.58"]="Steadier camera with copied outfits: walking and head movement no longer change camera height. Original walking poses no longer appear while outfit animations are missing or loading.\nHeld items visually follow the copied body's hand locally. Unequipping items or restoring your outfit restores their original appearance.",
     ["2.6.57"]="Camera height now follows the copied avatar's visible head, including differently sized bodies and cameras that ignore the previous height offset.\nRestoring your outfit, respawning or closing the menu removes the camera adjustment. Zoom, viewing direction, freecam and spectating are preserved.",
     ["2.6.56"]="The body copy now uses the copied avatar's available idle, walk and run animations. Playback follows your own movement; flight poses are preserved.\nHair and other head accessories follow animated head attachments. Accessories without an original joint connection also stay attached to the appropriate body part.",
     ["2.6.55"]="Outfit Stealer now also copies body parts, body shape and proportions as a local copy of the selected player. Clothing and accessories stay aligned with the copied body.\nThe copy follows your movements and flight poses. The camera adjusts for body height; \"Own outfit\", respawning or closing the menu removes the copy.",
@@ -2966,6 +2967,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.58",text="Ruhigere Kamera bei kopierten Outfits: Lauf- und Kopfbewegungen verstellen die Kamerah\195\182he nicht mehr. Die urspr\195\188nglichen Laufposen erscheinen auch beim Laden fehlender Outfit-Animationen nicht mehr.\nGehaltene Items folgen lokal der Hand des kopierten K\195\182rpers. Beim Ablegen und Zur\195\188cksetzen wird ihre urspr\195\188ngliche Darstellung wiederhergestellt."},
     {version="2.6.57",text="Die Kamerah\195\182he passt sich jetzt an den sichtbaren Kopf des kopierten Avatars an \226\128\147 auch bei unterschiedlich gro\195\159en K\195\182rpern und Kameras, die den bisherigen H\195\182henversatz ignorieren.\nBeim Zur\195\188cksetzen, Respawn oder Beenden des Men\195\188s entf\195\164llt die Kamerakorrektur wieder. Zoom, Blickrichtung, Freecam und Spielerbeobachtung bleiben erhalten."},
     {version="2.6.56",text="Die K\195\182rperkopie verwendet jetzt die verf\195\188gbaren Stand-, Geh- und Laufanimationen des kopierten Avatars. Das Abspielen richtet sich nach deiner eigenen Bewegung; Flugposen bleiben erhalten.\nHaare und anderes Kopfzubeh\195\182r folgen den animierten Kopf-Attachments. Auch Accessoires ohne urspr\195\188ngliche Gelenkverbindung bleiben am passenden K\195\182rperteil befestigt."},
     {version="2.6.55",text="Outfit Stealer \195\188bernimmt jetzt auch K\195\182rperteile, K\195\182rperform und Proportionen als lokale Kopie des ausgew\195\164hlten Spielers. Kleidung und Accessoires bleiben am kopierten K\195\182rper ausgerichtet.\nDie Kopie folgt deinen Bewegungen und Flugposen. Die Kamera ber\195\188cksichtigt die K\195\182rperh\195\182he; \226\128\158Eigenes Outfit\226\128\156, Respawn oder das Beenden des Men\195\188s entfernen die Kopie wieder."},
@@ -3906,6 +3908,7 @@ function runtime.outfitAnimationState(body)
 end
 function runtime.updateOutfitAnimation(body)
     local name,speed=runtime.outfitAnimationState(body)
+    body.actionPose=name==nil
     local id=name and (body.animationIds[name] or (name=="run" and body.animationIds.walk) or (name=="walk" and body.animationIds.run) or (name=="swimidle" and body.animationIds.idle))
     if body.animationId~=id then
         if body.animationTrack then body.animationTrack:Stop(.12) end
@@ -4114,7 +4117,13 @@ function runtime.prepareOutfitBody(source,char,h)
         if not seen[bodyHead] then error("Body joints not fully loaded") end
         runtime.outfitAccessoryBindings(body,seen)
         body.lift=runtime.outfitFloorHeight(model,bodyHumanoid,bodyRoot)-runtime.outfitFloorHeight(char,h,ownRoot)
-        body.bodyHead=bodyHead; body.ownHead=ownHead; body.cameraFrames={}
+        body.bodyHead=bodyHead; body.ownHead=ownHead; body.cameraFrames={}; body.toolVisuals={}; body.toolFailures={}
+        local rest={[bodyRoot]=CFrame.new()}
+        for _,edge in ipairs(body.ordered) do
+            local joint=edge.joint; local frame=rest[edge.parent]
+            rest[edge.child]=edge.reverse and frame*joint.c1*joint.c0:Inverse() or frame*joint.c0*joint.c1:Inverse()
+        end
+        body.cameraHeight=body.lift+rest[bodyHead].Position.Y-ownRoot.CFrame:ToObjectSpace(ownHead.CFrame).Position.Y
         return body
     end)
     if not ok then if model then model:Destroy() end; error(result) end
@@ -4150,13 +4159,74 @@ function runtime.updateOutfitCamera()
     if subject~=body.humanoid and subject~=body.ownHead and subject~=body.root then return end
     -- Safe to call twice in a frame without accumulating a camera translation.
     runtime.releaseOutfitCamera(body)
-    local height=body.bodyHead.CFrame.Position.Y-body.ownHead.CFrame.Position.Y
+    local height=body.cameraHeight
     if math.abs(height)<.0001 then return end
     local shift=Vector3.new(0,height,0)
     local translatedFrame=camera.CFrame+shift
     local translatedFocus=camera.Focus+shift
     camera.CFrame=translatedFrame; camera.Focus=translatedFocus
     body.cameraFrames[camera]={shift=shift,frame=translatedFrame,focus=translatedFocus}
+end
+
+function runtime.clearOutfitTool(body,tool)
+    local visual=body.toolVisuals[tool]
+    if not visual then return end
+    for part,value in pairs(visual.hidden) do
+        if part.Parent and part.LocalTransparencyModifier==1 then part.LocalTransparencyModifier=value end
+    end
+    visual.model:Destroy(); body.toolVisuals[tool]=nil
+end
+function runtime.updateOutfitTools(body,firstPerson)
+    if body.toolsDirty then table.clear(body.toolFailures) end
+    for tool in pairs(body.toolFailures) do if tool.Parent~=body.character then body.toolFailures[tool]=nil end end
+    for tool,visual in pairs(body.toolVisuals) do
+        if tool.Parent~=body.character or not visual.handle.Parent or body.toolsDirty then runtime.clearOutfitTool(body,tool) end
+    end
+    body.toolsDirty=false
+    local targetHand=body.model:FindFirstChild("RightHand") or body.model:FindFirstChild("Right Arm")
+    local ownHand=body.character:FindFirstChild("RightHand") or body.character:FindFirstChild("Right Arm")
+    if not targetHand or not ownHand then return end
+    for _,tool in ipairs(body.character:GetChildren()) do
+        local handle=tool:IsA("Tool") and tool:FindFirstChild("Handle")
+        if handle and handle:IsA("BasePart") and not body.toolFailures[tool] then
+            local visual=body.toolVisuals[tool]
+            if not visual then
+                local model=Instance.new("Model"); model.Name="ISBOutfitToolVisual"
+                visual={model=model,handle=handle,parts={},hidden={}}
+                body.toolVisuals[tool]=visual
+                local ok=pcall(function()
+                    for _,part in ipairs(tool:GetDescendants()) do if part:IsA("BasePart") then
+                        local archivable=part.Archivable;part.Archivable=true
+                        local cloned,copy=pcall(function() return part:Clone() end);part.Archivable=archivable
+                        if not cloned or not copy then error("Tool appearance unavailable") end
+                        -- Clone visuals only; gameplay stays on the untouched original Tool.
+                        for _,item in ipairs(copy:GetDescendants()) do
+                            if item:IsA("LuaSourceContainer") or item:IsA("BasePart") or item:IsA("JointInstance") or item:IsA("WeldConstraint") or item:IsA("Constraint") or item:IsA("BodyMover") or item:IsA("Sound") or item:IsA("ProximityPrompt") or item:IsA("ClickDetector") then item:Destroy() end
+                        end
+                        copy.Anchored=true;copy.CanCollide=false;copy.CanTouch=false;copy.CanQuery=false;copy.Massless=true
+                        copy.Parent=model
+                        table.insert(visual.parts,{source=part,part=copy})
+                        visual.hidden[part]=part.LocalTransparencyModifier
+                    end end
+                end)
+                if ok and #visual.parts>0 then model.Parent=workspace else runtime.clearOutfitTool(body,tool);body.toolFailures[tool]=true;visual=nil end
+            end
+            if visual then
+                local grip=ownHand:FindFirstChild("RightGrip")
+                local frame
+                if grip and grip:IsA("JointInstance") and grip.Part0==ownHand and grip.Part1==handle then
+                    local anchor=targetHand:FindFirstChild("RightGripAttachment")
+                    frame=targetHand.CFrame*(anchor and anchor.CFrame or grip.C0)*(grip:IsA("Motor6D") and grip.Transform or CFrame.new())*grip.C1:Inverse()
+                else frame=targetHand.CFrame*ownHand.CFrame:ToObjectSpace(handle.CFrame) end
+                for _,entry in ipairs(visual.parts) do if entry.source.Parent then
+                    entry.part.CFrame=frame*handle.CFrame:ToObjectSpace(entry.source.CFrame)
+                    entry.part.Transparency=entry.source.Transparency
+                    entry.part.LocalTransparencyModifier=firstPerson and 1 or visual.hidden[entry.source]
+                    entry.source.LocalTransparencyModifier=1
+                end end
+            end
+        end
+    end
 end
 
 function runtime.stopOutfitBody()
@@ -4167,6 +4237,7 @@ function runtime.stopOutfitBody()
     Run:UnbindFromRenderStep("ISBOutfitCameraPrepare")
     Run:UnbindFromRenderStep("ISBOutfitCamera")
     runtime.releaseOutfitCamera(body)
+    for tool in pairs(body.toolVisuals) do runtime.clearOutfitTool(body,tool) end
     for _,connection in ipairs(body.connections) do connection:Disconnect() end
     for _,cached in pairs(body.animationTracks) do
         if cached then pcall(function() cached.track:Stop(0); cached.track:Destroy() end); cached.animation:Destroy() end
@@ -4187,14 +4258,15 @@ function runtime.updateOutfitBody()
     if body.animated then
         for bone,transform in pairs(body.bonePose) do if bone.Parent then bone.Transform=transform end end
     else
-        for _,bone in ipairs(body.bones) do if bone.source.Parent then bone.target.Transform=bone.source.Transform end end
+        for _,bone in ipairs(body.allBones) do bone.Transform=CFrame.new() end
+        if body.actionPose then for _,bone in ipairs(body.bones) do if bone.source.Parent then bone.target.Transform=bone.source.Transform end end end
     end
     for _,edge in ipairs(body.ordered) do
         local joint=edge.joint
         local transform=CFrame.new()
         if joint.animated then
             if body.animated then transform=body.pose[joint.rig] or (joint.driver and joint.driver.Transform) or CFrame.new(); joint.rig.Transform=transform
-            else transform=joint.motor and joint.motor.Parent and joint.motor.Transform or CFrame.new(); joint.rig.Transform=transform end
+            else transform=body.actionPose and joint.motor and joint.motor.Parent and joint.motor.Transform or CFrame.new(); joint.rig.Transform=transform end
         end
         local c0,c1=joint.c0,joint.c1
         if joint.attachment0 then
@@ -4210,6 +4282,7 @@ function runtime.updateOutfitBody()
     local camera=workspace.CurrentCamera
     local firstPerson=camera and camera.CameraSubject==body.humanoid and camera.CameraType~=Enum.CameraType.Scriptable and (camera.CFrame.Position-camera.Focus.Position).Magnitude<1
     for _,entry in ipairs(body.parts) do entry.part.LocalTransparencyModifier=firstPerson and 1 or entry.transparency end
+    runtime.updateOutfitTools(body,firstPerson)
 end
 function runtime.installOutfitBody(body)
     runtime.stopOutfitBody()
@@ -4223,7 +4296,7 @@ function runtime.installOutfitBody(body)
     end))
     runtime.updateOutfitAnimation(body)
     for _,item in ipairs(body.character:GetDescendants()) do runtime.hideOutfitPart(body,item) end
-    table.insert(body.connections,body.character.DescendantAdded:Connect(function(item) runtime.hideOutfitPart(body,item) end))
+    table.insert(body.connections,body.character.DescendantAdded:Connect(function(item) runtime.hideOutfitPart(body,item);body.toolsDirty=true end))
     runtime.updateOutfitBody()
     if runtime.outfitBody~=body then error("Character changed") end
     Run:BindToRenderStep("ISBOutfitCameraPrepare",Enum.RenderPriority.First.Value-1,function()

@@ -1,4 +1,9 @@
-# ISB Menu 2.6.57 · by Larsiopuw
+# ISB Menu 2.6.58 · by Larsiopuw
+
+## Änderungen in 2.6.58
+
+- Ruhigere Kamera bei kopierten Outfits: Lauf- und Kopfbewegungen verstellen die Kamerahöhe nicht mehr. Die ursprünglichen Laufposen erscheinen auch beim Laden fehlender Outfit-Animationen nicht mehr.
+- Gehaltene Items folgen lokal der Hand des kopierten Körpers. Beim Ablegen und Zurücksetzen wird ihre ursprüngliche Darstellung wiederhergestellt.
 
 ## Änderungen in 2.6.57
 
