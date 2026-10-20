@@ -1,7 +1,7 @@
--- ISB Menu 2.6.55 | Own-game universal client toolkit
+-- ISB Menu 2.6.56 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.55",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.56",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -661,6 +661,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.56"]="The body copy now uses the copied avatar's available idle, walk and run animations. Playback follows your own movement; flight poses are preserved.\nHair and other head accessories follow animated head attachments. Accessories without an original joint connection also stay attached to the appropriate body part.",
     ["2.6.55"]="Outfit Stealer now also copies body parts, body shape and proportions as a local copy of the selected player. Clothing and accessories stay aligned with the copied body.\nThe copy follows your movements and flight poses. The camera adjusts for body height; \"Own outfit\", respawning or closing the menu removes the copy.",
     ["2.6.54"]="Outfit Stealer in player details and the player inspector: copy a player's outfit for your current session. Use \"Own outfit\" to switch back.\nThe local outfit copy includes clothing, accessories, colors and face. Body shapes are copied when supported by the game.",
     ["2.6.53"]="Normal walking animations and your footstep sounds pause during flight; landing restores their previous states.\nThe flight number field shows speed in studs/s and accepts custom values from 1 to 10,000. The ruler keeps the four fixed tiers.",
@@ -2964,6 +2965,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.56",text="Die K\195\182rperkopie verwendet jetzt die verf\195\188gbaren Stand-, Geh- und Laufanimationen des kopierten Avatars. Das Abspielen richtet sich nach deiner eigenen Bewegung; Flugposen bleiben erhalten.\nHaare und anderes Kopfzubeh\195\182r folgen den animierten Kopf-Attachments. Auch Accessoires ohne urspr\195\188ngliche Gelenkverbindung bleiben am passenden K\195\182rperteil befestigt."},
     {version="2.6.55",text="Outfit Stealer \195\188bernimmt jetzt auch K\195\182rperteile, K\195\182rperform und Proportionen als lokale Kopie des ausgew\195\164hlten Spielers. Kleidung und Accessoires bleiben am kopierten K\195\182rper ausgerichtet.\nDie Kopie folgt deinen Bewegungen und Flugposen. Die Kamera ber\195\188cksichtigt die K\195\182rperh\195\182he; \226\128\158Eigenes Outfit\226\128\156, Respawn oder das Beenden des Men\195\188s entfernen die Kopie wieder."},
     {version="2.6.54",text="Outfit Stealer in den Spielerdetails und der Spielerinfo: \195\156bernimm das Outfit eines Spielers f\195\188r deine aktuelle Sitzung. Mit \226\128\158Eigenes Outfit\226\128\156 wechselst du zur\195\188ck.\nDie lokale Outfit-Kopie \195\188bernimmt Kleidung, Accessoires, Farben und Gesicht. K\195\182rperformen werden \195\188bernommen, wenn das Spiel dies unterst\195\188tzt."},
     {version="2.6.53",text="Beim Fliegen pausieren die normale Laufanimation und eigene Schrittger\195\164usche; beim Landen werden die vorherigen Zust\195\164nde wiederhergestellt.\nDas Zahlenfeld der Flugstufen zeigt die Geschwindigkeit in Studs/s und erlaubt eigene Werte von 1 bis 10.000. Die Skala beh\195\164lt die vier festen Stufen."},
@@ -3845,15 +3847,186 @@ function runtime.outfitFloorHeight(char,h,part)
     end
     return height
 end
-function runtime.outfitAttachmentFrame(attachment)
+function runtime.outfitAttachmentFrame(attachment,animated)
     if not attachment then return nil end
     local frame=attachment.CFrame; local part=attachment.Parent
+    if animated and attachment:IsA("Bone") then frame=frame*attachment.Transform end
     while part and not part:IsA("BasePart") do
-        if part:IsA("Attachment") then frame=part.CFrame*frame end
+        if part:IsA("Attachment") then frame=part.CFrame*(animated and part:IsA("Bone") and part.Transform or CFrame.new())*frame end
         part=part.Parent
     end
     return part,frame
 end
+function runtime.outfitAnimationIds(source)
+    local ids={}; local animate=source:FindFirstChild("Animate")
+    local fields={idle="IdleAnimation",walk="WalkAnimation",run="RunAnimation",jump="JumpAnimation",fall="FallAnimation",climb="ClimbAnimation",swim="SwimAnimation"}
+    local h=source:FindFirstChildOfClass("Humanoid")
+    local ok,description=pcall(function() return h:GetAppliedDescription() end)
+    for name,field in pairs(fields) do
+        local value=ok and description and tonumber(description[field])
+        if value and value>0 then ids[name]="rbxassetid://"..string.format("%.0f",value) end
+    end
+    if ok and description then pcall(function() description:Destroy() end) end
+    for _,name in ipairs({"idle","walk","run","jump","fall","climb","swim","swimidle","sit"}) do
+        local folder=animate and animate:FindFirstChild(name)
+        if folder then
+            local weight=-1
+            local candidates=folder:GetDescendants(); table.insert(candidates,1,folder)
+            for _,animation in ipairs(candidates) do
+                if animation:IsA("Animation") then
+                    local id=tostring(animation.AnimationId):match("%d+")
+                    local priority=animation:FindFirstChild("Weight")
+                    local candidate=priority and tonumber(priority.Value) or 1
+                    if id and tonumber(id)>0 and candidate>weight then ids[name]="rbxassetid://"..id; weight=candidate end
+                end
+            end
+        end
+    end
+    return ids
+end
+function runtime.outfitAnimationState(body)
+    local h=body.humanoid
+    local emote=false
+    for _,track in ipairs(runtime.emoteTracks or {}) do if track.IsPlaying then emote=true; break end end
+    if state.fly or runtime.roleplay or emote then return nil,1 end
+    local kind=h:GetState()
+    if h.Sit or kind==Enum.HumanoidStateType.Seated then return "sit",1 end
+    if kind==Enum.HumanoidStateType.Jumping then return "jump",1 end
+    if kind==Enum.HumanoidStateType.Freefall then return "fall",1 end
+    local velocity=body.root.AssemblyLinearVelocity or Vector3.zero
+    local speed=Vector3.new(velocity.X,0,velocity.Z).Magnitude
+    if kind==Enum.HumanoidStateType.Climbing then return "climb",math.max(.1,math.abs(velocity.Y)/5) end
+    if kind==Enum.HumanoidStateType.Swimming then return speed>.5 and "swim" or "swimidle",math.max(.1,speed/10) end
+    local moving=h.MoveDirection.Magnitude>.05
+    if moving and speed<.1 then speed=math.min(h.WalkSpeed or 16,body.referenceSpeed) end
+    if moving or speed>1 then return speed>body.referenceSpeed*.6 and "run" or "walk",math.clamp(speed/body.referenceSpeed,.1,4) end
+    return "idle",1
+end
+function runtime.updateOutfitAnimation(body)
+    local name,speed=runtime.outfitAnimationState(body)
+    local id=name and (body.animationIds[name] or (name=="run" and body.animationIds.walk) or (name=="walk" and body.animationIds.run) or (name=="swimidle" and body.animationIds.idle))
+    if body.animationId~=id then
+        if body.animationTrack then body.animationTrack:Stop(.12) end
+        body.animationTrack=nil; body.animationId=id
+        if id then
+            local cached=body.animationTracks[id]
+            if cached==nil then
+                local animation=Instance.new("Animation"); animation.Name="ISBOutfit_"..name; animation.AnimationId=id
+                local ok,track=pcall(function() return body.animator:LoadAnimation(animation) end)
+                if ok then
+                    cached={track=track,animation=animation}; body.animationTracks[id]=cached
+                else animation:Destroy(); body.animationTracks[id]=false end
+            end
+            if cached and not cached.failed then
+                local track=cached.track
+                track.Looped=name~="jump"; track.Priority=name=="idle" and Enum.AnimationPriority.Idle or Enum.AnimationPriority.Movement
+                local played=pcall(function() track:Play(.12,1,speed) end)
+                if played then body.animationTrack=track; body.animationStarted=os.clock() end
+            end
+        end
+    end
+    if body.animationTrack then
+        body.animationTrack.Looped=name~="jump"
+        body.animationTrack.Priority=name=="idle" and Enum.AnimationPriority.Idle or Enum.AnimationPriority.Movement
+        body.animationTrack:AdjustSpeed(speed)
+        body.animated=body.animationTrack.IsPlaying and body.animationTrack.Length>0
+        if not body.animated and os.clock()-(body.animationStarted or 0)>3 then
+            body.animationTrack:Stop(0); body.animationTracks[body.animationId].failed=true
+            body.animationTrack=nil
+        end
+    else body.animated=false end
+end
+function runtime.outfitAccessoryBindings(body,seen)
+    local attachments={}; local parts={}
+    for _,entry in ipairs(body.parts) do
+        local part=entry.part; local ancestor=part.Parent; local accessory=false
+        while ancestor and ancestor~=body.model do if ancestor:IsA("Accessory") then accessory=true; break end; ancestor=ancestor.Parent end
+        if not accessory and part~=body.bodyRoot then
+            table.insert(parts,part)
+            for _,attachment in ipairs(part:GetDescendants()) do
+                if attachment:IsA("Attachment") then
+                    local attachmentPart=runtime.outfitAttachmentFrame(attachment)
+                    if attachmentPart==part and (not attachments[attachment.Name] or part.Name=="Head") then attachments[attachment.Name]=attachment end
+                end
+            end
+        end
+        entry.connected=seen[part]==true
+        part.Anchored=true
+    end
+    for _,accessory in ipairs(body.model:GetDescendants()) do
+        if accessory:IsA("Accessory") then
+            local handle=accessory:FindFirstChild("Handle")
+            if handle then
+                local attachment=handle:FindFirstChildOfClass("Attachment")
+                local target=attachment and attachments[attachment.Name]
+                local binding={handle=handle,attachment=attachment,target=target,parts={}}
+                if not target and not seen[handle] then
+                    local nearest,distance
+                    for _,part in ipairs(parts) do
+                        local delta=(handle.CFrame.Position-part.CFrame.Position).Magnitude
+                        if not distance or delta<distance then nearest=part; distance=delta end
+                    end
+                    binding.parent=nearest
+                    binding.offset=nearest and nearest.CFrame:ToObjectSpace(handle.CFrame)
+                end
+                if target or binding.parent then
+                    for _,part in ipairs(accessory:GetDescendants()) do
+                        if part:IsA("BasePart") and part~=handle then table.insert(binding.parts,{part=part,offset=handle.CFrame:ToObjectSpace(part.CFrame)}) end
+                    end
+                    table.insert(body.accessoryBindings,binding)
+                end
+            end
+        end
+    end
+end
+function runtime.outfitRigPath(item,model)
+    local path={item.ClassName}
+    while item and item~=model do table.insert(path,item.Name); item=item.Parent end
+    return table.concat(path,"/")
+end
+function runtime.createOutfitAnimationRig(body)
+    local model=body.model:Clone(); body.animationModel=model; model.Name="ISBOutfitAnimationRig"
+    local objects={}
+    for _,item in ipairs(model:GetDescendants()) do
+        objects[runtime.outfitRigPath(item,model)]=item
+        if item:IsA("BasePart") then
+            item.Transparency=1; item.LocalTransparencyModifier=1; item.CastShadow=false
+            item.CanCollide=false; item.CanTouch=false; item.CanQuery=false
+        elseif item:IsA("JointInstance") or item:IsA("WeldConstraint") or item:IsA("AnimationConstraint") then
+            item.Enabled=true
+            if item:IsA("AnimationConstraint") then item.IsKinematic=true end
+        end
+    end
+    for _,entry in ipairs(body.parts) do
+        local part=objects[runtime.outfitRigPath(entry.part,body.model)]
+        if part then part.Anchored=entry.part==body.bodyRoot or not entry.connected end
+    end
+    for _,edge in ipairs(body.ordered) do edge.joint.driver=objects[runtime.outfitRigPath(edge.joint.rig,body.model)] end
+    body.animationBones={}
+    for _,bone in ipairs(body.allBones) do
+        local driver=objects[runtime.outfitRigPath(bone,body.model)]
+        if driver then table.insert(body.animationBones,{target=bone,driver=driver}) end
+    end
+    body.animationRoot=model:FindFirstChild("HumanoidRootPart")
+    model.Parent=workspace
+    body.animator=Instance.new("Animator"); body.animator.Parent=model:FindFirstChildOfClass("Humanoid")
+    body.animator.PreferLodEnabled=false
+end
+function runtime.updateOutfitAccessories(body)
+    for _,binding in ipairs(body.accessoryBindings) do
+        local frame
+        if binding.target and binding.target.Parent and binding.attachment.Parent then
+            local parent,targetFrame=runtime.outfitAttachmentFrame(binding.target,true)
+            local _,handleFrame=runtime.outfitAttachmentFrame(binding.attachment,true)
+            if parent then frame=parent.CFrame*targetFrame*handleFrame:Inverse() end
+        elseif binding.parent and binding.parent.Parent then frame=binding.parent.CFrame*binding.offset end
+        if frame then
+            binding.handle.CFrame=frame
+            for _,entry in ipairs(binding.parts) do entry.part.CFrame=frame*entry.offset end
+        end
+    end
+end
+
 function runtime.prepareOutfitBody(source,char,h)
     local model
     local ok,result=pcall(function()
@@ -3883,7 +4056,9 @@ function runtime.prepareOutfitBody(source,char,h)
         bodyHumanoid.PlatformStand=true; bodyHumanoid.RequiresNeck=false; bodyHumanoid.BreakJointsOnDeath=false
         bodyHumanoid.DisplayDistanceType=Enum.HumanoidDisplayDistanceType.None
         bodyHumanoid.HealthDisplayType=Enum.HumanoidHealthDisplayType.AlwaysOff
-        local body={model=model,character=char,humanoid=h,root=ownRoot,bodyRoot=bodyRoot,parts={},hidden={},connections={},bones={},joints={},ordered={}}
+        local body={model=model,character=char,humanoid=h,root=ownRoot,bodyRoot=bodyRoot,parts={},hidden={},connections={},bones={},allBones={},joints={},ordered={},accessoryBindings={},animationTracks={},animationIds=runtime.outfitAnimationIds(source),pose={},bonePose={}}
+        body.referenceSpeed=math.max(1,(source:FindFirstChildOfClass("Humanoid").WalkSpeed or 16))
+        body.bodyHumanoid=bodyHumanoid
         local owned={}; local graph={}; local motors={}; local bones={}
         for _,item in ipairs(char:GetDescendants()) do
             local ancestor=item.Parent; local tool=false
@@ -3898,7 +4073,10 @@ function runtime.prepareOutfitBody(source,char,h)
             if item:IsA("BasePart") then
                 table.insert(body.parts,{part=item,offset=bodyRoot.CFrame:ToObjectSpace(item.CFrame),transparency=item.LocalTransparencyModifier})
                 item.Anchored=true; item.CanCollide=false; item.CanTouch=false; item.CanQuery=false; item.Massless=true
-            elseif item:IsA("Bone") and bones[item.Name] then table.insert(body.bones,{target=item,source=bones[item.Name]}) end
+            elseif item:IsA("Bone") then
+                table.insert(body.allBones,item)
+                if bones[item.Name] then table.insert(body.bones,{target=item,source=bones[item.Name]}) end
+            end
         end
         for _,item in ipairs(model:GetDescendants()) do
             if item:IsA("JointInstance") or item:IsA("WeldConstraint") or item:IsA("AnimationConstraint") then
@@ -3909,6 +4087,7 @@ function runtime.prepareOutfitBody(source,char,h)
                 else a,b=item.Part0,item.Part1 end
                 if a and b and owned[a] and owned[b] then
                     local joint={a=a,b=b,c0=c0 or CFrame.new(),c1=c1 or CFrame.new(),rig=item}
+                    if item:IsA("AnimationConstraint") then joint.attachment0=item.Attachment0; joint.attachment1=item.Attachment1 end
                     if item:IsA("WeldConstraint") then joint.c0=a.CFrame:ToObjectSpace(b.CFrame)
                     elseif item:IsA("JointInstance") then joint.c0=item.C0; joint.c1=item.C1 end
                     if item:IsA("Motor6D") or item:IsA("AnimationConstraint") then joint.animated=true; joint.motor=motors[runtime.outfitJointKey(item.Name)] end
@@ -3931,6 +4110,7 @@ function runtime.prepareOutfitBody(source,char,h)
             end
         end
         if not seen[bodyHead] then error("Body joints not fully loaded") end
+        runtime.outfitAccessoryBindings(body,seen)
         body.lift=runtime.outfitFloorHeight(model,bodyHumanoid,bodyRoot)-runtime.outfitFloorHeight(char,h,ownRoot)
         local targetHead=bodyRoot.CFrame:ToObjectSpace(bodyHead.CFrame).Position.Y
         local originalHead=ownRoot.CFrame:ToObjectSpace(ownHead.CFrame).Position.Y
@@ -3957,26 +4137,45 @@ function runtime.stopOutfitBody()
     runtime.outfitBody=nil
     Run:UnbindFromRenderStep("ISBOutfitBody")
     for _,connection in ipairs(body.connections) do connection:Disconnect() end
+    for _,cached in pairs(body.animationTracks) do
+        if cached then pcall(function() cached.track:Stop(0); cached.track:Destroy() end); cached.animation:Destroy() end
+    end
     for part,value in pairs(body.hidden) do
         if part.Parent and part.LocalTransparencyModifier==1 then part.LocalTransparencyModifier=value end
     end
     if body.cameraApplied and body.humanoid.Parent and body.humanoid.CameraOffset==body.cameraApplied then body.humanoid.CameraOffset=body.cameraOriginal end
+    if body.animationModel then body.animationModel:Destroy() end
     body.model:Destroy()
 end
 function runtime.updateOutfitBody()
     local body=runtime.outfitBody
     if not body then return end
-    if not alive or player.Character~=body.character or not body.root.Parent or not body.model.Parent or not body.bodyRoot.Parent or body.humanoid.Health<=0 then runtime.clearOutfit(false); return end
+    if not alive or player.Character~=body.character or not body.root.Parent or not body.model.Parent or not body.bodyRoot.Parent or (body.animationModel and not body.animationModel.Parent) or body.humanoid.Health<=0 then runtime.clearOutfit(false); return end
     local frame=body.root.CFrame*CFrame.new(0,body.lift,0)
+    if body.animationRoot then body.animationRoot.CFrame=frame end
     for _,entry in ipairs(body.parts) do entry.part.CFrame=frame*entry.offset end
+    if body.animated then
+        for bone,transform in pairs(body.bonePose) do if bone.Parent then bone.Transform=transform end end
+    else
+        for _,bone in ipairs(body.bones) do if bone.source.Parent then bone.target.Transform=bone.source.Transform end end
+    end
     for _,edge in ipairs(body.ordered) do
         local joint=edge.joint
-        local transform=joint.motor and joint.motor.Parent and joint.motor.Transform or CFrame.new()
-        if joint.animated then joint.rig.Transform=transform end
-        if edge.reverse then edge.child.CFrame=edge.parent.CFrame*joint.c1*transform:Inverse()*joint.c0:Inverse()
-        else edge.child.CFrame=edge.parent.CFrame*joint.c0*transform*joint.c1:Inverse() end
+        local transform=CFrame.new()
+        if joint.animated then
+            if body.animated then transform=body.pose[joint.rig] or (joint.driver and joint.driver.Transform) or CFrame.new(); joint.rig.Transform=transform
+            else transform=joint.motor and joint.motor.Parent and joint.motor.Transform or CFrame.new(); joint.rig.Transform=transform end
+        end
+        local c0,c1=joint.c0,joint.c1
+        if joint.attachment0 then
+            local _,current0=runtime.outfitAttachmentFrame(joint.attachment0,true)
+            local _,current1=runtime.outfitAttachmentFrame(joint.attachment1,true)
+            c0,c1=current0,current1
+        end
+        if edge.reverse then edge.child.CFrame=edge.parent.CFrame*c1*transform:Inverse()*c0:Inverse()
+        else edge.child.CFrame=edge.parent.CFrame*c0*transform*c1:Inverse() end
     end
-    for _,bone in ipairs(body.bones) do if bone.source.Parent then bone.target.Transform=bone.source.Transform end end
+    runtime.updateOutfitAccessories(body)
     for part in pairs(body.hidden) do if part.Parent then part.LocalTransparencyModifier=1 end end
     local current=body.humanoid.CameraOffset
     if not body.cameraApplied or current~=body.cameraApplied then body.cameraOriginal=current end
@@ -3989,6 +4188,14 @@ end
 function runtime.installOutfitBody(body)
     runtime.stopOutfitBody()
     runtime.outfitBody=body; body.model.Parent=workspace
+    runtime.createOutfitAnimationRig(body)
+    table.insert(body.connections,(Run.PreAnimation or Run.Heartbeat):Connect(function() if runtime.outfitBody==body then runtime.updateOutfitAnimation(body) end end))
+    table.insert(body.connections,Run.PreSimulation:Connect(function()
+        if runtime.outfitBody~=body or not body.animated then return end
+        for _,edge in ipairs(body.ordered) do if edge.joint.animated and edge.joint.driver then body.pose[edge.joint.rig]=edge.joint.driver.Transform end end
+        for _,bone in ipairs(body.animationBones) do body.bonePose[bone.target]=bone.driver.Transform end
+    end))
+    runtime.updateOutfitAnimation(body)
     for _,item in ipairs(body.character:GetDescendants()) do runtime.hideOutfitPart(body,item) end
     table.insert(body.connections,body.character.DescendantAdded:Connect(function(item) runtime.hideOutfitPart(body,item) end))
     runtime.updateOutfitBody()

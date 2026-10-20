@@ -1,4 +1,9 @@
-# ISB Menu 2.6.55 · by Larsiopuw
+# ISB Menu 2.6.56 · by Larsiopuw
+
+## Änderungen in 2.6.56
+
+- Die Körperkopie verwendet jetzt die verfügbaren Stand-, Geh- und Laufanimationen des kopierten Avatars. Das Abspielen richtet sich nach deiner eigenen Bewegung; Flugposen bleiben erhalten.
+- Haare und anderes Kopfzubehör folgen den animierten Kopf-Attachments. Auch Accessoires ohne ursprüngliche Gelenkverbindung bleiben am passenden Körperteil befestigt.
 
 ## Änderungen in 2.6.55
 
