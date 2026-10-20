@@ -1,4 +1,10 @@
-# ISB Menu 2.6.54 · by Larsiopuw
+# ISB Menu 2.6.55 · by Larsiopuw
+
+## Änderungen in 2.6.55
+
+- Outfit Stealer übernimmt jetzt auch Körperteile, Körperform und Proportionen als lokale Kopie des ausgewählten Spielers. Kleidung und Accessoires bleiben am kopierten Körper ausgerichtet.
+- Die Kopie folgt deinen Bewegungen und Flugposen. Die Kamera berücksichtigt die Körperhöhe; „Eigenes Outfit“, Respawn oder das Beenden des Menüs entfernen die Kopie wieder.
+- Die Darstellung ist lokal. Der Spielserver und andere Spieler sehen weiterhin den ursprünglichen Charakter; Kollisionen und Spielmechanik behalten den ursprünglichen Körper.
 
 ## Änderungen in 2.6.54
 
