@@ -1,4 +1,4 @@
-# ISB Menu 2.6.66 · by Larsiopuw
+# ISB Menu 2.6.67 · by Larsiopuw
 
 ## Piano automatisch spielen
 
@@ -9,6 +9,17 @@
 
 Die Zeitleiste unter der Wiedergabe zeigt Minuten und Sekunden an. Ziehen pausiert kurz; beim Loslassen wird an der gewählten Stelle fortgesetzt, wenn das Lied vorher lief. Die Online-Liste bietet **Beliebt** (Downloadzahlen), **Neueste** (Katalog-ID) und **Titel A–Z**. Sterne merken Lieder; **Favoriten** filtert diese Liste und lässt sich mit Suche und Sortierung kombinieren. Favoriten und Sortierung werden mit den Einstellungen lokal gespeichert, sofern Dateizugriff verfügbar ist.
 
+### Eigene MIDI-Dateien
+
+1. Eine `.mid`- oder `.midi`-Datei herunterladen.
+2. Im **Workspace-Ordner des Executors** den Unterordner **ISBMenu-MIDI** anlegen und die Datei hineinkopieren. „Ordner laden“ legt den Unterordner bei unterstützten Datei-APIs auch selbst an.
+3. Im Menü **Musik → Piano → Eigene MIDIs → Ordner laden** wählen.
+4. Das Lied **auswählen**, **vorhören** oder über **Spielen** am aktivierten Spiel-Piano abspielen.
+
+Alternativ einen relativen Pfad wie `ISBMenu-MIDI/mein-lied.mid` eingeben und **Importieren** drücken. MIDI-Dateien direkt im Workspace oder dessen anderen Unterordnern sind über ihren relativen Pfad ebenfalls möglich. Ein Pfad aus dem Windows-Downloads-Ordner funktioniert nicht automatisch: Der Executor begrenzt den Dateizugriff gewöhnlich auf seinen Workspace. Dies ist ein lokaler Dateiimport, kein Upload auf einen Server und kein Windows-Dateiauswahldialog.
+
+Import prüft die Datei mit demselben MIDI-Parser; Ordnersuche liest zunächst nur die Namen und prüft die Datei beim Auswählen oder Vorhören. Unterstützt sind Standard-MIDI Format 0/1 bis 8 MB innerhalb der bestehenden Event-/Track-/Dauergrenzen. Audioformate wie MP3 und Musik-Webseitenlinks sind keine MIDI-Dateien. Eigene Lieder haben Suche, Favoriten, Titel-/Neueste-Sortierung, Vorschau, Tempo und Zeitleiste. Gespeichert werden die Bibliothekseinträge/Pfade und Favoriten; die Originaldateien müssen an ihrem Ort bleiben. Die Ordnersuche ist auf die erste Ebene von `ISBMenu-MIDI` begrenzt; Unterordner lassen sich über den Dateipfad importieren. Die Online-Liste bleibt separat. Fehlen Datei- oder Auflistungsfunktionen im Executor, zeigt das Menü einen Hinweis; mit `readfile` allein bleibt der Pfadimport möglich.
+
 Das von Roblox gemeldete Layout steht kompakt bei der Zeitanzeige. Interne Roblox-Tastencodes verwenden feste QWERTY-Positionen; deshalb bleibt die MIDI-Tonzuordnung bei QWERTZ erhalten, ohne einen zusätzlichen Y/Z-Tausch einzubauen. Die Menüsprache beeinflusst diese Zuordnung nicht.
 
 **Vorschau** spielt einen lokal aus MIDI erzeugten Piano-Ausschnitt von bis zu 20 Sekunden, ohne Piano-Tasten im Spiel zu drücken. Ein weiterer Klick stoppt die Vorschau; Laden lässt sich ebenfalls abbrechen. Die Vorschau startet nicht die Spiel-Wiedergabe und ändert die Songauswahl nicht. Dafür braucht die Skriptumgebung lokale Datei- und Audio-Asset-Unterstützung. Seit 2.6.66 werden aufgenommene Flügeltöne mit natürlichem Anschlag und Ausklang verwendet; die MIDI-Anschlagstärke steuert die Dynamik. Die Vorschau ist eine Piano-Interpretation des MIDI, keine Originalaufnahme des jeweiligen Songs. Die Klavierbank (rund 3,7 MB) wird beim ersten Anhören geladen und bei verfügbarem Dateizugriff lokal zwischengespeichert. Auch innerhalb einer Sitzung wird sie wiederverwendet. Ist sie nicht erreichbar und nicht im Cache, erscheint ein Vorschaufehler; es gibt keinen Rückfall auf den alten künstlichen Klang. Start einer normalen Wiedergabe, Stop, F8 und Beenden räumen die Vorschau auf.
@@ -18,6 +29,11 @@ Klavieraufnahmen: **Salamander Grand Piano (Yamaha C5) von Alexander Holm**, [CC
 Für die Standard-Roblox-Kamera wird während der Piano-Wiedergabe nur die Shift-Lock-Tastenbelegung vorübergehend geleert. Shift-Noten werden weiterhin gesendet. Pause, Stop, Fehler und Beenden stellen die vorherige Belegung wieder her; zwischenzeitliche Änderungen anderer Skripte bleiben erhalten. Eigene Kamera-Systeme ohne diese Belegung können abweichen. Falls die automatische Sperre dort nicht verfügbar ist, erscheint ein Hinweis auf die Roblox-Einstellungen.
 
 Die Online-Liste stammt wie beim VP-Player von nanoMIDI. Die eigenständige Windows-App muss dafür nicht laufen. Verwendet wird die übliche chromatische 61-Tasten-Belegung (C2–C7); Pianos mit anderen Steuerungen sind nicht allgemein abgedeckt. Die verwendete Skriptumgebung muss Roblox-interne Tasteneingaben unterstützen; PC-weite Tastaturfunktionen werden nicht verwendet. Falls der interne Eingabeweg fehlt oder blockiert ist, erscheint ein Hinweis. Beim Wechsel in andere Fenster läuft das Lied weiter, solange Roblox den Player weiter ausführt. Chat, das Roblox-Menü, Aufstehen nach sitzendem Start und Respawn unterbrechen die Wiedergabe und geben gehaltene Tasten frei. Bei einer längeren Unterbrechung durch Roblox pausiert der Player, damit keine verspäteten Noten nachgeholt werden. F8 wird innerhalb von Roblox verarbeitet; zum Stoppen nach dem Raustabben zurück ins Spiel wechseln. MIDI und Oberfläche wurden geprüft; eine Live-Prüfung der Tasteneingabe im Roblox-Spiel steht noch aus.
+
+## Änderungen in 2.6.67
+
+- Eigene .mid- und .midi-Dateien aus dem Executor-Workspace importieren oder im Ordner ISBMenu-MIDI finden. Die lokale Bibliothek bleibt getrennt von den Online-Liedern.
+- Eigene Lieder auswählen, vorhören, durchsuchen und favorisieren; Tempo und Zeitleiste funktionieren wie bei Online-Liedern.
 
 ## Änderungen in 2.6.66
 

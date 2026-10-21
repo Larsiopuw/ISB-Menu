@@ -1,7 +1,7 @@
--- ISB Menu 2.6.66 | Own-game universal client toolkit
+-- ISB Menu 2.6.67 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.66",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.67",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -99,13 +99,20 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {flightStyle="Fly", pianoFavorites={},pianoSort="popular", favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
+local settings = {flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular", favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
         if type(data.favorites) == "table" then
             for k, v in pairs(data.favorites) do
                 if type(k) == "string" and v == true then settings.favorites[k] = true end
+            end
+        end
+        if type(data.pianoLocalFiles)=="table" then
+            for _,entry in ipairs(data.pianoLocalFiles)do
+                if #settings.pianoLocalFiles<2000 and type(entry)=="table" and entry.source=="local" and type(entry.path)=="string" and #entry.path<=240 and type(entry.filename)=="string" and type(entry.title)=="string" and type(entry.id)=="string" then
+                    table.insert(settings.pianoLocalFiles,{source="local",path=entry.path,filename=entry.filename,title=entry.title,artist="",id=entry.id})
+                end
             end
         end
         if type(data.pianoFavorites)=="table" then
@@ -668,6 +675,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.67"]="Import your own .mid and .midi files from the executor workspace, or scan the ISBMenu-MIDI folder. Your local library is separate from online songs.\nSelect, preview, search and favorite your own songs, with the same playback speed and timeline controls as online songs.",
     ["2.6.66"]="Piano previews use recorded grand-piano samples instead of simple synthetic tones, preserving the attack and natural decay.\nMIDI note velocity controls preview volume for more expressive dynamics.",
     ["2.6.65"]="Cleaner Piano view with centered favorite stars and full song details. The timeline no longer briefly jumps to the beginning when seeking.\nListen to a 20-second local piano preview before selecting a song; click again to stop. The standard Shift Lock key binding is temporarily blocked during playback.",
     ["2.6.64"]="Piano timeline lets you seek forward or backward with live time display and resume at the selected position.\nSort online songs by downloads, newest or title, star favorites and filter your saved songs. The keyboard layout reported by Roblox is displayed.",
@@ -2982,6 +2990,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.67",text="Eigene .mid- und .midi-Dateien aus dem Executor-Workspace importieren oder im Ordner ISBMenu-MIDI finden. Die lokale Bibliothek bleibt getrennt von den Online-Liedern.\nEigene Lieder ausw\195\164hlen, vorh\195\182ren, durchsuchen und favorisieren; Tempo und Zeitleiste funktionieren wie bei Online-Liedern."},
     {version="2.6.66",text="Die Piano-Vorschau verwendet echte Fl\195\188gelaufnahmen statt einfacher k\195\188nstlicher T\195\182ne. Anschlag und nat\195\188rliches Ausklingen bleiben erhalten.\nDie Anschlagst\195\164rke der MIDI-Noten steuert die Lautst\195\164rke der Vorschau f\195\188r mehr Dynamik."},
     {version="2.6.65",text="Aufger\195\164umter Piano-Bereich mit zentrierten Favoritensternen und vollst\195\164ndigen Songdetails. Die Zeitleiste springt beim Spulen nicht mehr kurz zum Anfang.\nLieder vor dem Ausw\195\164hlen als 20-sek\195\188ndige lokale Piano-Vorschau anh\195\182ren und mit einem zweiten Klick stoppen. Die normale Shift-Lock-Tastenbelegung wird w\195\164hrend der Wiedergabe vor\195\188bergehend gesperrt."},
     {version="2.6.64",text="Piano-Zeitleiste zum Vor- und Zur\195\188ckspulen mit aktueller Zeit und Fortsetzen an der gew\195\164hlten Stelle.\nOnline-Lieder nach Downloads, Neueste oder Titel sortieren, mit Sternen merken und nach Favoriten filtern. Das von Roblox gemeldete Tastaturlayout wird angezeigt."},
@@ -5103,7 +5112,7 @@ function runtime.playPianoPreview(bytes,ended,failed)
 end
 function runtime.pianoSongInfo(song)
     if not song then return runtime.pianoText("Lied aus der Liste auswahlen.","Choose a song from the list.")end
-    local parts={song.artist or "",tostring(song.downloads or 0).." Downloads"}
+    local parts=song.source=="local" and {runtime.pianoText("Eigene MIDI-Datei","Local MIDI file"),song.path} or {song.artist or "",tostring(song.downloads or 0).." Downloads"}
     if song.arranger and song.arranger~="" then table.insert(parts,runtime.pianoText("Arrangement: ","Arranger: ")..song.arranger)end
     if song.uploader and song.uploader~="" then table.insert(parts,"Upload: "..song.uploader)end
     if runtime.piano.selected==song and runtime.piano.events and runtime.piano.duration then local t=math.floor(runtime.piano.duration);table.insert(parts,string.format("%02d:%02d",math.floor(t/60),t%60))end
@@ -5181,32 +5190,53 @@ function runtime.drawPiano()
     local speed=plainCard(runtime.pianoText("Tempo","Speed"),string.format("%.2fx",p.speed),84)
     rowButton(speed,"-",UDim2.new(1,-100,0,24),UDim2.fromOffset(36,30),function()p.setSpeed(p.speed-.25)end)
     rowButton(speed,"+",UDim2.new(1,-54,0,24),UDim2.fromOffset(36,30),function()p.setSpeed(p.speed+.25)end)
+    local sources=make("Frame",{Name="PianoLibrarySources",BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
+    for i,item in ipairs({{"online",runtime.pianoText("Online-Lieder","Online songs")},{"local",runtime.pianoText("Eigene MIDIs","My MIDIs")}})do
+        local value=item[1]
+        local button=rowButton(sources,item[2],UDim2.new((i-1)/2,2,0,0),UDim2.new(.5,-6,0,30),function()p.librarySource=value;p.catalogPage=1;p.query="";render()end)
+        button.Name="PianoSource_"..value;if p.librarySource==value then button.TextColor3=C.accent end
+    end
+    if p.librarySource=="local" then
+        local text=p.localLoading and runtime.pianoText("MIDI-Dateien werden geladen...","Loading MIDI files...") or p.localError and runtime.pianoText("Datei/Ordner nicht lesbar oder MIDI nicht unterst\195\188tzt. Pfad im Executor-Workspace pr\195\188fen.","Cannot read file/folder or unsupported MIDI. Check the path inside the executor workspace.") or runtime.pianoText(".mid/.midi in ISBMenu-MIDI im Executor-Workspace kopieren. Dann Ordner laden oder einen relativen Dateipfad importieren.","Copy .mid/.midi into ISBMenu-MIDI in the executor workspace. Load that folder or import a relative file path.")
+        if type(readfile)~="function" then text=runtime.pianoText("Dieser Executor bietet keinen lokalen Dateizugriff f\195\188r MIDI-Dateien.","This executor does not provide local file access for MIDI files.")
+        elseif p.localError=="local_scan_failed" and type(listfiles)~="function" then text=runtime.pianoText("Ordnerauflistung fehlt. Importiere die MIDI stattdessen \195\188ber ihren relativen Dateipfad.","Folder listing unavailable. Import the MIDI using its relative file path instead.")end
+        local form=plainCard(runtime.pianoText("Eigene MIDIs","My MIDIs"),text,216);form.Name="PianoLocalImport"
+        local input=make("TextBox",{Name="PianoLocalPath",Text=p.localPath or "",PlaceholderText="ISBMenu-MIDI/song.mid",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,79),Size=UDim2.new(1,-150,0,30)},form);round(input,10)
+        rowConnect(input.FocusLost,function()p.localPath=input.Text end)
+        rowButton(form,runtime.pianoText("Importieren","Import"),UDim2.new(1,-130,0,79),UDim2.fromOffset(114,30),function()p.localPath=input.Text;p.importLocal(input.Text)end)
+        local search=make("TextBox",{Name="PianoLocalSearch",Text=p.query,PlaceholderText=runtime.pianoText("Eigene MIDIs suchen","Search my MIDIs"),ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,125),Size=UDim2.new(1,-32,0,30)},form);round(search,10)
+        rowConnect(search.FocusLost,function()if p.query~=search.Text then p.query=search.Text;p.catalogPage=1;render()end end)
+        rowButton(form,runtime.pianoText("Ordner laden","Load folder"),UDim2.fromOffset(16,169),UDim2.fromOffset(150,30),p.scanLocal)
+        label(form,tostring(#p.localSongs)..runtime.pianoText(" eigene MIDIs"," local MIDIs"),11,C.muted,UDim2.fromOffset(180,174),UDim2.new(1,-196,0,20))
+    else
     local library=plainCard(runtime.pianoText("Online-Lieder","Online songs"),p.catalogLoading and runtime.pianoText("Liederliste wird geladen \226\128\166","Loading song library...") or (p.catalogError and runtime.pianoText("Liederliste nicht erreichbar. Bitte erneut laden.","Library unavailable. Please reload.")) or (p.catalog and (#p.catalog..runtime.pianoText(" Lieder \194\183 nanoMIDI"," songs - nanoMIDI"))) or runtime.pianoText("Liederliste bei Bedarf laden. Nur das ausgew\195\164hlte Lied wird heruntergeladen.","Load the library when needed. Only the selected song is downloaded."),124)
     local searchBox=make("TextBox",{Name="PianoSongSearch",Text=p.query,PlaceholderText=runtime.pianoText("Titel oder K\195\188nstler suchen","Search title or artist"),ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,79),Size=UDim2.new(1,-144,0,30)},library);round(searchBox,10)
     rowConnect(searchBox.FocusLost,function() if p.query~=searchBox.Text then p.query=searchBox.Text;p.catalogPage=1;render() end end)
     rowButton(library,runtime.pianoText("Laden","Load"),UDim2.new(1,-116,0,79),UDim2.fromOffset(100,30),function()p.loadCatalog()end)
+    end
     local sorting=make("Frame",{Name="PianoLibraryControls",BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
-    for i,item in ipairs({{"popular",runtime.pianoText("Beliebt","Popular")},{"newest",runtime.pianoText("Neueste","Newest")},{"title",runtime.pianoText("Titel A-Z","Title A-Z")},{"favorites",runtime.pianoText("Favoriten","Favorites")}}) do
+    local sortOptions=p.librarySource=="local" and {{"newest",runtime.pianoText("Neueste","Newest")},{"title",runtime.pianoText("Titel A-Z","Title A-Z")},{"favorites",runtime.pianoText("Favoriten","Favorites")}} or {{"popular",runtime.pianoText("Beliebt","Popular")},{"newest",runtime.pianoText("Neueste","Newest")},{"title",runtime.pianoText("Titel A-Z","Title A-Z")},{"favorites",runtime.pianoText("Favoriten","Favorites")}}
+    for i,item in ipairs(sortOptions) do
         local value=item[1]
-        local button=rowButton(sorting,item[2],UDim2.new((i-1)/4,2,0,0),UDim2.new(.25,-6,0,30),function()
+        local button=rowButton(sorting,item[2],UDim2.new((i-1)/#sortOptions,2,0,0),UDim2.new(1/#sortOptions,-6,0,30),function()
             if value=="favorites" then p.favoritesOnly=not p.favoritesOnly;p.catalogPage=1;p.changed() else p.setSort(value) end
         end)
         button.Name="PianoSort_"..value
-        if (value=="favorites" and p.favoritesOnly) or value==p.sort then button.TextColor3=C.accent end
+        if (value=="favorites" and p.favoritesOnly) or value==p.sort or (p.librarySource=="local" and p.sort=="popular" and value=="title") then button.TextColor3=C.accent end
     end
-    if p.catalog then
+    if p.librarySource=="local" or p.catalog then
         local songs=p.filtered();local pages=math.max(1,math.ceil(#songs/8));p.catalogPage=math.clamp(p.catalogPage,1,pages)
-        if #songs==0 then plainCard(runtime.pianoText("Keine Treffer","No matches"),p.favoritesOnly and runtime.pianoText("Markiere Lieder mit dem Stern oder passe deine Suche an.","Star songs or adjust your search.") or runtime.pianoText("Versuche einen anderen Titel oder K\195\188nstler.","Try another title or artist."),82) end
+        if #songs==0 and not (p.librarySource=="local" and (p.localLoading or p.localError)) then plainCard(runtime.pianoText("Keine Treffer","No matches"),p.favoritesOnly and runtime.pianoText("Markiere Lieder mit dem Stern oder passe deine Suche an.","Star songs or adjust your search.") or runtime.pianoText("Versuche einen anderen Titel oder K\195\188nstler.","Try another title or artist."),82) end
         for i=(p.catalogPage-1)*8+1,math.min(#songs,p.catalogPage*8) do
             local song=songs[i]
-            local tile=card(song.title,song.artist.."  |  "..tostring(song.downloads or 0).." Downloads",112,false);tile.Name="PianoSong_"..song.id
+            local tile=card(song.title,(song.source=="local" and runtime.pianoText("Eigene MIDI-Datei","Local MIDI file") or song.artist.."  |  "..tostring(song.downloads or 0).." Downloads"),112,false);tile.Name="PianoSong_"..song.id
             rowButton(tile,runtime.pianoText("Ausw\195\164hlen","Select"),UDim2.fromOffset(16,64),UDim2.fromOffset(104,30),function()p.select(song)end)
-            local previewing=p.preview and p.preview.song.filename==song.filename
+            local previewing=p.preview and p.songKey(p.preview.song)==p.songKey(song)
             local previewText=previewing and (p.preview.state=="loading" and runtime.pianoText("Abbrechen","Cancel") or p.preview.state=="playing" and runtime.pianoText("Vorschau stoppen","Stop preview") or runtime.pianoText("Erneut versuchen","Retry preview")) or runtime.pianoText("Vorschau","Preview")
             local preview=rowButton(tile,previewText,UDim2.fromOffset(130,64),UDim2.fromOffset(142,30),function()p.togglePreview(song)end);preview.Name="PianoPreview_"..song.id
             local favorite=rowButton(tile,"",UDim2.new(1,-50,0,64),UDim2.fromOffset(34,30),function()p.toggleFavorite(song)end)
             favorite.Name="PianoFavorite_"..song.id
-            local star=imageIcon(favorite,"star",17,UDim2.fromOffset(0,0),p.favorites[song.filename] and C.accent or C.muted)
+            local star=imageIcon(favorite,"star",17,UDim2.fromOffset(0,0),p.favorites[p.songKey(song)] and C.accent or C.muted)
             if star then star.Name="PianoFavoriteStar";star.Position=UDim2.fromScale(.5,.5)end
         end
         local pager=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
@@ -5219,6 +5249,8 @@ end
 runtime.piano=(function(deps)
     local p={keys="1!2@34$5%6^78*9(0qQwWeErtTyYuiIoOpPasSdDfgGhHjJklLzZxcCvVbBnm",state="idle",speed=1,held={},logical={},position=0,index=1,alive=true,generation=0,catalogPage=1,query=""}
     p.favorites=deps.favorites or {};p.sort=deps.sort or "popular"
+    p.localSongs={};p.librarySource="online";p.localSequence=0
+    for _,entry in ipairs(deps.localFiles or {})do if type(entry)=="table" and type(entry.path)=="string" then table.insert(p.localSongs,entry);p.localSequence=math.max(p.localSequence,tonumber(entry.id) or 0)end end
     function p.changed() if deps.changed and p.alive then deps.changed() end end
     function p.key(character)
         local shifted={['!']='1',['@']='2',['$']='4',['%']='5',['^']='6',['*']='8',['(']='9'}
@@ -5271,7 +5303,7 @@ runtime.piano=(function(deps)
         p.changed();return true
     end
     function p.toggleFavorite(song)
-        p.favorites[song.filename]=not p.favorites[song.filename] or nil
+        local key=p.songKey(song);p.favorites[key]=not p.favorites[key] or nil
         if deps.preferences then deps.preferences(p.favorites,p.sort) end
         p.changed()
     end
@@ -5393,6 +5425,75 @@ runtime.piano=(function(deps)
         end)
         assert(#events>0,'no_notes');return events,duration,folded
     end
+    function p.songKey(song)return song.source=='local' and ('local:'..song.path) or song.filename end
+    function p.localEntry(path)
+        assert(type(path)=='string','invalid_midi_path')
+        path=path:gsub('^%s+',''):gsub('%s+$',''):gsub('^"(.*)"$','%1'):gsub('\\','/')
+        assert(#path>0 and #path<=240 and not path:find('%z') and not path:find(':') and path:sub(1,1)~='/','invalid_midi_path')
+        for part in path:gmatch('[^/]+')do assert(part~='..' and part~='.','invalid_midi_path')end
+        local file=path:match('([^/]+)$')
+        assert(file and (file:lower():match('%.mid$') or file:lower():match('%.midi$')),'invalid_midi_path')
+        return {path=path,filename=file,title=file:gsub('%.[^%.]+$',''),artist='',source='local'}
+    end
+    function p.saveLocal()
+        if deps.localPreferences then deps.localPreferences(p.localSongs)end
+    end
+    function p.addLocalEntry(entry)
+        for i,old in ipairs(p.localSongs)do if old.path==entry.path then entry.id=old.id;p.localSongs[i]=entry;return end end
+        assert(#p.localSongs<2000,'too_many_local_midis')
+        p.localSequence+=1;entry.id=tostring(p.localSequence);table.insert(p.localSongs,entry)
+    end
+    function p.readSong(song)
+        if song.source=='local' then
+            local entry=p.localEntry(song.path);assert(deps.readFile,'local_read_unavailable')
+            local bytes=deps.readFile(entry.path);assert(type(bytes)=='string' and #bytes<=8000000,'invalid_midi_size');return bytes
+        end
+        local file=song.filename:gsub('[^%w%-_%.]',function(c)return string.format('%%%02X',c:byte())end)
+        return deps.get('https://api.nanomidi.net/api/midis/'..file)
+    end
+    function p.importLocal(path)
+        if p.localLoading then return end
+        p.localLoading=true;p.localError=nil;p.librarySource='local';p.changed()
+        deps.spawn(function()
+            local ok,entry=pcall(function()
+                local item=p.localEntry(path);local events,duration=p.parseMidi(p.readSong(item))
+                item.duration=duration;item.noteCount=math.floor(#events/2);return item
+            end)
+            if not p.alive then return end
+            p.localLoading=false
+            if ok then
+                local added=pcall(p.addLocalEntry,entry)
+                if added then p.saveLocal();p.catalogPage=1;p.query='' else p.localError='local_limit' end
+            else p.localError='local_import_failed' end
+            p.changed()
+        end)
+    end
+    function p.scanLocal()
+        if p.localLoading then return end
+        p.localLoading=true;p.localError=nil;p.librarySource='local';p.changed()
+        deps.spawn(function()
+            local ok,entries=pcall(function()
+                assert(deps.listFiles,'local_list_unavailable')
+                local paths=deps.listFiles('ISBMenu-MIDI');assert(type(paths)=='table','local_list_failed')
+                local list={}
+                for _,path in ipairs(paths)do
+                    if type(path)=='string' then
+                        local file=path:gsub('\\','/'):match('([^/]+)$')
+                        if file and (file:lower():match('%.mid$') or file:lower():match('%.midi$')) then table.insert(list,p.localEntry('ISBMenu-MIDI/'..file))end
+                    end
+                    assert(#list<=2000,'too_many_local_midis')
+                end
+                return list
+            end)
+            if not p.alive then return end
+            p.localLoading=false
+            if ok then
+                for _,entry in ipairs(entries)do local added=pcall(p.addLocalEntry,entry);if not added then p.localError='local_limit';break end end
+                p.saveLocal();p.catalogPage=1
+            else p.localError='local_scan_failed' end
+            p.changed()
+        end)
+    end
     function p.loadCatalog()
         if p.catalogLoading then return end
         p.catalogLoading=true;p.catalogError=nil;p.changed()
@@ -5421,8 +5522,7 @@ runtime.piano=(function(deps)
         p.selected=item;p.events=nil;p.duration=0;p.songLoading=true;p.state='loading';p.message=nil;p.changed()
         deps.spawn(function()
             local ok,events,duration,folded=pcall(function()
-                local file=item.filename:gsub('[^%w%-_%.]',function(c)return string.format('%%%02X',c:byte())end)
-                return p.parseMidi(deps.get('https://api.nanomidi.net/api/midis/'..file))
+                return p.parseMidi(p.readSong(item))
             end)
             if not p.alive or generation~=p.generation then return end
             p.songLoading=false
@@ -5433,7 +5533,7 @@ runtime.piano=(function(deps)
     end
     function p.filtered()
         local list={};local query=p.query:lower()
-        for _,song in ipairs(p.catalog or {}) do if (not p.favoritesOnly or p.favorites[song.filename]) and (query=='' or (song.title..' '..song.artist):lower():find(query,1,true)) then table.insert(list,song) end end
+        for _,song in ipairs((p.librarySource=="local" and p.localSongs) or p.catalog or {}) do if (not p.favoritesOnly or p.favorites[p.songKey(song)]) and (query=='' or (song.title..' '..song.artist):lower():find(query,1,true)) then table.insert(list,song) end end
         table.sort(list,function(a,b)
             if p.sort=='popular' and (a.downloads or 0)~=(b.downloads or 0) then return (a.downloads or 0)>(b.downloads or 0) end
             if p.sort=='newest' and (tonumber(a.id) or 0)~=(tonumber(b.id) or 0) then return (tonumber(a.id) or 0)>(tonumber(b.id) or 0) end
@@ -5508,7 +5608,7 @@ runtime.piano=(function(deps)
     end
     function p.togglePreview(song)
         if not p.alive then return end
-        if p.preview and p.preview.song.filename==song.filename and p.preview.state~='error' then p.stopPreview();return end
+        if p.preview and p.songKey(p.preview.song)==p.songKey(song) and p.preview.state~='error' then p.stopPreview();return end
         p.stopPreview();p.pause('preview')
         local generation=p.previewGeneration
         p.preview={song=song,state='loading'};p.changed()
@@ -5517,10 +5617,9 @@ runtime.piano=(function(deps)
             local ok,err=pcall(function()
                 assert(deps.playPreview,'preview_audio_unavailable')
                 local events,duration
-                if p.selected and p.selected.filename==song.filename and p.events then events,duration=p.events,p.duration
+                if song.source~='local' and p.selected and p.songKey(p.selected)==p.songKey(song) and p.events then events,duration=p.events,p.duration
                 else
-                    local file=song.filename:gsub('[^%w%-_%.]',function(c)return string.format('%%%02X',c:byte())end)
-                    events,duration=p.parseMidi(deps.get('https://api.nanomidi.net/api/midis/'..file))
+                    events,duration=p.parseMidi(p.readSong(song))
                 end
                 if canceled() then return end
                 local bytes=p.previewWav(events,duration,deps.yield,canceled)
@@ -5537,7 +5636,14 @@ runtime.piano=(function(deps)
     function p.dispose() p.alive=false;p.stopPreview();p.generation+=1;p.release();p.state='idle' end
     return p
 end)({
-    favorites=settings.pianoFavorites,sort=settings.pianoSort,
+    favorites=settings.pianoFavorites,sort=settings.pianoSort,localFiles=settings.pianoLocalFiles,
+    localPreferences=function(files)settings.pianoLocalFiles=files;save()end,
+    readFile=function(path)assert(type(readfile)=="function","local_read_unavailable");return readfile(path)end,
+    listFiles=function(path)
+        assert(type(listfiles)=="function","local_list_unavailable")
+        if type(isfolder)=="function" and type(makefolder)=="function" and not isfolder(path)then makefolder(path)end
+        return listfiles(path)
+    end,
     sampleBank=runtime.loadPianoSamples,guard=runtime.pianoShiftGuard,playPreview=runtime.playPianoPreview,yield=task.wait,
     preferences=function(favorites,sort)settings.pianoFavorites=favorites;settings.pianoSort=sort;save()end,
     clock=os.clock,spawn=task.spawn,get=function(url)
