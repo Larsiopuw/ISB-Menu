@@ -1,7 +1,7 @@
--- ISB Menu 2.6.68 | Own-game universal client toolkit
+-- ISB Menu 2.6.69 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.68",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.69",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -675,6 +675,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.69"]="Your local songs now support VP text sheets (.txt or extensionless), including chords, rests and saved tempo/timing data. MIDI files remain supported.\nA more compact main Piano card with smaller gaps and speed controls alongside playback.",
     ["2.6.68"]="Song title and details appear inside the main Piano card above Play, Pause and Stop.\nA more compact player without a separate song card; duration and position remain next to the timeline.",
     ["2.6.67"]="Import your own .mid and .midi files from the executor workspace, or scan the ISBMenu-MIDI folder. Your local library is separate from online songs.\nSelect, preview, search and favorite your own songs, with the same playback speed and timeline controls as online songs.",
     ["2.6.66"]="Piano previews use recorded grand-piano samples instead of simple synthetic tones, preserving the attack and natural decay.\nMIDI note velocity controls preview volume for more expressive dynamics.",
@@ -2991,6 +2992,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.69",text="Eigene Lieder akzeptieren jetzt auch VP-Textdateien (.txt oder ohne Endung), einschlie\195\159lich Akkorden, Pausen und gespeicherten Tempo-/Zeitangaben. MIDI-Dateien bleiben ebenfalls nutzbar.\nKompaktere Piano-Hauptkarte mit deutlich kleineren Abst\195\164nden. Tempo und Wiedergabe sitzen zusammen in einer Karte."},
     {version="2.6.68",text="Songtitel und Details stehen direkt in der Piano-Hauptkarte \195\188ber Spielen, Pause und Stop.\nKompaktere Wiedergabeansicht ohne zus\195\164tzliche Songkarte; Dauer und Position bleiben direkt an der Zeitleiste sichtbar."},
     {version="2.6.67",text="Eigene .mid- und .midi-Dateien aus dem Executor-Workspace importieren oder im Ordner ISBMenu-MIDI finden. Die lokale Bibliothek bleibt getrennt von den Online-Liedern.\nEigene Lieder ausw\195\164hlen, vorh\195\182ren, durchsuchen und favorisieren; Tempo und Zeitleiste funktionieren wie bei Online-Liedern."},
     {version="2.6.66",text="Die Piano-Vorschau verwendet echte Fl\195\188gelaufnahmen statt einfacher k\195\188nstlicher T\195\182ne. Anschlag und nat\195\188rliches Ausklingen bleiben erhalten.\nDie Anschlagst\195\164rke der MIDI-Noten steuert die Lautst\195\164rke der Vorschau f\195\188r mehr Dynamik."},
@@ -5114,7 +5116,10 @@ function runtime.playPianoPreview(bytes,ended,failed)
 end
 function runtime.pianoSongInfo(song)
     if not song then return runtime.pianoText("Lied aus der Liste auswahlen.","Choose a song from the list.")end
-    local parts=song.source=="local" and {runtime.pianoText("Eigene MIDI-Datei","Local MIDI file"),song.path} or {(song.artist or "").."  |  "..tostring(song.downloads or 0).." Downloads"}
+    local parts=song.source=="local" and {runtime.pianoText("Eigene Lieddatei","Local song file"),song.path} or {(song.artist or "").."  |  "..tostring(song.downloads or 0).." Downloads"}
+    if runtime.piano.selected==song and runtime.piano.sheetMeta then
+        local meta=runtime.piano.sheetMeta;table.insert(parts,"VP-Text  |  "..tostring(meta.bpm).." BPM"..(meta.dynamic and runtime.pianoText("  |  Original-Zeitwerte","  |  Original timings")or ""))
+    end
     if song.arranger and song.arranger~="" then table.insert(parts,runtime.pianoText("Arrangement: ","Arranger: ")..song.arranger)end
     if song.uploader and song.uploader~="" then table.insert(parts,"Upload: "..song.uploader)end
     local lines=0;for _,part in ipairs(parts)do lines+=math.max(1,math.ceil(#part/70))end
@@ -5161,18 +5166,39 @@ end
 function runtime.drawPiano()
     local p=runtime.piano
     runtime.pianoLayoutLabel=runtime.pianoLayout()
-    local info,infoHeight=runtime.pianoSongInfo(p.selected)
+    local info=runtime.pianoSongInfo(p.selected)
     local details=p.selected and (info.."\n"..runtime.pianoStatus()) or runtime.pianoStatus()
-    local descriptionHeight=p.selected and ((infoHeight or 88)-48+24) or 36
-    local controlsY=math.max(90,52+descriptionHeight+10)
-    local status=plainCard(p.selected and p.selected.title or "Piano Auto-Player",details,controlsY+100,false)
-    for _,child in ipairs(status:GetChildren())do if child:IsA("TextLabel") and runtime.rawText(child)==details then child.Size=UDim2.new(1,-32,0,descriptionHeight)end end
+    local status=plainCard(p.selected and p.selected.title or "Piano Auto-Player",details,180,false)
     status.Name="PianoPlayback"
-    rowButton(status,runtime.pianoText("Spielen","Play"),UDim2.fromOffset(16,controlsY),UDim2.fromOffset(104,30),runtime.startPiano)
-    rowButton(status,"Pause",UDim2.fromOffset(130,controlsY),UDim2.fromOffset(104,30),function()p.pause()end)
-    rowButton(status,"Stop",UDim2.fromOffset(244,controlsY),UDim2.fromOffset(104,30),function()p.stop()end)
-    runtime.pianoProgress=label(status,"",11,C.muted,UDim2.fromOffset(16,controlsY+41),UDim2.new(1,-32,0,20))
-    local rail=make("Frame",{Name="PianoSeek",Active=true,BackgroundColor3=C.line,Position=UDim2.fromOffset(16,controlsY+76),Size=UDim2.new(1,-32,0,8)},status);round(rail,4)
+    local description
+    for _,child in ipairs(status:GetChildren())do if child:IsA("TextLabel") and runtime.rawText(child)==details then description=child;child.Name="PianoDetails"end end
+    local play=rowButton(status,runtime.pianoText("Spielen","Play"),UDim2.fromOffset(16,90),UDim2.fromOffset(104,30),runtime.startPiano)
+    play.Name="PianoPlay"
+    local pause=rowButton(status,"Pause",UDim2.fromOffset(130,90),UDim2.fromOffset(104,30),function()p.pause()end)
+    local stop=rowButton(status,"Stop",UDim2.fromOffset(244,90),UDim2.fromOffset(104,30),function()p.stop()end)
+    local tempo=make("Frame",{Name="PianoTempo",BackgroundTransparency=1,Size=UDim2.fromOffset(170,30)},status)
+    label(tempo,runtime.pianoText("Tempo ","Speed ")..string.format("%.2fx",p.speed),11,C.muted,UDim2.fromOffset(0,0),UDim2.fromOffset(94,30))
+    rowButton(tempo,"-",UDim2.fromOffset(102,0),UDim2.fromOffset(28,30),function()p.setSpeed(p.speed-.25)end)
+    rowButton(tempo,"+",UDim2.fromOffset(138,0),UDim2.fromOffset(28,30),function()p.setSpeed(p.speed+.25)end)
+    runtime.pianoProgress=label(status,"",11,C.muted,UDim2.fromOffset(16,131),UDim2.new(1,-32,0,18))
+    local rail=make("Frame",{Name="PianoSeek",Active=true,BackgroundColor3=C.line,Position=UDim2.fromOffset(16,166),Size=UDim2.new(1,-32,0,8)},status);round(rail,4)
+    local function layout()
+        local width=content.AbsoluteSize.X>0 and content.AbsoluteSize.X/math.max(.1,scale.Scale)or 600
+        local lines=0;local wrapped=0
+        for line in (details.."\n"):gmatch('(.-)\n')do lines+=1;wrapped+=math.max(1,math.ceil((utf8.len(line)or #line)*5.5/math.max(100,width-32)))end
+        local height=wrapped*13
+        if runtime.textService then local ok,bounds=pcall(function()return runtime.textService:GetTextSize(details,11,Enum.Font.BuilderSansMedium,Vector2.new(math.max(100,width-32),10000))end);if ok then height=math.max(lines*13,bounds.Y)end end
+        height=math.ceil(height)+2
+        if description then description.Size=UDim2.new(1,-32,0,height)end
+        local y=38+height+10;local inline=width>=550
+        play.Position=UDim2.fromOffset(16,y);pause.Position=UDim2.fromOffset(130,y);stop.Position=UDim2.fromOffset(244,y)
+        tempo.Position=inline and UDim2.new(1,-186,0,y)or UDim2.fromOffset(16,y+38)
+        local timeY=y+(inline and 36 or 74)
+        runtime.pianoProgress.Position=UDim2.fromOffset(16,timeY)
+        rail.Position=UDim2.fromOffset(16,timeY+28)
+        status.Size=UDim2.new(1,0,0,timeY+52)
+    end
+    rowConnect(content:GetPropertyChangedSignal("AbsoluteSize"),layout);layout()
     local fill=make("Frame",{Name="PianoSeekFill",BackgroundColor3=C.accent,BorderSizePixel=0,Size=UDim2.fromScale(0,1)},rail);round(fill,4)
     local thumb=make("Frame",{Name="PianoSeekThumb",BackgroundColor3=C.text,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(0,.5),Size=UDim2.fromOffset(14,14)},rail);round(thumb,7)
     local refs={fill=fill,thumb=thumb};runtime.pianoSeekRefs=refs
@@ -5189,27 +5215,24 @@ function runtime.drawPiano()
         end
         update(input.Position.X);activeSlider={input=input,update=update,finish=finish}
     end)
-    local speed=plainCard(runtime.pianoText("Tempo","Speed"),string.format("%.2fx",p.speed),84)
-    rowButton(speed,"-",UDim2.new(1,-100,0,24),UDim2.fromOffset(36,30),function()p.setSpeed(p.speed-.25)end)
-    rowButton(speed,"+",UDim2.new(1,-54,0,24),UDim2.fromOffset(36,30),function()p.setSpeed(p.speed+.25)end)
     local sources=make("Frame",{Name="PianoLibrarySources",BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
-    for i,item in ipairs({{"online",runtime.pianoText("Online-Lieder","Online songs")},{"local",runtime.pianoText("Eigene MIDIs","My MIDIs")}})do
+    for i,item in ipairs({{"online",runtime.pianoText("Online-Lieder","Online songs")},{"local",runtime.pianoText("Eigene Lieder","My songs")}})do
         local value=item[1]
         local button=rowButton(sources,item[2],UDim2.new((i-1)/2,2,0,0),UDim2.new(.5,-6,0,30),function()p.librarySource=value;p.catalogPage=1;p.query="";render()end)
         button.Name="PianoSource_"..value;if p.librarySource==value then button.TextColor3=C.accent end
     end
     if p.librarySource=="local" then
-        local text=p.localLoading and runtime.pianoText("MIDI-Dateien werden geladen...","Loading MIDI files...") or p.localError and runtime.pianoText("Datei/Ordner nicht lesbar oder MIDI nicht unterst\195\188tzt. Pfad im Executor-Workspace pr\195\188fen.","Cannot read file/folder or unsupported MIDI. Check the path inside the executor workspace.") or runtime.pianoText(".mid/.midi in ISBMenu-MIDI im Executor-Workspace kopieren. Dann Ordner laden oder einen relativen Dateipfad importieren.","Copy .mid/.midi into ISBMenu-MIDI in the executor workspace. Load that folder or import a relative file path.")
+        local text=p.localLoading and runtime.pianoText("MIDI-Dateien werden geladen...","Loading MIDI files...") or p.localError and runtime.pianoText("Datei/Ordner nicht lesbar oder MIDI nicht unterst\195\188tzt. Pfad im Executor-Workspace pr\195\188fen.","Cannot read file/folder or unsupported MIDI. Check the path inside the executor workspace.") or runtime.pianoText(".mid/.midi oder VP-Textdateien in ISBMenu-MIDI im Executor-Workspace kopieren. Dann Ordner laden oder einen relativen Dateipfad importieren.","Copy .mid/.midi or VP text files into ISBMenu-MIDI in the executor workspace. Load that folder or import a relative file path.")
         if type(readfile)~="function" then text=runtime.pianoText("Dieser Executor bietet keinen lokalen Dateizugriff f\195\188r MIDI-Dateien.","This executor does not provide local file access for MIDI files.")
         elseif p.localError=="local_scan_failed" and type(listfiles)~="function" then text=runtime.pianoText("Ordnerauflistung fehlt. Importiere die MIDI stattdessen \195\188ber ihren relativen Dateipfad.","Folder listing unavailable. Import the MIDI using its relative file path instead.")end
-        local form=plainCard(runtime.pianoText("Eigene MIDIs","My MIDIs"),text,216);form.Name="PianoLocalImport"
-        local input=make("TextBox",{Name="PianoLocalPath",Text=p.localPath or "",PlaceholderText="ISBMenu-MIDI/song.mid",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,79),Size=UDim2.new(1,-150,0,30)},form);round(input,10)
+        local form=plainCard(runtime.pianoText("Eigene Lieder","My songs"),text,216);form.Name="PianoLocalImport"
+        local input=make("TextBox",{Name="PianoLocalPath",Text=p.localPath or "",PlaceholderText="ISBMenu-MIDI/song.mid / song.txt",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,79),Size=UDim2.new(1,-150,0,30)},form);round(input,10)
         rowConnect(input.FocusLost,function()p.localPath=input.Text end)
         rowButton(form,runtime.pianoText("Importieren","Import"),UDim2.new(1,-130,0,79),UDim2.fromOffset(114,30),function()p.localPath=input.Text;p.importLocal(input.Text)end)
-        local search=make("TextBox",{Name="PianoLocalSearch",Text=p.query,PlaceholderText=runtime.pianoText("Eigene MIDIs suchen","Search my MIDIs"),ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,125),Size=UDim2.new(1,-32,0,30)},form);round(search,10)
+        local search=make("TextBox",{Name="PianoLocalSearch",Text=p.query,PlaceholderText=runtime.pianoText("Eigene Lieder suchen","Search my songs"),ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,125),Size=UDim2.new(1,-32,0,30)},form);round(search,10)
         rowConnect(search.FocusLost,function()if p.query~=search.Text then p.query=search.Text;p.catalogPage=1;render()end end)
         rowButton(form,runtime.pianoText("Ordner laden","Load folder"),UDim2.fromOffset(16,169),UDim2.fromOffset(150,30),p.scanLocal)
-        label(form,tostring(#p.localSongs)..runtime.pianoText(" eigene MIDIs"," local MIDIs"),11,C.muted,UDim2.fromOffset(180,174),UDim2.new(1,-196,0,20))
+        label(form,tostring(#p.localSongs)..runtime.pianoText(" eigene Lieder"," local songs"),11,C.muted,UDim2.fromOffset(180,174),UDim2.new(1,-196,0,20))
     else
     local library=plainCard(runtime.pianoText("Online-Lieder","Online songs"),p.catalogLoading and runtime.pianoText("Liederliste wird geladen \226\128\166","Loading song library...") or (p.catalogError and runtime.pianoText("Liederliste nicht erreichbar. Bitte erneut laden.","Library unavailable. Please reload.")) or (p.catalog and (#p.catalog..runtime.pianoText(" Lieder \194\183 nanoMIDI"," songs - nanoMIDI"))) or runtime.pianoText("Liederliste bei Bedarf laden. Nur das ausgew\195\164hlte Lied wird heruntergeladen.","Load the library when needed. Only the selected song is downloaded."),124)
     local searchBox=make("TextBox",{Name="PianoSongSearch",Text=p.query,PlaceholderText=runtime.pianoText("Titel oder K\195\188nstler suchen","Search title or artist"),ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,79),Size=UDim2.new(1,-144,0,30)},library);round(searchBox,10)
@@ -5231,7 +5254,7 @@ function runtime.drawPiano()
         if #songs==0 and not (p.librarySource=="local" and (p.localLoading or p.localError)) then plainCard(runtime.pianoText("Keine Treffer","No matches"),p.favoritesOnly and runtime.pianoText("Markiere Lieder mit dem Stern oder passe deine Suche an.","Star songs or adjust your search.") or runtime.pianoText("Versuche einen anderen Titel oder K\195\188nstler.","Try another title or artist."),82) end
         for i=(p.catalogPage-1)*8+1,math.min(#songs,p.catalogPage*8) do
             local song=songs[i]
-            local tile=card(song.title,(song.source=="local" and runtime.pianoText("Eigene MIDI-Datei","Local MIDI file") or song.artist.."  |  "..tostring(song.downloads or 0).." Downloads"),112,false);tile.Name="PianoSong_"..song.id
+            local tile=card(song.title,(song.source=="local" and runtime.pianoText("Eigene Lieddatei","Local song file") or song.artist.."  |  "..tostring(song.downloads or 0).." Downloads"),112,false);tile.Name="PianoSong_"..song.id
             rowButton(tile,runtime.pianoText("Ausw\195\164hlen","Select"),UDim2.fromOffset(16,64),UDim2.fromOffset(104,30),function()p.select(song)end)
             local previewing=p.preview and p.songKey(p.preview.song)==p.songKey(song)
             local previewText=previewing and (p.preview.state=="loading" and runtime.pianoText("Abbrechen","Cancel") or p.preview.state=="playing" and runtime.pianoText("Vorschau stoppen","Stop preview") or runtime.pianoText("Erneut versuchen","Retry preview")) or runtime.pianoText("Vorschau","Preview")
@@ -5297,7 +5320,7 @@ runtime.piano=(function(deps)
             p.index+=1
         end
         p.anchor=deps.clock();p.lastTick=p.anchor;p.message=nil
-        if not p.events[p.index] then table.clear(p.logical);p.state='finished'
+        if p.position>=(p.duration or 0) then table.clear(p.logical);p.state='finished'
         else
             p.state='paused'
             if playing then return p.start() end
@@ -5344,7 +5367,7 @@ runtime.piano=(function(deps)
             p.index+=1;processed+=1
             if processed>256 then p.pause('interrupted');return end
         end
-        if not p.events[p.index] then p.release();p.state='finished';p.position=p.duration;p.changed() end
+        if not p.events[p.index] and at>=(p.duration or 0) then p.release();p.state='finished';p.position=p.duration;p.changed() end
     end
     function p.elapsed() return math.min(p.duration or 0,p.position+(p.state=='playing' and math.max(0,deps.clock()-p.anchor)*p.speed or 0)) end
     function p.parseMidi(data)
@@ -5427,6 +5450,76 @@ runtime.piano=(function(deps)
         end)
         assert(#events>0,'no_notes');return events,duration,folded
     end
+    function p.sheetText(raw)
+        assert(type(raw)=='string' and #raw<=8000000,'invalid_sheet')
+        if raw:sub(1,3)=='\239\187\191' then return raw:sub(4)end
+        if raw:sub(1,2)=='\255\254' or raw:sub(1,2)=='\254\255' then
+            assert(#raw%2==0,'invalid_utf16_sheet');local le=raw:byte(1)==255;local parts={};local i=3
+            local function word(at)local a,b=raw:byte(at,at+1);return le and a+b*256 or a*256+b end
+            while i<=#raw do
+                local code=word(i);i+=2
+                if code>=55296 and code<=56319 then
+                    assert(i<=#raw,'invalid_utf16_sheet');local low=word(i);i+=2;assert(low>=56320 and low<=57343,'invalid_utf16_sheet');code=65536+(code-55296)*1024+low-56320
+                else assert(code<56320 or code>57343,'invalid_utf16_sheet')end
+                table.insert(parts,utf8.char(code))
+            end
+            return table.concat(parts)
+        end
+        return raw
+    end
+    function p.parseSheet(raw)
+        local text=p.sheetText(raw):gsub('\r\n','\n'):gsub('\r','\n');local tokens={};local meta={}
+        for line in (text..'\n'):gmatch('(.-)\n')do
+            if line:match('^%s*#')then
+                local json=line:match('^%s*#META%s+(.+)$')
+                if json then assert(#tokens==0 and deps.decode,'invalid_sheet_metadata');meta=deps.decode(json);assert(type(meta)=='table','invalid_sheet_metadata')end
+            else
+                local i=1
+                while i<=#line do
+                    local key=line:sub(i,i)
+                    if key:match('%s')then i+=1
+                    elseif key=='[' then
+                        local finish=line:find(']',i+1,true);assert(finish,'unclosed_sheet_chord');local chord=''
+                        for j=i+1,finish-1 do local c=line:sub(j,j);if not c:match('%s')then assert(p.keys:find(c,1,true),'unsupported_sheet_key');chord..=c end end
+                        if #chord>0 then assert(#chord<=61,'sheet_chord_too_large');table.insert(tokens,chord)end
+                        i=finish+1
+                    else assert(key=='|' or p.keys:find(key,1,true),'unsupported_sheet_key');table.insert(tokens,key);i+=1 end
+                    assert(#tokens<=100000,'sheet_too_large')
+                end
+            end
+        end
+        assert(#tokens>0 and meta.instrument_mode~='drums','unsupported_or_empty_sheet')
+        local function number(value)local n=tonumber(value);assert(n and n==n and math.abs(n)<math.huge,'invalid_sheet_number');return n end
+        local bpm=meta.bpm~=nil and number(meta.bpm)or 120;local subdiv=meta.subdiv~=nil and number(meta.subdiv)or 4
+        assert(bpm>=1 and bpm<=1000 and subdiv>=.1 and subdiv<=64,'invalid_sheet_tempo')
+        local timings=meta.timings;local holds=meta.holds
+        if timings~=nil then assert(type(timings)=='table' and #timings==#tokens,'invalid_sheet_timings')end
+        if holds~=nil then assert(type(holds)=='table' and #holds==#tokens,'invalid_sheet_holds')end
+        local events={};local at=0;local duration=0;local serial=0
+        for i,token in ipairs(tokens)do
+            local step=timings and number(timings[i])or 60/(bpm*subdiv);assert(step>0,'invalid_sheet_timing');step=math.max(.018,step)
+            local hold=holds and number(holds[i])or step*.8;assert(hold>=0,'invalid_sheet_hold')
+            if timings then hold=math.min(8,math.max(.025,hold>0 and hold or step*.8))else hold=math.max(.035,holds and math.min(step,hold)or hold)end
+            if token~='|' then
+                for j=1,#token do local key=token:sub(j,j);serial+=1;assert(serial<=100000,'too_many_sheet_notes')
+                    table.insert(events,{time=at,key=key,down=true,token=serial,velocity=96})
+                    table.insert(events,{time=at+hold,key=key,down=false,token=serial});duration=math.max(duration,at+hold)
+                end
+            end
+            at+=step;assert(at<=7200 and duration<=7200,'sheet_too_long')
+        end
+        assert(#events>0,'no_notes');duration=math.max(duration,at)
+        table.sort(events,function(a,b)if a.time~=b.time then return a.time<b.time end;if a.down~=b.down then return not a.down end;return a.token<b.token end)
+        return events,duration,0,{bpm=bpm,subdiv=subdiv,dynamic=timings~=nil,format='vp'}
+    end
+    function p.supportedFile(file)
+        local lower=file:lower();return lower:match('%.mid$')or lower:match('%.midi$')or lower:match('%.txt$')or not file:find('.',1,true)
+    end
+    function p.parseSong(bytes,filename)
+        local lower=filename and filename:lower()or ''
+        if bytes:sub(1,4)=='MThd'or lower:match('%.mid$')or lower:match('%.midi$')then return p.parseMidi(bytes)end
+        return p.parseSheet(bytes)
+    end
     function p.songKey(song)return song.source=='local' and ('local:'..song.path) or song.filename end
     function p.localEntry(path)
         assert(type(path)=='string','invalid_midi_path')
@@ -5434,7 +5527,7 @@ runtime.piano=(function(deps)
         assert(#path>0 and #path<=240 and not path:find('%z') and not path:find(':') and path:sub(1,1)~='/','invalid_midi_path')
         for part in path:gmatch('[^/]+')do assert(part~='..' and part~='.','invalid_midi_path')end
         local file=path:match('([^/]+)$')
-        assert(file and (file:lower():match('%.mid$') or file:lower():match('%.midi$')),'invalid_midi_path')
+        assert(file and p.supportedFile(file),'invalid_midi_path')
         return {path=path,filename=file,title=file:gsub('%.[^%.]+$',''),artist='',source='local'}
     end
     function p.saveLocal()
@@ -5458,7 +5551,7 @@ runtime.piano=(function(deps)
         p.localLoading=true;p.localError=nil;p.librarySource='local';p.changed()
         deps.spawn(function()
             local ok,entry=pcall(function()
-                local item=p.localEntry(path);local events,duration=p.parseMidi(p.readSong(item))
+                local item=p.localEntry(path);local events,duration=p.parseSong(p.readSong(item),item.filename)
                 item.duration=duration;item.noteCount=math.floor(#events/2);return item
             end)
             if not p.alive then return end
@@ -5481,7 +5574,7 @@ runtime.piano=(function(deps)
                 for _,path in ipairs(paths)do
                     if type(path)=='string' then
                         local file=path:gsub('\\','/'):match('([^/]+)$')
-                        if file and (file:lower():match('%.mid$') or file:lower():match('%.midi$')) then table.insert(list,p.localEntry('ISBMenu-MIDI/'..file))end
+                        if file and p.supportedFile(file) then table.insert(list,p.localEntry('ISBMenu-MIDI/'..file))end
                     end
                     assert(#list<=2000,'too_many_local_midis')
                 end
@@ -5506,7 +5599,7 @@ runtime.piano=(function(deps)
                 local list={}
                 for _,item in ipairs(raw) do
                     local file=type(item)=='table' and item.midiFilename
-                    if type(file)=='string' and #file<=250 and not file:find('[/\\%z]') and (file:lower():match('%.mid$') or file:lower():match('%.midi$')) then
+                    if type(file)=='string' and #file<=250 and not file:find('[/\\%z]') and (file:lower():match('%.mid$')or file:lower():match('%.midi$')) then
                         table.insert(list,{id=tostring(item.id),title=tostring(item.name or file):sub(1,160),artist=tostring(item.artists or ''):sub(1,160),filename=file,arranger=tostring(item.arranger or ''):sub(1,160),uploader=tostring(item.uploader or ''):sub(1,160),downloads=math.clamp(tonumber(item.downloads) or 0,0,1000000000000)})
                     end
                     assert(#list<=10000,'catalog_too_large')
@@ -5521,14 +5614,14 @@ runtime.piano=(function(deps)
     end
     function p.select(item)
         p.stop();p.generation+=1;local generation=p.generation
-        p.selected=item;p.events=nil;p.duration=0;p.songLoading=true;p.state='loading';p.message=nil;p.changed()
+        p.selected=item;p.events=nil;p.sheetMeta=nil;p.duration=0;p.songLoading=true;p.state='loading';p.message=nil;p.changed()
         deps.spawn(function()
-            local ok,events,duration,folded=pcall(function()
-                return p.parseMidi(p.readSong(item))
+            local ok,events,duration,folded,sheetMeta=pcall(function()
+                return p.parseSong(p.readSong(item),item.filename)
             end)
             if not p.alive or generation~=p.generation then return end
             p.songLoading=false
-            if ok then p.events=events;p.duration=duration;p.folded=folded;p.state='ready'
+            if ok then p.events=events;p.duration=duration;p.folded=folded;p.sheetMeta=sheetMeta;p.state='ready'
             else p.state='error';p.message='song_failed' end
             p.changed()
         end)
@@ -5621,7 +5714,7 @@ runtime.piano=(function(deps)
                 local events,duration
                 if song.source~='local' and p.selected and p.songKey(p.selected)==p.songKey(song) and p.events then events,duration=p.events,p.duration
                 else
-                    events,duration=p.parseMidi(p.readSong(song))
+                    events,duration=p.parseSong(p.readSong(song),song.filename)
                 end
                 if canceled() then return end
                 local bytes=p.previewWav(events,duration,deps.yield,canceled)
