@@ -1,7 +1,7 @@
--- ISB Menu 2.6.65 | Own-game universal client toolkit
+-- ISB Menu 2.6.66 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.65",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.66",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -668,6 +668,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.66"]="Piano previews use recorded grand-piano samples instead of simple synthetic tones, preserving the attack and natural decay.\nMIDI note velocity controls preview volume for more expressive dynamics.",
     ["2.6.65"]="Cleaner Piano view with centered favorite stars and full song details. The timeline no longer briefly jumps to the beginning when seeking.\nListen to a 20-second local piano preview before selecting a song; click again to stop. The standard Shift Lock key binding is temporarily blocked during playback.",
     ["2.6.64"]="Piano timeline lets you seek forward or backward with live time display and resume at the selected position.\nSort online songs by downloads, newest or title, star favorites and filter your saved songs. The keyboard layout reported by Roblox is displayed.",
     ["2.6.63"]="Piano songs continue when switching to other windows, provided Roblox keeps running in the background.\nPiano input is sent exclusively inside Roblox. Chat and leaving your seat still interrupt playback.",
@@ -2981,6 +2982,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.66",text="Die Piano-Vorschau verwendet echte Fl\195\188gelaufnahmen statt einfacher k\195\188nstlicher T\195\182ne. Anschlag und nat\195\188rliches Ausklingen bleiben erhalten.\nDie Anschlagst\195\164rke der MIDI-Noten steuert die Lautst\195\164rke der Vorschau f\195\188r mehr Dynamik."},
     {version="2.6.65",text="Aufger\195\164umter Piano-Bereich mit zentrierten Favoritensternen und vollst\195\164ndigen Songdetails. Die Zeitleiste springt beim Spulen nicht mehr kurz zum Anfang.\nLieder vor dem Ausw\195\164hlen als 20-sek\195\188ndige lokale Piano-Vorschau anh\195\182ren und mit einem zweiten Klick stoppen. Die normale Shift-Lock-Tastenbelegung wird w\195\164hrend der Wiedergabe vor\195\188bergehend gesperrt."},
     {version="2.6.64",text="Piano-Zeitleiste zum Vor- und Zur\195\188ckspulen mit aktueller Zeit und Fortsetzen an der gew\195\164hlten Stelle.\nOnline-Lieder nach Downloads, Neueste oder Titel sortieren, mit Sternen merken und nach Favoriten filtern. Das von Roblox gemeldete Tastaturlayout wird angezeigt."},
     {version="2.6.63",text="Piano-Lieder spielen beim Wechsel in andere Fenster weiter, sofern Roblox im Hintergrund weiterl\195\164uft.\nPiano-Eingaben werden ausschlie\195\159lich innerhalb von Roblox gesendet. Chat und das Verlassen des Sitzplatzes unterbrechen die Wiedergabe weiterhin."},
@@ -5065,6 +5067,19 @@ function runtime.pianoShiftGuard(enable)
         notify(runtime.pianoText("Shift-Lock kann hier nicht automatisch gesperrt werden. Bei Bedarf in den Roblox-Einstellungen ausschalten.","Shift Lock cannot be blocked automatically here. Disable it in Roblox settings if needed."),"Piano")
     end
 end
+function runtime.loadPianoSamples()
+    if runtime.pianoSampleBank then return runtime.pianoSampleBank end
+    local path="ISBMenu-piano-salamander-v1.bin"
+    if type(readfile)=="function" then
+        local ok,bank=pcall(function()return runtime.piano.decodeSampleBank(readfile(path))end)
+        if ok then runtime.pianoSampleBank=bank;return bank end
+    end
+    local raw=requestBody("https://raw.githubusercontent.com/Larsiopuw/ISB-Menu/main/assets/isb-piano-salamander-v1.bin")
+    local bank=runtime.piano.decodeSampleBank(raw)
+    runtime.pianoSampleBank=bank
+    if type(writefile)=="function" then pcall(writefile,path,raw)end
+    return bank
+end
 function runtime.playPianoPreview(bytes,ended,failed)
     local loader=type(getcustomasset)=="function" and getcustomasset or getsynasset
     assert(type(loader)=="function" and type(writefile)=="function","preview_audio_unavailable")
@@ -5341,7 +5356,7 @@ runtime.piano=(function(deps)
                     local note=read(1);local velocity=(command==12 or command==13) and 0 or read(1)
                     assert(note<128 and velocity<128,'invalid_data')
                     if (command==8 or command==9) and channel~=9 then
-                        add({tick=tick,note=note,down=command==9 and velocity>0,id=track..':'..channel..':'..note})
+                        add({tick=tick,note=note,down=command==9 and velocity>0,velocity=velocity,id=track..':'..channel..':'..note})
                     end
                 end
             end
@@ -5351,7 +5366,7 @@ runtime.piano=(function(deps)
         local active={};local intervals={};local tick=0;local seconds=0;local tempo=500000;local folded=0
         local function close(note,finish)
             local duration=math.max(.02,finish-note.time)
-            table.insert(intervals,{time=note.time,finish=note.time+duration,key=note.key})
+            table.insert(intervals,{time=note.time,finish=note.time+duration,key=note.key,velocity=note.velocity})
         end
         for _,event in ipairs(raw) do
             seconds+=(event.tick-tick)*tempo/division/1000000;tick=event.tick;assert(seconds<=7200,'too_long')
@@ -5362,13 +5377,13 @@ runtime.piano=(function(deps)
                 while pitch<36 do pitch+=12 end
                 while pitch>96 do pitch-=12 end
                 if pitch~=event.note then folded+=1 end
-                active[event.id]={time=seconds,key=p.keys:sub(pitch-35,pitch-35)}
+                active[event.id]={time=seconds,key=p.keys:sub(pitch-35,pitch-35),velocity=event.velocity}
             elseif active[event.id] then close(active[event.id],seconds);active[event.id]=nil end
         end
         for _,note in pairs(active) do close(note,math.min(seconds+.2,note.time+2)) end
         local events={};local duration=0
         for token,note in ipairs(intervals) do
-            table.insert(events,{time=note.time,key=note.key,down=true,token=token})
+            table.insert(events,{time=note.time,key=note.key,down=true,token=token,velocity=note.velocity})
             table.insert(events,{time=note.finish,key=note.key,down=false,token=token});duration=math.max(duration,note.finish)
         end
         table.sort(events,function(a,b)
@@ -5427,8 +5442,22 @@ runtime.piano=(function(deps)
         end)
         return list
     end
+    function p.decodeSampleBank(raw)
+        assert(type(raw)=='string' and #raw<=4000000 and #raw>=12 and raw:sub(1,4)=='ISBP','invalid_piano_bank')
+        local data=buffer.fromstring(raw)
+        assert(buffer.readu32(data,4)==22050 and buffer.readu16(data,8)==21 and buffer.readu16(data,10)==1,'invalid_piano_bank')
+        local bank={data=data,rate=22050,notes={}};local cursor=12
+        for i=1,21 do
+            assert(cursor+6<=#raw,'truncated_piano_bank')
+            local pitch=buffer.readu16(data,cursor);local frames=buffer.readu32(data,cursor+2);cursor+=6
+            assert(pitch==36+(i-1)*3 and frames>=2205 and frames<=88200 and cursor+frames*2<=#raw,'invalid_piano_sample')
+            table.insert(bank.notes,{pitch=pitch,offset=cursor,frames=frames});cursor+=frames*2
+        end
+        assert(cursor==#raw,'invalid_piano_bank_tail');return bank
+    end
     function p.previewWav(events,limit,yieldFn,canceled)
-        local rate=16000;local offset=events[1] and events[1].time or 0
+        assert(deps.sampleBank,"piano_samples_unavailable")
+        local bank=deps.sampleBank();local rate=bank.rate;local offset=events[1] and events[1].time or 0
         local length=math.min(20,math.max(.1,limit-offset));local samples=math.ceil(length*rate)
         local data=buffer.create(44+samples*2)
         buffer.writestring(data,0,'RIFF');buffer.writeu32(data,4,36+samples*2);buffer.writestring(data,8,'WAVEfmt ')
@@ -5446,7 +5475,8 @@ runtime.piano=(function(deps)
                     local key=p.keys:find(event.key,1,true)
                     if key then
                         if #voices>=24 then table.remove(voices,1) end
-                        table.insert(voices,{token=event.token,at=event.time,hz=65.4063913*2^((key-1)/12)})
+                        local pitch=key+35;local root=bank.notes[math.clamp(math.floor((pitch-36)/3+.5)+1,1,#bank.notes)]
+                        table.insert(voices,{token=event.token,at=event.time,root=root,step=2^((pitch-root.pitch)/12),gain=(math.clamp(event.velocity or 96,1,127)/127)^1.1})
                     end
                 else
                     for _,voice in ipairs(voices) do if voice.token==event.token then voice.off=t end end
@@ -5456,16 +5486,18 @@ runtime.piano=(function(deps)
             local sample=0
             for i=#voices,1,-1 do
                 local voice=voices[i];local age=t-voice.at
-                local release=voice.off and math.max(0,1-(t-voice.off)/.08) or 1
-                if release<=0 or age>8 then table.remove(voices,i)
+                local release=voice.off and math.max(0,1-(t-voice.off)/.22) or 1
+                local position=age*rate*voice.step;local frameIndex=math.floor(position)
+                if release<=0 or frameIndex>=voice.root.frames-1 then table.remove(voices,i)
                 else
-                    local phase=2*math.pi*voice.hz*age
-                    local envelope=math.min(1,age/.005)*math.exp(-age*1.1)*release
-                    sample+=(math.sin(phase)+.25*math.sin(phase*2)+.08*math.sin(phase*3))*envelope
+                    local address=voice.root.offset+frameIndex*2;local fraction=position-frameIndex
+                    local first=buffer.readi16(bank.data,address)/32768
+                    local second=buffer.readi16(bank.data,address+2)/32768
+                    sample+=(first+(second-first)*fraction)*release*voice.gain
                 end
             end
             local fade=math.min(1,(length-elapsed)/.06)
-            buffer.writei16(data,44+frame*2,math.floor(math.clamp(sample*.14*fade,-1,1)*30000))
+            buffer.writei16(data,44+frame*2,math.floor(math.clamp((sample*.7/(1+math.abs(sample)*.12))*fade,-1,1)*30000))
         end
         return buffer.tostring(data)
     end
@@ -5506,7 +5538,7 @@ runtime.piano=(function(deps)
     return p
 end)({
     favorites=settings.pianoFavorites,sort=settings.pianoSort,
-    guard=runtime.pianoShiftGuard,playPreview=runtime.playPianoPreview,yield=task.wait,
+    sampleBank=runtime.loadPianoSamples,guard=runtime.pianoShiftGuard,playPreview=runtime.playPianoPreview,yield=task.wait,
     preferences=function(favorites,sort)settings.pianoFavorites=favorites;settings.pianoSort=sort;save()end,
     clock=os.clock,spawn=task.spawn,get=function(url)
         local headers=(type(request)=="function" or type(http_request)=="function" or (type(syn)=="table" and type(syn.request)=="function"))

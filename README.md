@@ -1,4 +1,4 @@
-# ISB Menu 2.6.65 · by Larsiopuw
+# ISB Menu 2.6.66 · by Larsiopuw
 
 ## Piano automatisch spielen
 
@@ -11,11 +11,18 @@ Die Zeitleiste unter der Wiedergabe zeigt Minuten und Sekunden an. Ziehen pausie
 
 Das von Roblox gemeldete Layout steht kompakt bei der Zeitanzeige. Interne Roblox-Tastencodes verwenden feste QWERTY-Positionen; deshalb bleibt die MIDI-Tonzuordnung bei QWERTZ erhalten, ohne einen zusätzlichen Y/Z-Tausch einzubauen. Die Menüsprache beeinflusst diese Zuordnung nicht.
 
-**Vorschau** spielt einen lokal aus MIDI erzeugten Piano-Ausschnitt von bis zu 20 Sekunden, ohne Piano-Tasten im Spiel zu drücken. Ein weiterer Klick stoppt die Vorschau; Laden lässt sich ebenfalls abbrechen. Die Vorschau startet nicht die Spiel-Wiedergabe und ändert die Songauswahl nicht. Dafür braucht die Skriptumgebung lokale Datei- und Audio-Asset-Unterstützung. Es handelt sich um eine synthetische Piano-Vorschau, keine Originalaufnahme. Start einer normalen Wiedergabe, Stop, F8 und Beenden räumen die Vorschau auf.
+**Vorschau** spielt einen lokal aus MIDI erzeugten Piano-Ausschnitt von bis zu 20 Sekunden, ohne Piano-Tasten im Spiel zu drücken. Ein weiterer Klick stoppt die Vorschau; Laden lässt sich ebenfalls abbrechen. Die Vorschau startet nicht die Spiel-Wiedergabe und ändert die Songauswahl nicht. Dafür braucht die Skriptumgebung lokale Datei- und Audio-Asset-Unterstützung. Seit 2.6.66 werden aufgenommene Flügeltöne mit natürlichem Anschlag und Ausklang verwendet; die MIDI-Anschlagstärke steuert die Dynamik. Die Vorschau ist eine Piano-Interpretation des MIDI, keine Originalaufnahme des jeweiligen Songs. Die Klavierbank (rund 3,7 MB) wird beim ersten Anhören geladen und bei verfügbarem Dateizugriff lokal zwischengespeichert. Auch innerhalb einer Sitzung wird sie wiederverwendet. Ist sie nicht erreichbar und nicht im Cache, erscheint ein Vorschaufehler; es gibt keinen Rückfall auf den alten künstlichen Klang. Start einer normalen Wiedergabe, Stop, F8 und Beenden räumen die Vorschau auf.
+
+Klavieraufnahmen: **Salamander Grand Piano (Yamaha C5) von Alexander Holm**, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), bereitgestellt über [Tone.js Audio](https://github.com/Tonejs/audio/tree/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander). Für ISB auf 21 Töne in kleinen Terzen von C2 bis C7 reduziert, nach Mono/22.050 Hz/16 Bit konvertiert, auf höchstens vier Sekunden pro Sample gekürzt und mit gemeinsamer Pegelanpassung sowie kurzem Schluss-Fade versehen. Zwischenliegende Tonhöhen werden interpoliert. Die Aufnahmen behalten ihre eigene Lizenz; Details stehen in [assets/PIANO-SAMPLES-LICENSE.txt](assets/PIANO-SAMPLES-LICENSE.txt).
 
 Für die Standard-Roblox-Kamera wird während der Piano-Wiedergabe nur die Shift-Lock-Tastenbelegung vorübergehend geleert. Shift-Noten werden weiterhin gesendet. Pause, Stop, Fehler und Beenden stellen die vorherige Belegung wieder her; zwischenzeitliche Änderungen anderer Skripte bleiben erhalten. Eigene Kamera-Systeme ohne diese Belegung können abweichen. Falls die automatische Sperre dort nicht verfügbar ist, erscheint ein Hinweis auf die Roblox-Einstellungen.
 
 Die Online-Liste stammt wie beim VP-Player von nanoMIDI. Die eigenständige Windows-App muss dafür nicht laufen. Verwendet wird die übliche chromatische 61-Tasten-Belegung (C2–C7); Pianos mit anderen Steuerungen sind nicht allgemein abgedeckt. Die verwendete Skriptumgebung muss Roblox-interne Tasteneingaben unterstützen; PC-weite Tastaturfunktionen werden nicht verwendet. Falls der interne Eingabeweg fehlt oder blockiert ist, erscheint ein Hinweis. Beim Wechsel in andere Fenster läuft das Lied weiter, solange Roblox den Player weiter ausführt. Chat, das Roblox-Menü, Aufstehen nach sitzendem Start und Respawn unterbrechen die Wiedergabe und geben gehaltene Tasten frei. Bei einer längeren Unterbrechung durch Roblox pausiert der Player, damit keine verspäteten Noten nachgeholt werden. F8 wird innerhalb von Roblox verarbeitet; zum Stoppen nach dem Raustabben zurück ins Spiel wechseln. MIDI und Oberfläche wurden geprüft; eine Live-Prüfung der Tasteneingabe im Roblox-Spiel steht noch aus.
+
+## Änderungen in 2.6.66
+
+- Die Piano-Vorschau verwendet echte Flügelaufnahmen statt einfacher künstlicher Töne. Anschlag und natürliches Ausklingen bleiben erhalten.
+- Die Anschlagstärke der MIDI-Noten steuert die Lautstärke der Vorschau für mehr Dynamik.
 
 ## Änderungen in 2.6.65
 

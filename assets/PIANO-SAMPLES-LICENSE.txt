@@ -1,0 +1,8 @@
+Salamander Grand Piano — Yamaha C5
+Original author: Alexander Holm.
+Samples: Creative Commons Attribution 3.0 Unported (CC BY 3.0).
+License: https://creativecommons.org/licenses/by/3.0/
+Source: https://github.com/Tonejs/audio/tree/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander
+Upstream notices and technical details: https://github.com/Tonejs/audio/blob/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/README
+
+ISB conversion: subset C2–C7 in minor thirds (21 notes), MP3 decoded, stereo mixed to mono, band-limited resampling to 22,050 Hz, up to 4 seconds per sample, leading encoder silence trimmed, short tail fade, common gain adjustment, signed 16-bit PCM packed as ISBP v1. Remaining pitches use linear sample interpolation. These modified samples retain the CC BY 3.0 license and are not relicensed as menu source code. No endorsement by the original author is implied.
