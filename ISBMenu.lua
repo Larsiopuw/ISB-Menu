@@ -1,7 +1,7 @@
--- ISB Menu 2.6.63 | Own-game universal client toolkit
+-- ISB Menu 2.6.64 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.63",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.64",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -99,7 +99,7 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {flightStyle="Fly", favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
+local settings = {flightStyle="Fly", pianoFavorites={},pianoSort="popular", favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -108,6 +108,13 @@ if type(readfile) == "function" then
                 if type(k) == "string" and v == true then settings.favorites[k] = true end
             end
         end
+        if type(data.pianoFavorites)=="table" then
+            local count=0
+            for file,value in pairs(data.pianoFavorites) do
+                if count<10000 and type(file)=="string" and #file<=250 and value==true then settings.pianoFavorites[file]=true;count+=1 end
+            end
+        end
+        if data.pianoSort=="title" or data.pianoSort=="newest" then settings.pianoSort=data.pianoSort end
         if data.theme == "Neutral" or data.theme == "Mint" or data.theme == "Amber" or data.theme == "Blue" then settings.theme = data.theme end
         if not ({Fly=true,Mysterious=true,["Villain Fly"]=true,Superman=true,["Halloween Fly"]=true})[data.flightStyle] then data.flightStyle="Fly" end
         if data.flightStyle=="Fly" or data.flightStyle=="Mysterious" or data.flightStyle=="Villain Fly" or data.flightStyle=="Superman" or data.flightStyle=="Halloween Fly" then settings.flightStyle=data.flightStyle end
@@ -661,6 +668,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.64"]="Piano timeline lets you seek forward or backward with live time display and resume at the selected position.\nSort online songs by downloads, newest or title, star favorites and filter your saved songs. The keyboard layout reported by Roblox is displayed.",
     ["2.6.63"]="Piano songs continue when switching to other windows, provided Roblox keeps running in the background.\nPiano input is sent exclusively inside Roblox. Chat and leaving your seat still interrupt playback.",
     ["2.6.62"]="New Piano section in Music: browse and select online songs, then play automatically using the standard 61-key layout.\nPlayback includes pause, stop and adjustable speed. F8 stops and opens Piano; chat, switching windows and leaving your seat release held keys.",
     ["2.6.61"]="Sword effects and trails follow the visible item copy instead of also appearing at the original position.\nTwo-handed items use both arm poses. Items carried overhead account for the copied head height and the full size of the item.",
@@ -2972,6 +2980,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.64",text="Piano-Zeitleiste zum Vor- und Zur\195\188ckspulen mit aktueller Zeit und Fortsetzen an der gew\195\164hlten Stelle.\nOnline-Lieder nach Downloads, Neueste oder Titel sortieren, mit Sternen merken und nach Favoriten filtern. Das von Roblox gemeldete Tastaturlayout wird angezeigt."},
     {version="2.6.63",text="Piano-Lieder spielen beim Wechsel in andere Fenster weiter, sofern Roblox im Hintergrund weiterl\195\164uft.\nPiano-Eingaben werden ausschlie\195\159lich innerhalb von Roblox gesendet. Chat und das Verlassen des Sitzplatzes unterbrechen die Wiedergabe weiterhin."},
     {version="2.6.62",text="Neuer Piano-Bereich unter Musik: Online-Lieder durchsuchen, ausw\195\164hlen und mit der \195\188blichen 61-Tasten-Belegung automatisch spielen.\nWiedergabe mit Pause, Stop und einstellbarem Tempo. F8 stoppt und \195\182ffnet den Piano-Bereich; bei Chat, Fensterwechsel und Aufstehen werden gehaltene Tasten freigegeben."},
     {version="2.6.61",text="Schwert-Effekte und Leuchtspuren folgen der sichtbaren Item-Kopie, statt zus\195\164tzlich an der fr\195\188heren Position zu erscheinen.\nBeidh\195\164ndig getragene Items \195\188bernehmen beide Armposen. \195\156ber dem Kopf getragene Gegenst\195\164nde ber\195\188cksichtigen die neue Kopfh\195\182he und ihre gesamte Gr\195\182\195\159e."},
@@ -5010,6 +5019,14 @@ end
 addAction("antivoid","Bewegung","Anti-Void","Zum letzten Bodenpunkt zur\195\188ck, bevor du die Fallgrenze erreichst","toggle",function() runtime.antiVoid=not runtime.antiVoid; runtime.safeGround=nil end,function() return runtime.antiVoid end)
 addAction("shader","Darstellung","Shader","Realistische Farben, Sonnenstrahlen und Himmel","toggle",function() runtime.setShader(not runtime.shader) end,function() return runtime.shader end)
 function runtime.pianoText(de,en) return runtime.language=="de" and de or en end
+function runtime.pianoLayout()
+    local ok,y,z,a=pcall(function()return UIS:GetStringForKeyCode(Enum.KeyCode.Y),UIS:GetStringForKeyCode(Enum.KeyCode.Z),UIS:GetStringForKeyCode(Enum.KeyCode.A)end)
+    if not ok then return runtime.pianoText("Nicht gemeldet","Not reported") end
+    if y=="Z" and z=="Y" then return "QWERTZ" end
+    if a=="Q" then return "AZERTY" end
+    if y=="Y" and z=="Z" and a=="A" then return "QWERTY" end
+    return runtime.pianoText("Anderes Layout","Other layout")
+end
 function runtime.pianoSend(code,down)
     if not runtime.pianoBackend then
         local input=optionalService("VirtualInputManager")
@@ -5053,39 +5070,79 @@ function runtime.drawMusicTabs()
         b.Name="MusicMode_"..item[1];if (runtime.musicMode or "audio")==item[1] then b.TextColor3=C.accent end
     end
 end
+function runtime.pianoPaint()
+    local p=runtime.piano;local refs=runtime.pianoSeekRefs
+    local elapsed=refs and refs.seeking and refs.value or p.elapsed()
+    local duration=p.duration or 0;local fraction=duration>0 and math.clamp(elapsed/duration,0,1) or 0
+    if refs and refs.fill.Parent then refs.fill.Size=UDim2.fromScale(fraction,1);refs.thumb.Position=UDim2.fromScale(fraction,.5) end
+    if runtime.pianoProgress and runtime.pianoProgress.Parent then
+        local function format(seconds)seconds=math.floor(seconds);return string.format("%02d:%02d",math.floor(seconds/60),seconds%60)end
+        runtime.pianoProgress.Text=format(elapsed).." / "..format(duration).."  |  F8 Stop"
+    end
+end
 function runtime.drawPiano()
     local p=runtime.piano
-    local status=plainCard("Piano Auto-Player",runtime.pianoStatus(),164)
+    local status=plainCard("Piano Auto-Player",runtime.pianoStatus(),190)
     status.Name="PianoPlayback"
     rowButton(status,runtime.pianoText("Spielen","Play"),UDim2.fromOffset(16,90),UDim2.fromOffset(104,30),runtime.startPiano)
     rowButton(status,"Pause",UDim2.fromOffset(130,90),UDim2.fromOffset(104,30),function()p.pause()end)
     rowButton(status,"Stop",UDim2.fromOffset(244,90),UDim2.fromOffset(104,30),function()p.stop()end)
     runtime.pianoProgress=label(status,"",11,C.muted,UDim2.fromOffset(16,131),UDim2.new(1,-32,0,20))
+    local rail=make("Frame",{Name="PianoSeek",Active=true,BackgroundColor3=C.line,Position=UDim2.fromOffset(16,166),Size=UDim2.new(1,-32,0,8)},status);round(rail,4)
+    local fill=make("Frame",{Name="PianoSeekFill",BackgroundColor3=C.accent,BorderSizePixel=0,Size=UDim2.fromScale(0,1)},rail);round(fill,4)
+    local thumb=make("Frame",{Name="PianoSeekThumb",BackgroundColor3=C.text,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(0,.5),Size=UDim2.fromOffset(14,14)},rail);round(thumb,7)
+    local refs={fill=fill,thumb=thumb};runtime.pianoSeekRefs=refs
+    rowConnect(rail.InputBegan,function(input)
+        if (input.UserInputType~=Enum.UserInputType.MouseButton1 and input.UserInputType~=Enum.UserInputType.Touch) or not p.events or p.songLoading then return end
+        local resume=p.state=="playing";local events=p.events
+        refs.seeking=true;p.pause("seek");local revision=p.playbackRevision;content.ScrollingEnabled=false
+        local function update(x)refs.value=math.clamp((x-rail.AbsolutePosition.X)/math.max(1,rail.AbsoluteSize.X),0,1)*(p.duration or 0);runtime.pianoPaint()end
+        local function finish()
+            if not refs.seeking then return end
+            refs.seeking=false;content.ScrollingEnabled=true
+            if p.alive and p.events==events and p.playbackRevision==revision then p.seek(refs.value or 0);if resume and p.state=="paused" then p.start() end end
+        end
+        update(input.Position.X);activeSlider={input=input,update=update,finish=finish}
+    end)
     local selected=plainCard(p.selected and p.selected.title or runtime.pianoText("Noch kein Lied ausgew\195\164hlt","No song selected"),p.selected and p.selected.artist or runtime.pianoText("61 Tasten \194\183 Noten und Akkorde","61 keys - notes and chords"),88,false)
     selected.Name="PianoSelectedSong"
     local speed=plainCard(runtime.pianoText("Tempo","Speed"),string.format("%.2fx",p.speed),84)
     rowButton(speed,"-",UDim2.new(1,-100,0,24),UDim2.fromOffset(36,30),function()p.setSpeed(p.speed-.25)end)
     rowButton(speed,"+",UDim2.new(1,-54,0,24),UDim2.fromOffset(36,30),function()p.setSpeed(p.speed+.25)end)
+    plainCard(runtime.pianoText("Tastatur","Keyboard"),runtime.pianoLayout()..runtime.pianoText(" \194\183 Roblox-Tastenbelegung. Die Tonzuordnung bleibt unabh\195\164ngig von der Windows-Tastatur; Y/Z und Shift-Noten werden \195\188ber Roblox-Tastencodes gesendet."," - Roblox key layout. Note mapping is independent of the Windows keyboard; Y/Z and shifted notes use Roblox key codes."),112)
     local library=plainCard(runtime.pianoText("Online-Lieder","Online songs"),p.catalogLoading and runtime.pianoText("Liederliste wird geladen \226\128\166","Loading song library...") or (p.catalogError and runtime.pianoText("Liederliste nicht erreichbar. Bitte erneut laden.","Library unavailable. Please reload.")) or (p.catalog and (#p.catalog..runtime.pianoText(" Lieder \194\183 nanoMIDI"," songs - nanoMIDI"))) or runtime.pianoText("Liederliste bei Bedarf laden. Nur das ausgew\195\164hlte Lied wird heruntergeladen.","Load the library when needed. Only the selected song is downloaded."),124)
     local searchBox=make("TextBox",{Name="PianoSongSearch",Text=p.query,PlaceholderText=runtime.pianoText("Titel oder K\195\188nstler suchen","Search title or artist"),ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,79),Size=UDim2.new(1,-144,0,30)},library);round(searchBox,10)
     rowConnect(searchBox.FocusLost,function() if p.query~=searchBox.Text then p.query=searchBox.Text;p.catalogPage=1;render() end end)
     rowButton(library,runtime.pianoText("Laden","Load"),UDim2.new(1,-116,0,79),UDim2.fromOffset(100,30),function()p.loadCatalog()end)
+    local sorting=make("Frame",{Name="PianoLibraryControls",BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
+    for i,item in ipairs({{"popular",runtime.pianoText("Beliebt","Popular")},{"newest",runtime.pianoText("Neueste","Newest")},{"title",runtime.pianoText("Titel A-Z","Title A-Z")},{"favorites",runtime.pianoText("Favoriten","Favorites")}}) do
+        local value=item[1]
+        local button=rowButton(sorting,item[2],UDim2.new((i-1)/4,2,0,0),UDim2.new(.25,-6,0,30),function()
+            if value=="favorites" then p.favoritesOnly=not p.favoritesOnly;p.catalogPage=1;p.changed() else p.setSort(value) end
+        end)
+        button.Name="PianoSort_"..value
+        if (value=="favorites" and p.favoritesOnly) or value==p.sort then button.TextColor3=C.accent end
+    end
     if p.catalog then
         local songs=p.filtered();local pages=math.max(1,math.ceil(#songs/8));p.catalogPage=math.clamp(p.catalogPage,1,pages)
-        if #songs==0 then plainCard(runtime.pianoText("Keine Treffer","No matches"),runtime.pianoText("Versuche einen anderen Titel oder K\195\188nstler.","Try another title or artist."),82) end
+        if #songs==0 then plainCard(runtime.pianoText("Keine Treffer","No matches"),p.favoritesOnly and runtime.pianoText("Markiere Lieder mit dem Stern oder passe deine Suche an.","Star songs or adjust your search.") or runtime.pianoText("Versuche einen anderen Titel oder K\195\188nstler.","Try another title or artist."),82) end
         for i=(p.catalogPage-1)*8+1,math.min(#songs,p.catalogPage*8) do
             local song=songs[i]
-            local tile=card(song.title,song.artist,82,false);tile.Name="PianoSong_"..song.id
-            rowButton(tile,runtime.pianoText("Ausw\195\164hlen","Select"),UDim2.new(1,-120,0,26),UDim2.fromOffset(104,30),function()p.select(song)end)
+            local tile=card(song.title,song.artist.."  |  "..tostring(song.downloads or 0).." Downloads",82,false);tile.Name="PianoSong_"..song.id
+            rowButton(tile,runtime.pianoText("Ausw\195\164hlen","Select"),UDim2.new(1,-166,0,26),UDim2.fromOffset(104,30),function()p.select(song)end)
+            local favorite=rowButton(tile,"",UDim2.new(1,-50,0,26),UDim2.fromOffset(34,30),function()p.toggleFavorite(song)end)
+            favorite.Name="PianoFavorite_"..song.id;imageIcon(favorite,"star",17,UDim2.fromOffset(8,6),p.favorites[song.filename] and C.accent or C.muted)
         end
         local pager=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
         runtime.pagination(pager,"PianoPagination",p.catalogPage,pages,function()p.catalogPage=math.max(1,p.catalogPage-1);render()end,function()p.catalogPage=math.min(pages,p.catalogPage+1);render()end)
     end
+    plainCard(runtime.pianoText("Deine Favoriten","Your favorites"),type(writefile)=="function" and runtime.pianoText("Mit dem Stern merken. Favoriten und Sortierung werden lokal gespeichert.","Use the star to bookmark songs. Favorites and sort order are saved locally.") or runtime.pianoText("Mit dem Stern merken. Ohne Dateizugriff bleiben Favoriten nur f\195\188r diese Sitzung erhalten.","Use the star to bookmark songs. Without file access, favorites last for this session only."),88)
     plainCard(runtime.pianoText("So spielst du","How to play"),runtime.pianoText("Piano im Spiel aktivieren, Lied ausw\195\164hlen und Spielen dr\195\188cken. F8 stoppt. Beim Fensterwechsel spielt es mit Roblox-internen Eingaben weiter. Chat und Aufstehen pausieren bzw. beenden die Wiedergabe. F\195\188r das \195\188bliche Virtual-Piano-Layout.","Activate the in-game piano, select a song and press Play. F8 stops. Playback continues through Roblox-only input when switching windows. Chat and leaving your seat pause or stop playback. Uses the standard Virtual Piano layout."),164)
 end
 
 runtime.piano=(function(deps)
     local p={keys="1!2@34$5%6^78*9(0qQwWeErtTyYuiIoOpPasSdDfgGhHjJklLzZxcCvVbBnm",state="idle",speed=1,held={},logical={},position=0,index=1,alive=true,generation=0,catalogPage=1,query=""}
+    p.favorites=deps.favorites or {};p.sort=deps.sort or "popular"
     function p.changed() if deps.changed and p.alive then deps.changed() end end
     function p.key(character)
         local shifted={['!']='1',['@']='2',['$']='4',['%']='5',['^']='6',['*']='8',['(']='9'}
@@ -5098,20 +5155,53 @@ runtime.piano=(function(deps)
         if p.shiftHeld then pcall(deps.send,16,false);p.shiftHeld=false end
     end
     function p.stop()
+        p.playbackRevision=(p.playbackRevision or 0)+1
         p.release();table.clear(p.logical);p.position=0;p.index=1;p.state=p.events and 'ready' or 'idle';p.changed()
     end
     function p.pause(reason,at)
         if p.state~='playing' then return end
+        p.playbackRevision=(p.playbackRevision or 0)+1
         p.position=p.position+math.max(0,(at or deps.clock())-p.anchor)*p.speed
         p.release();p.state='paused';p.message=reason;p.changed()
     end
     function p.start()
-        if not p.events or #p.events==0 or p.songLoading then return false,'no_song' end
+        if not p.alive or not p.events or #p.events==0 or p.songLoading then return false,'no_song' end
         p.release();if p.state~='paused' then p.position=0;p.index=1;table.clear(p.logical) else
             local ok=pcall(function() for _,event in pairs(p.logical) do p.press(event) end end)
             if not ok then p.release();p.state='error';p.message='input_unavailable';p.changed();return false,'input_unavailable' end
         end
+        p.playbackRevision=(p.playbackRevision or 0)+1
         p.anchor=deps.clock();p.lastTick=p.anchor;p.state='playing';p.message=nil;p.changed();return true
+    end
+    function p.seek(value)
+        if not p.alive or not p.events or p.songLoading or type(value)~='number' or value~=value then return false end
+        local playing=p.state=='playing'
+        p.playbackRevision=(p.playbackRevision or 0)+1
+        p.release();table.clear(p.logical);p.position=math.clamp(value,0,p.duration or 0);p.index=1
+        while p.events[p.index] and p.events[p.index].time<=p.position do
+            local event=p.events[p.index];local code=p.key(event.key)
+            if event.down then p.logical[code]=event
+            elseif p.logical[code] and p.logical[code].token==event.token then p.logical[code]=nil end
+            p.index+=1
+        end
+        p.anchor=deps.clock();p.lastTick=p.anchor;p.message=nil
+        if not p.events[p.index] then table.clear(p.logical);p.state='finished'
+        else
+            p.state='paused'
+            if playing then return p.start() end
+        end
+        p.changed();return true
+    end
+    function p.toggleFavorite(song)
+        p.favorites[song.filename]=not p.favorites[song.filename] or nil
+        if deps.preferences then deps.preferences(p.favorites,p.sort) end
+        p.changed()
+    end
+    function p.setSort(value)
+        if value~='popular' and value~='newest' and value~='title' then return end
+        p.sort=value;p.catalogPage=1
+        if deps.preferences then deps.preferences(p.favorites,p.sort) end
+        p.changed()
     end
     function p.setSpeed(value)
         if p.state=='playing' then p.pause() end
@@ -5236,7 +5326,7 @@ runtime.piano=(function(deps)
                 for _,item in ipairs(raw) do
                     local file=type(item)=='table' and item.midiFilename
                     if type(file)=='string' and #file<=250 and not file:find('[/\\%z]') and (file:lower():match('%.mid$') or file:lower():match('%.midi$')) then
-                        table.insert(list,{id=tostring(item.id),title=tostring(item.name or file):sub(1,160),artist=tostring(item.artists or ''):sub(1,160),filename=file})
+                        table.insert(list,{id=tostring(item.id),title=tostring(item.name or file):sub(1,160),artist=tostring(item.artists or ''):sub(1,160),filename=file,downloads=math.clamp(tonumber(item.downloads) or 0,0,1000000000000)})
                     end
                     assert(#list<=10000,'catalog_too_large')
                 end
@@ -5265,12 +5355,20 @@ runtime.piano=(function(deps)
     end
     function p.filtered()
         local list={};local query=p.query:lower()
-        for _,song in ipairs(p.catalog or {}) do if query=='' or (song.title..' '..song.artist):lower():find(query,1,true) then table.insert(list,song) end end
+        for _,song in ipairs(p.catalog or {}) do if (not p.favoritesOnly or p.favorites[song.filename]) and (query=='' or (song.title..' '..song.artist):lower():find(query,1,true)) then table.insert(list,song) end end
+        table.sort(list,function(a,b)
+            if p.sort=='popular' and (a.downloads or 0)~=(b.downloads or 0) then return (a.downloads or 0)>(b.downloads or 0) end
+            if p.sort=='newest' and (tonumber(a.id) or 0)~=(tonumber(b.id) or 0) then return (tonumber(a.id) or 0)>(tonumber(b.id) or 0) end
+            if a.title:lower()~=b.title:lower() then return a.title:lower()<b.title:lower() end
+            return a.filename<b.filename
+        end)
         return list
     end
     function p.dispose() p.alive=false;p.generation+=1;p.release();p.state='idle' end
     return p
 end)({
+    favorites=settings.pianoFavorites,sort=settings.pianoSort,
+    preferences=function(favorites,sort)settings.pianoFavorites=favorites;settings.pianoSort=sort;save()end,
     clock=os.clock,spawn=task.spawn,get=function(url)
         local headers=(type(request)=="function" or type(http_request)=="function" or (type(syn)=="table" and type(syn.request)=="function"))
             and {["User-Agent"]="VP-Autoplayer/1.0",Accept="application/json, audio/midi"} or nil
@@ -5290,10 +5388,7 @@ connect(Run.Heartbeat,function()
         if piano.state=="error" then notify(runtime.pianoStatus(),"Piano")
         elseif piano.state=="finished" then notify(runtime.pianoText("Lied beendet.","Song finished."),"Piano") end
     end
-    if runtime.pianoProgress and runtime.pianoProgress.Parent then
-        local function format(seconds) seconds=math.floor(seconds);return string.format("%02d:%02d",math.floor(seconds/60),seconds%60)end
-        runtime.pianoProgress.Text=format(piano.elapsed()).." / "..format(piano.duration or 0).."  |  F8 Stop"
-    end
+    runtime.pianoPaint()
 end)
 
 render = function()
