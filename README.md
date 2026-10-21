@@ -1,4 +1,4 @@
-# ISB Menu 2.6.62 · by Larsiopuw
+# ISB Menu 2.6.63 · by Larsiopuw
 
 ## Piano automatisch spielen
 
@@ -7,7 +7,12 @@
 3. **Auswählen** lädt dieses Lied; **Spielen** startet die Tasteneingabe und schließt das Menü.
 4. **F8** stoppt sofort und öffnet den Piano-Bereich. Pause und Tempo sind dort ebenfalls verfügbar.
 
-Die Online-Liste stammt wie beim VP-Player von nanoMIDI. Die eigenständige Windows-App muss dafür nicht laufen. Verwendet wird die übliche chromatische 61-Tasten-Belegung (C2–C7); Pianos mit anderen Steuerungen sind nicht allgemein abgedeckt. Die verwendete Skriptumgebung muss Tasteneingaben unterstützen. Falls das fehlt, erscheint ein Hinweis. Chat, Fokuswechsel, Aufstehen nach sitzendem Start und Respawn geben gehaltene Tasten frei. MIDI und Oberfläche wurden geprüft; eine Live-Prüfung der Tasteneingabe im Roblox-Spiel steht noch aus.
+Die Online-Liste stammt wie beim VP-Player von nanoMIDI. Die eigenständige Windows-App muss dafür nicht laufen. Verwendet wird die übliche chromatische 61-Tasten-Belegung (C2–C7); Pianos mit anderen Steuerungen sind nicht allgemein abgedeckt. Die verwendete Skriptumgebung muss Roblox-interne Tasteneingaben unterstützen; PC-weite Tastaturfunktionen werden nicht verwendet. Falls der interne Eingabeweg fehlt oder blockiert ist, erscheint ein Hinweis. Beim Wechsel in andere Fenster läuft das Lied weiter, solange Roblox den Player weiter ausführt. Chat, das Roblox-Menü, Aufstehen nach sitzendem Start und Respawn unterbrechen die Wiedergabe und geben gehaltene Tasten frei. Bei einer längeren Unterbrechung durch Roblox pausiert der Player, damit keine verspäteten Noten nachgeholt werden. F8 wird innerhalb von Roblox verarbeitet; zum Stoppen nach dem Raustabben zurück ins Spiel wechseln. MIDI und Oberfläche wurden geprüft; eine Live-Prüfung der Tasteneingabe im Roblox-Spiel steht noch aus.
+
+## Änderungen in 2.6.63
+
+- Piano-Lieder spielen beim Wechsel in andere Fenster weiter, sofern Roblox im Hintergrund weiterläuft.
+- Piano-Eingaben werden ausschließlich innerhalb von Roblox gesendet. Chat und das Verlassen des Sitzplatzes unterbrechen die Wiedergabe weiterhin.
 
 ## Änderungen in 2.6.62
 

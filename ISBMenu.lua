@@ -1,7 +1,7 @@
--- ISB Menu 2.6.62 | Own-game universal client toolkit
+-- ISB Menu 2.6.63 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.62",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.63",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -661,6 +661,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.63"]="Piano songs continue when switching to other windows, provided Roblox keeps running in the background.\nPiano input is sent exclusively inside Roblox. Chat and leaving your seat still interrupt playback.",
     ["2.6.62"]="New Piano section in Music: browse and select online songs, then play automatically using the standard 61-key layout.\nPlayback includes pause, stop and adjustable speed. F8 stops and opens Piano; chat, switching windows and leaving your seat release held keys.",
     ["2.6.61"]="Sword effects and trails follow the visible item copy instead of also appearing at the original position.\nTwo-handed items use both arm poses. Items carried overhead account for the copied head height and the full size of the item.",
     ["2.6.60"]="Held items fit differently sized hands more accurately. Custom item grip offsets and rotations are preserved when copying an outfit.\nThe copied arm adopts the equipped item's holding pose and returns to the copied outfit's movement when the item is unequipped.",
@@ -2971,6 +2972,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.63",text="Piano-Lieder spielen beim Wechsel in andere Fenster weiter, sofern Roblox im Hintergrund weiterl\195\164uft.\nPiano-Eingaben werden ausschlie\195\159lich innerhalb von Roblox gesendet. Chat und das Verlassen des Sitzplatzes unterbrechen die Wiedergabe weiterhin."},
     {version="2.6.62",text="Neuer Piano-Bereich unter Musik: Online-Lieder durchsuchen, ausw\195\164hlen und mit der \195\188blichen 61-Tasten-Belegung automatisch spielen.\nWiedergabe mit Pause, Stop und einstellbarem Tempo. F8 stoppt und \195\182ffnet den Piano-Bereich; bei Chat, Fensterwechsel und Aufstehen werden gehaltene Tasten freigegeben."},
     {version="2.6.61",text="Schwert-Effekte und Leuchtspuren folgen der sichtbaren Item-Kopie, statt zus\195\164tzlich an der fr\195\188heren Position zu erscheinen.\nBeidh\195\164ndig getragene Items \195\188bernehmen beide Armposen. \195\156ber dem Kopf getragene Gegenst\195\164nde ber\195\188cksichtigen die neue Kopfh\195\182he und ihre gesamte Gr\195\182\195\159e."},
     {version="2.6.60",text="Gehaltene Items sitzen besser in unterschiedlich gro\195\159en H\195\164nden. Zus\195\164tzliche Griffabst\195\164nde und Drehungen des Items bleiben beim Outfit-Wechsel erhalten.\nDer kopierte Arm \195\188bernimmt beim Ausr\195\188sten die Haltepose des Items. Beim Ablegen kehrt er zur Bewegung des kopierten Outfits zur\195\188ck."},
@@ -5010,16 +5012,12 @@ addAction("shader","Darstellung","Shader","Realistische Farben, Sonnenstrahlen u
 function runtime.pianoText(de,en) return runtime.language=="de" and de or en end
 function runtime.pianoSend(code,down)
     if not runtime.pianoBackend then
-        if type(keypress)=="function" and type(keyrelease)=="function" then
-            runtime.pianoBackend=function(vk,pressed) if pressed then keypress(vk) else keyrelease(vk) end end
-        else
-            local input=optionalService("VirtualInputManager")
-            assert(input,"Piano input unavailable")
-            local digits={"Zero","One","Two","Three","Four","Five","Six","Seven","Eight","Nine"}
-            runtime.pianoBackend=function(vk,pressed)
-                local name=vk==16 and "LeftShift" or (vk>=48 and vk<=57 and digits[vk-47]) or string.char(vk)
-                input:SendKeyEvent(pressed,Enum.KeyCode[name],false,game)
-            end
+        local input=optionalService("VirtualInputManager")
+        assert(input,"Roblox-only piano input unavailable")
+        local digits={"Zero","One","Two","Three","Four","Five","Six","Seven","Eight","Nine"}
+        runtime.pianoBackend=function(vk,pressed)
+            local name=vk==16 and "LeftShift" or (vk>=48 and vk<=57 and digits[vk-47]) or string.char(vk)
+            input:SendKeyEvent(pressed,Enum.KeyCode[name],false,game)
         end
     end
     runtime.pianoSending=true
@@ -5030,7 +5028,7 @@ end
 function runtime.pianoStatus()
     local p=runtime.piano
     local names={idle={"Lied aus der Online-Liste ausw\195\164hlen.","Choose a song from the online library."},ready={"Bereit. Piano im Spiel \195\182ffnen und Spielen dr\195\188cken.","Ready. Open the in-game piano, then press Play."},loading={"Lied wird geladen \226\128\166","Loading song..."},playing={"Spielt \194\183 F8 stoppt die Wiedergabe.","Playing - F8 stops playback."},paused={"Pausiert \194\183 Mit Spielen fortsetzen.","Paused - press Play to resume."},finished={"Lied beendet.","Song finished."},error={"Lied konnte nicht gespielt werden. Erneut ausw\195\164hlen oder versuchen.","Could not play the song. Select it again or retry."}}
-    if p.message=="input_unavailable" then return runtime.pianoText("Automatisches Tastenspielen ist hier nicht verf\195\188gbar.","Automatic keyboard playback is not available here.") end
+    if p.message=="input_unavailable" then return runtime.pianoText("Roblox-interne Tasteneingabe ist hier nicht verf\195\188gbar. Es werden keine PC-weiten Tasten gesendet.","Roblox-only keyboard input is unavailable here. No PC-wide keys are sent.") end
     local text=names[p.state] or names.idle
     return runtime.pianoText(text[1],text[2])
 end
@@ -5083,7 +5081,7 @@ function runtime.drawPiano()
         local pager=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
         runtime.pagination(pager,"PianoPagination",p.catalogPage,pages,function()p.catalogPage=math.max(1,p.catalogPage-1);render()end,function()p.catalogPage=math.min(pages,p.catalogPage+1);render()end)
     end
-    plainCard(runtime.pianoText("So spielst du","How to play"),runtime.pianoText("Piano im Spiel aktivieren, Lied ausw\195\164hlen und Spielen dr\195\188cken. F8 stoppt. Chat, Fensterwechsel und Aufstehen pausieren bzw. beenden die Wiedergabe. F\195\188r das \195\188bliche Virtual-Piano-Layout.","Activate the in-game piano, select a song and press Play. F8 stops. Chat, switching windows and leaving your seat pause or stop playback. Uses the standard Virtual Piano layout."),124)
+    plainCard(runtime.pianoText("So spielst du","How to play"),runtime.pianoText("Piano im Spiel aktivieren, Lied ausw\195\164hlen und Spielen dr\195\188cken. F8 stoppt. Beim Fensterwechsel spielt es mit Roblox-internen Eingaben weiter. Chat und Aufstehen pausieren bzw. beenden die Wiedergabe. F\195\188r das \195\188bliche Virtual-Piano-Layout.","Activate the in-game piano, select a song and press Play. F8 stops. Playback continues through Roblox-only input when switching windows. Chat and leaving your seat pause or stop playback. Uses the standard Virtual Piano layout."),164)
 end
 
 runtime.piano=(function(deps)
@@ -5281,7 +5279,6 @@ end)({
     send=function(code,down)return runtime.pianoSend(code,down)end,
     changed=function()task.defer(function()if alive and opened and page=="Musik" and runtime.musicMode=="piano" then render() end end)end,
 })
-connect(UIS.WindowFocusReleased,function()runtime.piano.pause("focus")end)
 connect(player.CharacterRemoving,function()runtime.piano.stop()end)
 connect(Run.Heartbeat,function()
     local piano=runtime.piano
