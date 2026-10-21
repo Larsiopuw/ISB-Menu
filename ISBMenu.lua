@@ -1,7 +1,7 @@
--- ISB Menu 2.6.61 | Own-game universal client toolkit
+-- ISB Menu 2.6.62 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.61",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.62",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -661,6 +661,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.62"]="New Piano section in Music: browse and select online songs, then play automatically using the standard 61-key layout.\nPlayback includes pause, stop and adjustable speed. F8 stops and opens Piano; chat, switching windows and leaving your seat release held keys.",
     ["2.6.61"]="Sword effects and trails follow the visible item copy instead of also appearing at the original position.\nTwo-handed items use both arm poses. Items carried overhead account for the copied head height and the full size of the item.",
     ["2.6.60"]="Held items fit differently sized hands more accurately. Custom item grip offsets and rotations are preserved when copying an outfit.\nThe copied arm adopts the equipped item's holding pose and returns to the copied outfit's movement when the item is unequipped.",
     ["2.6.59"]="Improved fitting for copied accessories: custom joints and accessories sharing the same name remain correctly matched. Previously omitted outfit parts are now included.\nLayered clothing now uses the copied avatar's body deformation. Headwear and clothing retain existing joints instead of being realigned from attachment names alone.",
@@ -2970,6 +2971,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.62",text="Neuer Piano-Bereich unter Musik: Online-Lieder durchsuchen, ausw\195\164hlen und mit der \195\188blichen 61-Tasten-Belegung automatisch spielen.\nWiedergabe mit Pause, Stop und einstellbarem Tempo. F8 stoppt und \195\182ffnet den Piano-Bereich; bei Chat, Fensterwechsel und Aufstehen werden gehaltene Tasten freigegeben."},
     {version="2.6.61",text="Schwert-Effekte und Leuchtspuren folgen der sichtbaren Item-Kopie, statt zus\195\164tzlich an der fr\195\188heren Position zu erscheinen.\nBeidh\195\164ndig getragene Items \195\188bernehmen beide Armposen. \195\156ber dem Kopf getragene Gegenst\195\164nde ber\195\188cksichtigen die neue Kopfh\195\182he und ihre gesamte Gr\195\182\195\159e."},
     {version="2.6.60",text="Gehaltene Items sitzen besser in unterschiedlich gro\195\159en H\195\164nden. Zus\195\164tzliche Griffabst\195\164nde und Drehungen des Items bleiben beim Outfit-Wechsel erhalten.\nDer kopierte Arm \195\188bernimmt beim Ausr\195\188sten die Haltepose des Items. Beim Ablegen kehrt er zur Bewegung des kopierten Outfits zur\195\188ck."},
     {version="2.6.59",text="Die Passform kopierter Accessoires wurde verbessert: Angepasste Befestigungen und gleich benannte Kleidungsst\195\188cke bleiben korrekt zugeordnet. Auch zuvor ausgelassene Outfit-Teile werden mitkopiert.\nMehrlagige Kleidung nutzt nun die K\195\182rperverformung des kopierten Avatars. Kopfbedeckungen und Kleidung behalten ihre vorhandenen Befestigungen statt pauschal neu ausgerichtet zu werden."},
@@ -5005,6 +5007,298 @@ local function drawPlayers()
 end
 addAction("antivoid","Bewegung","Anti-Void","Zum letzten Bodenpunkt zur\195\188ck, bevor du die Fallgrenze erreichst","toggle",function() runtime.antiVoid=not runtime.antiVoid; runtime.safeGround=nil end,function() return runtime.antiVoid end)
 addAction("shader","Darstellung","Shader","Realistische Farben, Sonnenstrahlen und Himmel","toggle",function() runtime.setShader(not runtime.shader) end,function() return runtime.shader end)
+function runtime.pianoText(de,en) return runtime.language=="de" and de or en end
+function runtime.pianoSend(code,down)
+    if not runtime.pianoBackend then
+        if type(keypress)=="function" and type(keyrelease)=="function" then
+            runtime.pianoBackend=function(vk,pressed) if pressed then keypress(vk) else keyrelease(vk) end end
+        else
+            local input=optionalService("VirtualInputManager")
+            assert(input,"Piano input unavailable")
+            local digits={"Zero","One","Two","Three","Four","Five","Six","Seven","Eight","Nine"}
+            runtime.pianoBackend=function(vk,pressed)
+                local name=vk==16 and "LeftShift" or (vk>=48 and vk<=57 and digits[vk-47]) or string.char(vk)
+                input:SendKeyEvent(pressed,Enum.KeyCode[name],false,game)
+            end
+        end
+    end
+    runtime.pianoSending=true
+    local ok,err=pcall(runtime.pianoBackend,code,down)
+    runtime.pianoSending=false
+    if not ok then error(err) end
+end
+function runtime.pianoStatus()
+    local p=runtime.piano
+    local names={idle={"Lied aus der Online-Liste ausw\195\164hlen.","Choose a song from the online library."},ready={"Bereit. Piano im Spiel \195\182ffnen und Spielen dr\195\188cken.","Ready. Open the in-game piano, then press Play."},loading={"Lied wird geladen \226\128\166","Loading song..."},playing={"Spielt \194\183 F8 stoppt die Wiedergabe.","Playing - F8 stops playback."},paused={"Pausiert \194\183 Mit Spielen fortsetzen.","Paused - press Play to resume."},finished={"Lied beendet.","Song finished."},error={"Lied konnte nicht gespielt werden. Erneut ausw\195\164hlen oder versuchen.","Could not play the song. Select it again or retry."}}
+    if p.message=="input_unavailable" then return runtime.pianoText("Automatisches Tastenspielen ist hier nicht verf\195\188gbar.","Automatic keyboard playback is not available here.") end
+    local text=names[p.state] or names.idle
+    return runtime.pianoText(text[1],text[2])
+end
+function runtime.startPiano()
+    local p=runtime.piano
+    if not p.events then notify(runtime.pianoText("W\195\164hle zuerst ein Lied aus.","Select a song first."),"Piano");return end
+    if runtime.freecam then notify(runtime.pianoText("Beende zuerst die Freecam.","Exit freecam first."),"Piano");return end
+    local box=UIS:GetFocusedTextBox();if box then box:ReleaseFocus() end
+    runtime.pianoBackend=nil
+    local h=humanoid();p.character=player.Character;p.startedSeated=h and (h.Sit or h.SeatPart~=nil)
+    setOpen(false)
+    local ok=p.start()
+    if not ok then notify(runtime.pianoStatus(),"Piano") end
+end
+function runtime.drawMusicTabs()
+    local tabs=make("Frame",{Name="MusicModeTabs",BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
+    for i,entry in ipairs({{"audio",runtime.pianoText("Musik","Music")},{"piano","Piano"}}) do
+        local item=entry
+        local b=rowButton(tabs,item[2],UDim2.fromOffset((i-1)*120,0),UDim2.fromOffset(110,30),function()
+            runtime.musicMode=item[1];render()
+        end)
+        b.Name="MusicMode_"..item[1];if (runtime.musicMode or "audio")==item[1] then b.TextColor3=C.accent end
+    end
+end
+function runtime.drawPiano()
+    local p=runtime.piano
+    local status=plainCard("Piano Auto-Player",runtime.pianoStatus(),164)
+    status.Name="PianoPlayback"
+    rowButton(status,runtime.pianoText("Spielen","Play"),UDim2.fromOffset(16,90),UDim2.fromOffset(104,30),runtime.startPiano)
+    rowButton(status,"Pause",UDim2.fromOffset(130,90),UDim2.fromOffset(104,30),function()p.pause()end)
+    rowButton(status,"Stop",UDim2.fromOffset(244,90),UDim2.fromOffset(104,30),function()p.stop()end)
+    runtime.pianoProgress=label(status,"",11,C.muted,UDim2.fromOffset(16,131),UDim2.new(1,-32,0,20))
+    local selected=plainCard(p.selected and p.selected.title or runtime.pianoText("Noch kein Lied ausgew\195\164hlt","No song selected"),p.selected and p.selected.artist or runtime.pianoText("61 Tasten \194\183 Noten und Akkorde","61 keys - notes and chords"),88,false)
+    selected.Name="PianoSelectedSong"
+    local speed=plainCard(runtime.pianoText("Tempo","Speed"),string.format("%.2fx",p.speed),84)
+    rowButton(speed,"-",UDim2.new(1,-100,0,24),UDim2.fromOffset(36,30),function()p.setSpeed(p.speed-.25)end)
+    rowButton(speed,"+",UDim2.new(1,-54,0,24),UDim2.fromOffset(36,30),function()p.setSpeed(p.speed+.25)end)
+    local library=plainCard(runtime.pianoText("Online-Lieder","Online songs"),p.catalogLoading and runtime.pianoText("Liederliste wird geladen \226\128\166","Loading song library...") or (p.catalogError and runtime.pianoText("Liederliste nicht erreichbar. Bitte erneut laden.","Library unavailable. Please reload.")) or (p.catalog and (#p.catalog..runtime.pianoText(" Lieder \194\183 nanoMIDI"," songs - nanoMIDI"))) or runtime.pianoText("Liederliste bei Bedarf laden. Nur das ausgew\195\164hlte Lied wird heruntergeladen.","Load the library when needed. Only the selected song is downloaded."),124)
+    local searchBox=make("TextBox",{Name="PianoSongSearch",Text=p.query,PlaceholderText=runtime.pianoText("Titel oder K\195\188nstler suchen","Search title or artist"),ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=12,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,79),Size=UDim2.new(1,-144,0,30)},library);round(searchBox,10)
+    rowConnect(searchBox.FocusLost,function() if p.query~=searchBox.Text then p.query=searchBox.Text;p.catalogPage=1;render() end end)
+    rowButton(library,runtime.pianoText("Laden","Load"),UDim2.new(1,-116,0,79),UDim2.fromOffset(100,30),function()p.loadCatalog()end)
+    if p.catalog then
+        local songs=p.filtered();local pages=math.max(1,math.ceil(#songs/8));p.catalogPage=math.clamp(p.catalogPage,1,pages)
+        if #songs==0 then plainCard(runtime.pianoText("Keine Treffer","No matches"),runtime.pianoText("Versuche einen anderen Titel oder K\195\188nstler.","Try another title or artist."),82) end
+        for i=(p.catalogPage-1)*8+1,math.min(#songs,p.catalogPage*8) do
+            local song=songs[i]
+            local tile=card(song.title,song.artist,82,false);tile.Name="PianoSong_"..song.id
+            rowButton(tile,runtime.pianoText("Ausw\195\164hlen","Select"),UDim2.new(1,-120,0,26),UDim2.fromOffset(104,30),function()p.select(song)end)
+        end
+        local pager=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
+        runtime.pagination(pager,"PianoPagination",p.catalogPage,pages,function()p.catalogPage=math.max(1,p.catalogPage-1);render()end,function()p.catalogPage=math.min(pages,p.catalogPage+1);render()end)
+    end
+    plainCard(runtime.pianoText("So spielst du","How to play"),runtime.pianoText("Piano im Spiel aktivieren, Lied ausw\195\164hlen und Spielen dr\195\188cken. F8 stoppt. Chat, Fensterwechsel und Aufstehen pausieren bzw. beenden die Wiedergabe. F\195\188r das \195\188bliche Virtual-Piano-Layout.","Activate the in-game piano, select a song and press Play. F8 stops. Chat, switching windows and leaving your seat pause or stop playback. Uses the standard Virtual Piano layout."),124)
+end
+
+runtime.piano=(function(deps)
+    local p={keys="1!2@34$5%6^78*9(0qQwWeErtTyYuiIoOpPasSdDfgGhHjJklLzZxcCvVbBnm",state="idle",speed=1,held={},logical={},position=0,index=1,alive=true,generation=0,catalogPage=1,query=""}
+    function p.changed() if deps.changed and p.alive then deps.changed() end end
+    function p.key(character)
+        local shifted={['!']='1',['@']='2',['$']='4',['%']='5',['^']='6',['*']='8',['(']='9'}
+        local base=shifted[character] or character:lower()
+        return base:upper():byte(),shifted[character]~=nil or character:match('%u')~=nil
+    end
+    function p.release()
+        for code in pairs(p.held) do pcall(deps.send,code,false) end
+        table.clear(p.held)
+        if p.shiftHeld then pcall(deps.send,16,false);p.shiftHeld=false end
+    end
+    function p.stop()
+        p.release();table.clear(p.logical);p.position=0;p.index=1;p.state=p.events and 'ready' or 'idle';p.changed()
+    end
+    function p.pause(reason,at)
+        if p.state~='playing' then return end
+        p.position=p.position+math.max(0,(at or deps.clock())-p.anchor)*p.speed
+        p.release();p.state='paused';p.message=reason;p.changed()
+    end
+    function p.start()
+        if not p.events or #p.events==0 or p.songLoading then return false,'no_song' end
+        p.release();if p.state~='paused' then p.position=0;p.index=1;table.clear(p.logical) else
+            local ok=pcall(function() for _,event in pairs(p.logical) do p.press(event) end end)
+            if not ok then p.release();p.state='error';p.message='input_unavailable';p.changed();return false,'input_unavailable' end
+        end
+        p.anchor=deps.clock();p.lastTick=p.anchor;p.state='playing';p.message=nil;p.changed();return true
+    end
+    function p.setSpeed(value)
+        if p.state=='playing' then p.pause() end
+        p.speed=math.clamp(value,.25,2);p.changed()
+    end
+    function p.press(event)
+        local code,shift=p.key(event.key)
+        if p.held[code] then deps.send(code,false) end
+        if shift then p.shiftHeld=true;deps.send(16,true) end
+        p.held[code]=event.token;deps.send(code,true)
+        if shift then deps.send(16,false);p.shiftHeld=false end
+    end
+    function p.tick(blocked)
+        if p.state~='playing' then return end
+        if blocked then p.pause(blocked);return end
+        local now=deps.clock()
+        if now-p.lastTick>.75 then p.pause('interrupted',p.lastTick);return end
+        p.lastTick=now
+        local at=p.position+(now-p.anchor)*p.speed;local processed=0
+        while p.events[p.index] and p.events[p.index].time<=at do
+            local event=p.events[p.index];local code,shift=p.key(event.key)
+            local ok=pcall(function()
+                if event.down then
+                    p.logical[code]=event;p.press(event)
+                elseif p.held[code]==event.token then deps.send(code,false);p.held[code]=nil;p.logical[code]=nil end
+            end)
+            if not ok then p.release();p.state='error';p.message='input_unavailable';p.changed();return end
+            p.index+=1;processed+=1
+            if processed>256 then p.pause('interrupted');return end
+        end
+        if not p.events[p.index] then p.release();p.state='finished';p.position=p.duration;p.changed() end
+    end
+    function p.elapsed() return math.min(p.duration or 0,p.position+(p.state=='playing' and math.max(0,deps.clock()-p.anchor)*p.speed or 0)) end
+    function p.parseMidi(data)
+        assert(type(data)=='string' and #data<=8000000 and data:sub(1,4)=='MThd','invalid_midi')
+        local cursor=5;local limit=#data
+        local function read(n)
+            assert(n>=0 and cursor+n-1<=limit,'truncated_midi')
+            local result=0
+            for i=cursor,cursor+n-1 do result=result*256+data:byte(i) end
+            cursor+=n;return result
+        end
+        local function vlq()
+            local value=0
+            for i=1,4 do local b=read(1);value=value*128+b%128;if b<128 then return value end end
+            error('invalid_vlq')
+        end
+        local header=read(4);assert(header>=6 and header<=1024,'invalid_header')
+        local format=read(2);local tracks=read(2);local division=read(2)
+        assert(format<=1 and tracks>=1 and tracks<=256 and division>0 and division<32768,'unsupported_midi')
+        cursor=9+header
+        local raw={};local serial=0
+        local function add(event)
+            serial+=1;assert(serial<=200000,'too_many_notes');event.order=serial;table.insert(raw,event)
+        end
+        for track=1,tracks do
+            limit=#data;assert(data:sub(cursor,cursor+3)=='MTrk','invalid_track');cursor+=4
+            local size=read(4);local finish=cursor+size;assert(finish<=#data+1,'truncated_track');limit=finish-1
+            local tick=0;local running
+            while cursor<finish do
+                tick+=vlq();assert(tick<=2147483647,'too_long')
+                local status=data:byte(cursor);assert(status,'truncated_event')
+                if status<128 then assert(running,'invalid_running_status');status=running else cursor+=1 end
+                if status==255 then
+                    running=nil;local kind=read(1);local length=vlq();assert(cursor+length<=finish,'invalid_meta')
+                    if kind==81 then assert(length==3,'invalid_tempo');local tempo=read(3);assert(tempo>0,'invalid_tempo');add({tick=tick,tempo=tempo})
+                    else cursor+=length end
+                    if kind==47 then assert(length==0,'invalid_end');break end
+                elseif status==240 or status==247 then
+                    running=nil;local length=vlq();assert(cursor+length<=finish,'invalid_sysex');cursor+=length
+                else
+                    assert(status>=128 and status<240,'invalid_status');running=status
+                    local command=math.floor(status/16);local channel=status%16
+                    local note=read(1);local velocity=(command==12 or command==13) and 0 or read(1)
+                    assert(note<128 and velocity<128,'invalid_data')
+                    if (command==8 or command==9) and channel~=9 then
+                        add({tick=tick,note=note,down=command==9 and velocity>0,id=track..':'..channel..':'..note})
+                    end
+                end
+            end
+            cursor=finish
+        end
+        table.sort(raw,function(a,b) if a.tick~=b.tick then return a.tick<b.tick end;return a.order<b.order end)
+        local active={};local intervals={};local tick=0;local seconds=0;local tempo=500000;local folded=0
+        local function close(note,finish)
+            local duration=math.max(.02,finish-note.time)
+            table.insert(intervals,{time=note.time,finish=note.time+duration,key=note.key})
+        end
+        for _,event in ipairs(raw) do
+            seconds+=(event.tick-tick)*tempo/division/1000000;tick=event.tick;assert(seconds<=7200,'too_long')
+            if event.tempo then tempo=event.tempo
+            elseif event.down then
+                if active[event.id] then close(active[event.id],seconds) end
+                local pitch=event.note
+                while pitch<36 do pitch+=12 end
+                while pitch>96 do pitch-=12 end
+                if pitch~=event.note then folded+=1 end
+                active[event.id]={time=seconds,key=p.keys:sub(pitch-35,pitch-35)}
+            elseif active[event.id] then close(active[event.id],seconds);active[event.id]=nil end
+        end
+        for _,note in pairs(active) do close(note,math.min(seconds+.2,note.time+2)) end
+        local events={};local duration=0
+        for token,note in ipairs(intervals) do
+            table.insert(events,{time=note.time,key=note.key,down=true,token=token})
+            table.insert(events,{time=note.finish,key=note.key,down=false,token=token});duration=math.max(duration,note.finish)
+        end
+        table.sort(events,function(a,b)
+            if a.time~=b.time then return a.time<b.time end
+            if a.down~=b.down then return not a.down end
+            return a.token<b.token
+        end)
+        assert(#events>0,'no_notes');return events,duration,folded
+    end
+    function p.loadCatalog()
+        if p.catalogLoading then return end
+        p.catalogLoading=true;p.catalogError=nil;p.changed()
+        deps.spawn(function()
+            local ok,result=pcall(function()
+                local data=deps.get('https://api.nanomidi.net/api/midiData');assert(#data<=3000000,'catalog_too_large')
+                local raw=deps.decode(data);assert(type(raw)=='table','invalid_catalog')
+                local list={}
+                for _,item in ipairs(raw) do
+                    local file=type(item)=='table' and item.midiFilename
+                    if type(file)=='string' and #file<=250 and not file:find('[/\\%z]') and (file:lower():match('%.mid$') or file:lower():match('%.midi$')) then
+                        table.insert(list,{id=tostring(item.id),title=tostring(item.name or file):sub(1,160),artist=tostring(item.artists or ''):sub(1,160),filename=file})
+                    end
+                    assert(#list<=10000,'catalog_too_large')
+                end
+                assert(#list>0,'empty_catalog');table.sort(list,function(a,b)return a.title:lower()<b.title:lower()end);return list
+            end)
+            if not p.alive then return end
+            p.catalogLoading=false
+            if ok then p.catalog=result;p.catalogPage=1 else p.catalogError='catalog_failed' end
+            p.changed()
+        end)
+    end
+    function p.select(item)
+        p.stop();p.generation+=1;local generation=p.generation
+        p.selected=item;p.events=nil;p.duration=0;p.songLoading=true;p.state='loading';p.message=nil;p.changed()
+        deps.spawn(function()
+            local ok,events,duration,folded=pcall(function()
+                local file=item.filename:gsub('[^%w%-_%.]',function(c)return string.format('%%%02X',c:byte())end)
+                return p.parseMidi(deps.get('https://api.nanomidi.net/api/midis/'..file))
+            end)
+            if not p.alive or generation~=p.generation then return end
+            p.songLoading=false
+            if ok then p.events=events;p.duration=duration;p.folded=folded;p.state='ready'
+            else p.state='error';p.message='song_failed' end
+            p.changed()
+        end)
+    end
+    function p.filtered()
+        local list={};local query=p.query:lower()
+        for _,song in ipairs(p.catalog or {}) do if query=='' or (song.title..' '..song.artist):lower():find(query,1,true) then table.insert(list,song) end end
+        return list
+    end
+    function p.dispose() p.alive=false;p.generation+=1;p.release();p.state='idle' end
+    return p
+end)({
+    clock=os.clock,spawn=task.spawn,get=function(url)
+        local headers=(type(request)=="function" or type(http_request)=="function" or (type(syn)=="table" and type(syn.request)=="function"))
+            and {["User-Agent"]="VP-Autoplayer/1.0",Accept="application/json, audio/midi"} or nil
+        return requestBody(url,headers)
+    end,decode=function(body) return Http:JSONDecode(body) end,
+    send=function(code,down)return runtime.pianoSend(code,down)end,
+    changed=function()task.defer(function()if alive and opened and page=="Musik" and runtime.musicMode=="piano" then render() end end)end,
+})
+connect(UIS.WindowFocusReleased,function()runtime.piano.pause("focus")end)
+connect(player.CharacterRemoving,function()runtime.piano.stop()end)
+connect(Run.Heartbeat,function()
+    local piano=runtime.piano
+    local before=piano.state
+    if before=="playing" then
+        local h=humanoid()
+        if not h or h.Health<=0 or player.Character~=piano.character or (piano.startedSeated and not h.Sit and h.SeatPart==nil) then piano.stop()
+        else piano.tick(UIS:GetFocusedTextBox() and "text_focus" or (runtime.guiService and runtime.guiService.MenuIsOpen and "menu") or nil) end
+        if piano.state=="error" then notify(runtime.pianoStatus(),"Piano")
+        elseif piano.state=="finished" then notify(runtime.pianoText("Lied beendet.","Song finished."),"Piano") end
+    end
+    if runtime.pianoProgress and runtime.pianoProgress.Parent then
+        local function format(seconds) seconds=math.floor(seconds);return string.format("%02d:%02d",math.floor(seconds/60),seconds%60)end
+        runtime.pianoProgress.Text=format(piano.elapsed()).." / "..format(piano.duration or 0).."  |  F8 Stop"
+    end
+end)
+
 render = function()
     if not alive then return end
     local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
@@ -5062,6 +5356,8 @@ render = function()
             if not scriptSearch.loaded and not scriptSearch.loading and not scriptSearch.error then searchRemoteScripts(1) end
         end
     elseif page == "Musik" and query == "" then
+        runtime.drawMusicTabs()
+        if runtime.musicMode=="piano" then runtime.drawPiano() else
         runtime.drawMediaPlayer()
         local f=card("Deine Musik","Roblox-Audio-ID eingeben. Das Asset muss im Spiel verwendbar sein.",154)
         local input=make("TextBox",{Text="",PlaceholderText="Audio-ID",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,
@@ -5085,6 +5381,7 @@ render = function()
         rowButton(queue,"Leeren",UDim2.fromOffset(212,74),UDim2.fromOffset(88,28),function() sound:Stop(); table.clear(musicQueue); queueIndex=0; render() end)
         drawAction({id="volume",name="Lautst\195\164rke",desc="Nur die Musik von ISB Menu",kind="slider",
             min=0,max=100,step=5,dragStep=.1,get=function() return math.floor(sound.Volume*10000+0.5)/100 end,fn=function(v) sound.Volume=v/100; settings.volume=v; save() end})
+        end
     elseif page == "Profil" then
         features.drawProfile()
     elseif page == "Einstellungen" and query == "" then
@@ -5216,6 +5513,11 @@ function runtime.keyName(code)
     return name
 end
 connect(UIS.InputBegan,function(input,processed)
+    if runtime.pianoSending then return end
+    if runtime.piano and (runtime.piano.state=="playing" or runtime.piano.state=="paused") and input.KeyCode==Enum.KeyCode.F8 then
+        runtime.piano.stop();runtime.musicMode="piano";query="";page="Musik";setOpen(true);render();return
+    end
+    if runtime.piano and runtime.piano.state=="playing" then return end
     local pressed=runtime.keyName(input.KeyCode)
     if captureKey and input.UserInputType==Enum.UserInputType.Keyboard then
         local field=captureKey==true and "key" or captureKey
@@ -5600,6 +5902,7 @@ local api = {}
 api.Destroy = function()
     if not alive then return end
     alive=false
+    runtime.piano.dispose()
     runtime.clearOutfit(true)
     runtime.stopFreecam(false)
     runtime.destroyInspectorTool()

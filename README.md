@@ -1,4 +1,18 @@
-# ISB Menu 2.6.61 · by Larsiopuw
+# ISB Menu 2.6.62 · by Larsiopuw
+
+## Piano automatisch spielen
+
+1. Das Piano im Roblox-Spiel aktivieren bzw. dort hinsetzen.
+2. Im ISB-Menü **Musik → Piano → Laden** öffnen und ein Lied suchen.
+3. **Auswählen** lädt dieses Lied; **Spielen** startet die Tasteneingabe und schließt das Menü.
+4. **F8** stoppt sofort und öffnet den Piano-Bereich. Pause und Tempo sind dort ebenfalls verfügbar.
+
+Die Online-Liste stammt wie beim VP-Player von nanoMIDI. Die eigenständige Windows-App muss dafür nicht laufen. Verwendet wird die übliche chromatische 61-Tasten-Belegung (C2–C7); Pianos mit anderen Steuerungen sind nicht allgemein abgedeckt. Die verwendete Skriptumgebung muss Tasteneingaben unterstützen. Falls das fehlt, erscheint ein Hinweis. Chat, Fokuswechsel, Aufstehen nach sitzendem Start und Respawn geben gehaltene Tasten frei. MIDI und Oberfläche wurden geprüft; eine Live-Prüfung der Tasteneingabe im Roblox-Spiel steht noch aus.
+
+## Änderungen in 2.6.62
+
+- Neuer Piano-Bereich unter Musik: Online-Lieder durchsuchen, auswählen und mit der üblichen 61-Tasten-Belegung automatisch spielen.
+- Wiedergabe mit Pause, Stop und einstellbarem Tempo. F8 stoppt und öffnet den Piano-Bereich; bei Chat, Fensterwechsel und Aufstehen werden gehaltene Tasten freigegeben.
 
 ## Änderungen in 2.6.61
 
