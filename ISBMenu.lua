@@ -1,7 +1,7 @@
--- ISB Menu 2.6.67 | Own-game universal client toolkit
+-- ISB Menu 2.6.68 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.67",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.68",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -675,6 +675,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.68"]="Song title and details appear inside the main Piano card above Play, Pause and Stop.\nA more compact player without a separate song card; duration and position remain next to the timeline.",
     ["2.6.67"]="Import your own .mid and .midi files from the executor workspace, or scan the ISBMenu-MIDI folder. Your local library is separate from online songs.\nSelect, preview, search and favorite your own songs, with the same playback speed and timeline controls as online songs.",
     ["2.6.66"]="Piano previews use recorded grand-piano samples instead of simple synthetic tones, preserving the attack and natural decay.\nMIDI note velocity controls preview volume for more expressive dynamics.",
     ["2.6.65"]="Cleaner Piano view with centered favorite stars and full song details. The timeline no longer briefly jumps to the beginning when seeking.\nListen to a 20-second local piano preview before selecting a song; click again to stop. The standard Shift Lock key binding is temporarily blocked during playback.",
@@ -2990,6 +2991,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.68",text="Songtitel und Details stehen direkt in der Piano-Hauptkarte \195\188ber Spielen, Pause und Stop.\nKompaktere Wiedergabeansicht ohne zus\195\164tzliche Songkarte; Dauer und Position bleiben direkt an der Zeitleiste sichtbar."},
     {version="2.6.67",text="Eigene .mid- und .midi-Dateien aus dem Executor-Workspace importieren oder im Ordner ISBMenu-MIDI finden. Die lokale Bibliothek bleibt getrennt von den Online-Liedern.\nEigene Lieder ausw\195\164hlen, vorh\195\182ren, durchsuchen und favorisieren; Tempo und Zeitleiste funktionieren wie bei Online-Liedern."},
     {version="2.6.66",text="Die Piano-Vorschau verwendet echte Fl\195\188gelaufnahmen statt einfacher k\195\188nstlicher T\195\182ne. Anschlag und nat\195\188rliches Ausklingen bleiben erhalten.\nDie Anschlagst\195\164rke der MIDI-Noten steuert die Lautst\195\164rke der Vorschau f\195\188r mehr Dynamik."},
     {version="2.6.65",text="Aufger\195\164umter Piano-Bereich mit zentrierten Favoritensternen und vollst\195\164ndigen Songdetails. Die Zeitleiste springt beim Spulen nicht mehr kurz zum Anfang.\nLieder vor dem Ausw\195\164hlen als 20-sek\195\188ndige lokale Piano-Vorschau anh\195\182ren und mit einem zweiten Klick stoppen. Die normale Shift-Lock-Tastenbelegung wird w\195\164hrend der Wiedergabe vor\195\188bergehend gesperrt."},
@@ -5112,10 +5114,9 @@ function runtime.playPianoPreview(bytes,ended,failed)
 end
 function runtime.pianoSongInfo(song)
     if not song then return runtime.pianoText("Lied aus der Liste auswahlen.","Choose a song from the list.")end
-    local parts=song.source=="local" and {runtime.pianoText("Eigene MIDI-Datei","Local MIDI file"),song.path} or {song.artist or "",tostring(song.downloads or 0).." Downloads"}
+    local parts=song.source=="local" and {runtime.pianoText("Eigene MIDI-Datei","Local MIDI file"),song.path} or {(song.artist or "").."  |  "..tostring(song.downloads or 0).." Downloads"}
     if song.arranger and song.arranger~="" then table.insert(parts,runtime.pianoText("Arrangement: ","Arranger: ")..song.arranger)end
     if song.uploader and song.uploader~="" then table.insert(parts,"Upload: "..song.uploader)end
-    if runtime.piano.selected==song and runtime.piano.events and runtime.piano.duration then local t=math.floor(runtime.piano.duration);table.insert(parts,string.format("%02d:%02d",math.floor(t/60),t%60))end
     local lines=0;for _,part in ipairs(parts)do lines+=math.max(1,math.ceil(#part/70))end
     return table.concat(parts,"\n"),math.max(88,54+lines*15)
 end
@@ -5160,13 +5161,18 @@ end
 function runtime.drawPiano()
     local p=runtime.piano
     runtime.pianoLayoutLabel=runtime.pianoLayout()
-    local status=plainCard("Piano Auto-Player",runtime.pianoStatus(),190)
+    local info,infoHeight=runtime.pianoSongInfo(p.selected)
+    local details=p.selected and (info.."\n"..runtime.pianoStatus()) or runtime.pianoStatus()
+    local descriptionHeight=p.selected and ((infoHeight or 88)-48+24) or 36
+    local controlsY=math.max(90,52+descriptionHeight+10)
+    local status=plainCard(p.selected and p.selected.title or "Piano Auto-Player",details,controlsY+100,false)
+    for _,child in ipairs(status:GetChildren())do if child:IsA("TextLabel") and runtime.rawText(child)==details then child.Size=UDim2.new(1,-32,0,descriptionHeight)end end
     status.Name="PianoPlayback"
-    rowButton(status,runtime.pianoText("Spielen","Play"),UDim2.fromOffset(16,90),UDim2.fromOffset(104,30),runtime.startPiano)
-    rowButton(status,"Pause",UDim2.fromOffset(130,90),UDim2.fromOffset(104,30),function()p.pause()end)
-    rowButton(status,"Stop",UDim2.fromOffset(244,90),UDim2.fromOffset(104,30),function()p.stop()end)
-    runtime.pianoProgress=label(status,"",11,C.muted,UDim2.fromOffset(16,131),UDim2.new(1,-32,0,20))
-    local rail=make("Frame",{Name="PianoSeek",Active=true,BackgroundColor3=C.line,Position=UDim2.fromOffset(16,166),Size=UDim2.new(1,-32,0,8)},status);round(rail,4)
+    rowButton(status,runtime.pianoText("Spielen","Play"),UDim2.fromOffset(16,controlsY),UDim2.fromOffset(104,30),runtime.startPiano)
+    rowButton(status,"Pause",UDim2.fromOffset(130,controlsY),UDim2.fromOffset(104,30),function()p.pause()end)
+    rowButton(status,"Stop",UDim2.fromOffset(244,controlsY),UDim2.fromOffset(104,30),function()p.stop()end)
+    runtime.pianoProgress=label(status,"",11,C.muted,UDim2.fromOffset(16,controlsY+41),UDim2.new(1,-32,0,20))
+    local rail=make("Frame",{Name="PianoSeek",Active=true,BackgroundColor3=C.line,Position=UDim2.fromOffset(16,controlsY+76),Size=UDim2.new(1,-32,0,8)},status);round(rail,4)
     local fill=make("Frame",{Name="PianoSeekFill",BackgroundColor3=C.accent,BorderSizePixel=0,Size=UDim2.fromScale(0,1)},rail);round(fill,4)
     local thumb=make("Frame",{Name="PianoSeekThumb",BackgroundColor3=C.text,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(0,.5),Size=UDim2.fromOffset(14,14)},rail);round(thumb,7)
     local refs={fill=fill,thumb=thumb};runtime.pianoSeekRefs=refs
@@ -5183,10 +5189,6 @@ function runtime.drawPiano()
         end
         update(input.Position.X);activeSlider={input=input,update=update,finish=finish}
     end)
-    local info,infoHeight=runtime.pianoSongInfo(p.selected)
-    local selected=plainCard(p.selected and p.selected.title or runtime.pianoText("Noch kein Lied ausgew\195\164hlt","No song selected"),info,infoHeight or 88,false)
-    selected.Name="PianoSelectedSong"
-    for _,child in ipairs(selected:GetChildren())do if child:IsA("TextLabel") and runtime.rawText(child)==info then child.Size=UDim2.new(1,-32,0,(infoHeight or 88)-48)end end
     local speed=plainCard(runtime.pianoText("Tempo","Speed"),string.format("%.2fx",p.speed),84)
     rowButton(speed,"-",UDim2.new(1,-100,0,24),UDim2.fromOffset(36,30),function()p.setSpeed(p.speed-.25)end)
     rowButton(speed,"+",UDim2.new(1,-54,0,24),UDim2.fromOffset(36,30),function()p.setSpeed(p.speed+.25)end)
