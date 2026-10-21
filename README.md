@@ -1,4 +1,4 @@
-# ISB Menu 2.6.64 · by Larsiopuw
+# ISB Menu 2.6.65 · by Larsiopuw
 
 ## Piano automatisch spielen
 
@@ -9,9 +9,18 @@
 
 Die Zeitleiste unter der Wiedergabe zeigt Minuten und Sekunden an. Ziehen pausiert kurz; beim Loslassen wird an der gewählten Stelle fortgesetzt, wenn das Lied vorher lief. Die Online-Liste bietet **Beliebt** (Downloadzahlen), **Neueste** (Katalog-ID) und **Titel A–Z**. Sterne merken Lieder; **Favoriten** filtert diese Liste und lässt sich mit Suche und Sortierung kombinieren. Favoriten und Sortierung werden mit den Einstellungen lokal gespeichert, sofern Dateizugriff verfügbar ist.
 
-Das von Roblox gemeldete Layout wird unter **Tastatur** angezeigt. Interne Roblox-Tastencodes verwenden feste QWERTY-Positionen; deshalb bleibt die MIDI-Tonzuordnung bei QWERTZ erhalten, ohne einen zusätzlichen Y/Z-Tausch einzubauen. Die Menüsprache beeinflusst diese Zuordnung nicht.
+Das von Roblox gemeldete Layout steht kompakt bei der Zeitanzeige. Interne Roblox-Tastencodes verwenden feste QWERTY-Positionen; deshalb bleibt die MIDI-Tonzuordnung bei QWERTZ erhalten, ohne einen zusätzlichen Y/Z-Tausch einzubauen. Die Menüsprache beeinflusst diese Zuordnung nicht.
+
+**Vorschau** spielt einen lokal aus MIDI erzeugten Piano-Ausschnitt von bis zu 20 Sekunden, ohne Piano-Tasten im Spiel zu drücken. Ein weiterer Klick stoppt die Vorschau; Laden lässt sich ebenfalls abbrechen. Die Vorschau startet nicht die Spiel-Wiedergabe und ändert die Songauswahl nicht. Dafür braucht die Skriptumgebung lokale Datei- und Audio-Asset-Unterstützung. Es handelt sich um eine synthetische Piano-Vorschau, keine Originalaufnahme. Start einer normalen Wiedergabe, Stop, F8 und Beenden räumen die Vorschau auf.
+
+Für die Standard-Roblox-Kamera wird während der Piano-Wiedergabe nur die Shift-Lock-Tastenbelegung vorübergehend geleert. Shift-Noten werden weiterhin gesendet. Pause, Stop, Fehler und Beenden stellen die vorherige Belegung wieder her; zwischenzeitliche Änderungen anderer Skripte bleiben erhalten. Eigene Kamera-Systeme ohne diese Belegung können abweichen. Falls die automatische Sperre dort nicht verfügbar ist, erscheint ein Hinweis auf die Roblox-Einstellungen.
 
 Die Online-Liste stammt wie beim VP-Player von nanoMIDI. Die eigenständige Windows-App muss dafür nicht laufen. Verwendet wird die übliche chromatische 61-Tasten-Belegung (C2–C7); Pianos mit anderen Steuerungen sind nicht allgemein abgedeckt. Die verwendete Skriptumgebung muss Roblox-interne Tasteneingaben unterstützen; PC-weite Tastaturfunktionen werden nicht verwendet. Falls der interne Eingabeweg fehlt oder blockiert ist, erscheint ein Hinweis. Beim Wechsel in andere Fenster läuft das Lied weiter, solange Roblox den Player weiter ausführt. Chat, das Roblox-Menü, Aufstehen nach sitzendem Start und Respawn unterbrechen die Wiedergabe und geben gehaltene Tasten frei. Bei einer längeren Unterbrechung durch Roblox pausiert der Player, damit keine verspäteten Noten nachgeholt werden. F8 wird innerhalb von Roblox verarbeitet; zum Stoppen nach dem Raustabben zurück ins Spiel wechseln. MIDI und Oberfläche wurden geprüft; eine Live-Prüfung der Tasteneingabe im Roblox-Spiel steht noch aus.
+
+## Änderungen in 2.6.65
+
+- Aufgeräumter Piano-Bereich mit zentrierten Favoritensternen und vollständigen Songdetails. Die Zeitleiste springt beim Spulen nicht mehr kurz zum Anfang.
+- Lieder vor dem Auswählen als 20-sekündige lokale Piano-Vorschau anhören und mit einem zweiten Klick stoppen. Die normale Shift-Lock-Tastenbelegung wird während der Wiedergabe vorübergehend gesperrt.
 
 ## Änderungen in 2.6.64
 
