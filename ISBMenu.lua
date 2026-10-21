@@ -1,7 +1,7 @@
--- ISB Menu 2.6.69 | Own-game universal client toolkit
+-- ISB Menu 2.6.70 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.69",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.70",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -675,6 +675,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.70"]="A compact speed control with a prominent playback rate centered inside one unified panel.\nLarger, precisely centered minus and plus symbols with matching button surfaces.",
     ["2.6.69"]="Your local songs now support VP text sheets (.txt or extensionless), including chords, rests and saved tempo/timing data. MIDI files remain supported.\nA more compact main Piano card with smaller gaps and speed controls alongside playback.",
     ["2.6.68"]="Song title and details appear inside the main Piano card above Play, Pause and Stop.\nA more compact player without a separate song card; duration and position remain next to the timeline.",
     ["2.6.67"]="Import your own .mid and .midi files from the executor workspace, or scan the ISBMenu-MIDI folder. Your local library is separate from online songs.\nSelect, preview, search and favorite your own songs, with the same playback speed and timeline controls as online songs.",
@@ -2992,6 +2993,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.70",text="Neue kompakte Tempo-Steuerung mit hervorgehobener Geschwindigkeitsanzeige in der Mitte.\nGroessere, exakt zentrierte Minus- und Plus-Symbole mit einheitlichen Tastenflaechen."},
     {version="2.6.69",text="Eigene Lieder akzeptieren jetzt auch VP-Textdateien (.txt oder ohne Endung), einschlie\195\159lich Akkorden, Pausen und gespeicherten Tempo-/Zeitangaben. MIDI-Dateien bleiben ebenfalls nutzbar.\nKompaktere Piano-Hauptkarte mit deutlich kleineren Abst\195\164nden. Tempo und Wiedergabe sitzen zusammen in einer Karte."},
     {version="2.6.68",text="Songtitel und Details stehen direkt in der Piano-Hauptkarte \195\188ber Spielen, Pause und Stop.\nKompaktere Wiedergabeansicht ohne zus\195\164tzliche Songkarte; Dauer und Position bleiben direkt an der Zeitleiste sichtbar."},
     {version="2.6.67",text="Eigene .mid- und .midi-Dateien aus dem Executor-Workspace importieren oder im Ordner ISBMenu-MIDI finden. Die lokale Bibliothek bleibt getrennt von den Online-Liedern.\nEigene Lieder ausw\195\164hlen, vorh\195\182ren, durchsuchen und favorisieren; Tempo und Zeitleiste funktionieren wie bei Online-Liedern."},
@@ -5176,10 +5178,19 @@ function runtime.drawPiano()
     play.Name="PianoPlay"
     local pause=rowButton(status,"Pause",UDim2.fromOffset(130,90),UDim2.fromOffset(104,30),function()p.pause()end)
     local stop=rowButton(status,"Stop",UDim2.fromOffset(244,90),UDim2.fromOffset(104,30),function()p.stop()end)
-    local tempo=make("Frame",{Name="PianoTempo",BackgroundTransparency=1,Size=UDim2.fromOffset(170,30)},status)
-    label(tempo,runtime.pianoText("Tempo ","Speed ")..string.format("%.2fx",p.speed),11,C.muted,UDim2.fromOffset(0,0),UDim2.fromOffset(94,30))
-    rowButton(tempo,"-",UDim2.fromOffset(102,0),UDim2.fromOffset(28,30),function()p.setSpeed(p.speed-.25)end)
-    rowButton(tempo,"+",UDim2.fromOffset(138,0),UDim2.fromOffset(28,30),function()p.setSpeed(p.speed+.25)end)
+    local tempo=make("Frame",{Name="PianoTempo",BackgroundColor3=Color3.fromRGB(35,42,51),BorderSizePixel=0,Size=UDim2.fromOffset(170,34)},status)
+    round(tempo,12);stroke(tempo)
+    local value=label(tempo,string.format("%.2fx",p.speed),15,C.accent,UDim2.fromOffset(40,0),UDim2.fromOffset(90,34))
+    value.Name="PianoTempoValue";value.Font=Enum.Font.BuilderSansBold;value.TextXAlignment=Enum.TextXAlignment.Center
+    local function step(name,x,delta)
+        local button=rowButton(tempo,"",UDim2.fromOffset(x,2),UDim2.fromOffset(34,30),function()p.setSpeed(p.speed+delta)end)
+        button.Name=name
+        local horizontal=make("Frame",{Name="TempoHorizontal",AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(14,2),BackgroundColor3=C.text,BorderSizePixel=0},button);round(horizontal,1)
+        if delta>0 then
+            local vertical=make("Frame",{Name="TempoVertical",AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(2,14),BackgroundColor3=C.text,BorderSizePixel=0},button);round(vertical,1)
+        end
+    end
+    step("PianoTempoDecrease",2,-.25);step("PianoTempoIncrease",134,.25)
     runtime.pianoProgress=label(status,"",11,C.muted,UDim2.fromOffset(16,131),UDim2.new(1,-32,0,18))
     local rail=make("Frame",{Name="PianoSeek",Active=true,BackgroundColor3=C.line,Position=UDim2.fromOffset(16,166),Size=UDim2.new(1,-32,0,8)},status);round(rail,4)
     local function layout()
@@ -5192,7 +5203,7 @@ function runtime.drawPiano()
         if description then description.Size=UDim2.new(1,-32,0,height)end
         local y=38+height+10;local inline=width>=550
         play.Position=UDim2.fromOffset(16,y);pause.Position=UDim2.fromOffset(130,y);stop.Position=UDim2.fromOffset(244,y)
-        tempo.Position=inline and UDim2.new(1,-186,0,y)or UDim2.fromOffset(16,y+38)
+        tempo.Position=inline and UDim2.new(1,-186,0,y-2)or UDim2.fromOffset(16,y+38)
         local timeY=y+(inline and 36 or 74)
         runtime.pianoProgress.Position=UDim2.fromOffset(16,timeY)
         rail.Position=UDim2.fromOffset(16,timeY+28)
