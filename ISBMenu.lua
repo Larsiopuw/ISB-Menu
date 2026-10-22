@@ -703,7 +703,7 @@ runtime.englishHistory={
     ["2.6.91"]="Halloween-Event under Scripts > This Game: native doorbell input with confirmed candy credit and return to the previous position. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually.",
     ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game.",
     ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
-    ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely and use native prompt input as soon as the button is available. An unconfirmed start is retried briefly, including the first spin after teleport; confirmed spins receive no further input. Optionally stop when the title is unlocked. Lifetime 777 wins and automatic return to the button, using shared ISB Menu idle protection.",
+    ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely and claim button availability immediately. Native taps every frame until server acknowledgement, without artificial hold or retry delays for tap prompts. Confirmed spins receive no further input. Optional title-stop policy, lifetime 777 wins, automatic return to the button and shared ISB Menu idle protection. Actual priority depends on server ordering and ping.",
     ["2.6.81"]="Connect Four Auto-Player under Scripts > This Game with local move calculation, a board view, winning lines and search depth. Automatic play continues across rounds, with pause and single-move controls.",
     ["2.6.80"]="Tic Tac Toe Auto-Player under Scripts > This Game with complete local move calculation, a board view and winning lines. Autoplay continues through subsequent rounds at the same table until paused or you leave the seat.",
     ["2.6.78"]="Anti-Void with pixel recovery, a cyan light trail and a guided return camera. Recovery uses an earlier ground position with verified surrounding support, edge clearance and no added height offset.",
@@ -3009,7 +3009,7 @@ runtime.changelog={
     {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: native Klingeleingabe mit best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur Ausgangsposition. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet."},
     {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar."},
     {version="2.6.89",text="VIP-Aufzug mit eigenen lokalen E-Kn\195\182pfen: direkt hinein und zur\195\188ck teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterst\195\188tzten Spiel."},
-    {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und per nativer Knopfeingabe direkt bei Freigabe drehen. Ein unbest\195\164tigter Start wird kurz wiederholt, auch beim ersten Spin nach dem Teleport; best\195\164tigte Drehungen erhalten keine weiteren Eingaben. Optional beim freigeschalteten Titel stoppen. Gesamtzahl der 777-Gewinne und automatische R\195\188ckkehr zum Knopf. Gemeinsamer AFK-Schutz des ISB-Men\195\188s."},
+    {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und die Freigabe sofort beanspruchen. Native Tap-Eingabe in jedem Frame bis zur Serverbest\195\164tigung, ohne k\195\188nstliche Tastendauer oder Wiederholungspause bei Tap-Prompts. Best\195\164tigte Drehungen erhalten keine weiteren Eingaben. Optional beim freigeschalteten Titel stoppen. Gesamtzahl der 777-Gewinne, automatische R\195\188ckkehr zum Knopf und gemeinsamer AFK-Schutz des ISB-Men\195\188s. Serverreihenfolge und Ping bestimmen den tats\195\164chlichen Vorrang."},
     {version="2.6.81",text="Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen \195\188ber weitere Runden sowie Pause und einzelne Z\195\188ge."},
     {version="2.6.80",text="Tic Tac Toe Auto-Player unter Scripts > Dieses Spiel mit vollst\195\164ndiger lokaler Zugberechnung, Brettansicht und Gewinnlinien. Autoplay spielt weitere Runden am selben Tisch automatisch weiter, bis du pausierst oder aufstehst."},
     {version="2.6.78",text="Anti-Void mit Pixel-Recovery, cyanfarbener Lichtspur und R\195\188ckflug-Kamera. Die R\195\188ckkehr verwendet einen fr\195\188heren, rundum gepr\195\188ften Bodenpunkt mit Kantenabstand und ohne zus\195\164tzlichen H\195\182henversatz."},
@@ -8748,9 +8748,15 @@ runtime.slotPromptInput=(function(deps)
         p.held=prompt
         local ok,err=pcall(deps.begin,prompt)
         if not ok then p.release();error(err)end
-        deps.delay(math.max(.12,tonumber(deps.duration(prompt))or 0)+.02,function()
+        local duration=math.max(0,tonumber(deps.duration(prompt))or 0)
+        if duration==0 then
+            -- A tap prompt needs no artificial hold: one complete native press per frame.
             if p.epoch==epoch and p.held==prompt then p.release()end
-        end)
+        else
+            deps.delay(duration+.02,function()
+                if p.epoch==epoch and p.held==prompt then p.release()end
+            end)
+        end
         return true
     end
     return p
@@ -8832,8 +8838,8 @@ runtime.slot=(function(deps)
                 end
             elseif now-request.time>(request.accepted and 25 or 10)then p.stop('timeout');return
             else
-                if not request.accepted and s.enabled and now>=(request.nextTry or math.huge)and(request.sends or 1)<8 then
-                    request.nextTry=now+.4;request.sends=(request.sends or 1)+1
+                if not request.accepted and s.enabled then
+                    request.sends=(request.sends or 1)+1
                     local fired,err=pcall(deps.press,s.prompt)
                     if not fired then p.lastError=tostring(err);p.stop('error');return end
                 end
@@ -8842,7 +8848,7 @@ runtime.slot=(function(deps)
         end
         if not s.enabled then status('other_player');return end
         -- Reserve this opening before invoking input: signal and Heartbeat cannot double-send.
-        p.pending={time=now,before=s.signature,signature=s.signature,stable=now,accepted=false,disabled=false,nextTry=now+.4,sends=1}
+        p.pending={time=now,before=s.signature,signature=s.signature,stable=now,accepted=false,disabled=false,sends=1}
         local fired,err=pcall(deps.press,s.prompt)
         if not fired then p.lastError=tostring(err);p.stop('error');return end
         status('confirming')
