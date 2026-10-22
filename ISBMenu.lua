@@ -1,7 +1,7 @@
--- ISB Menu 2.6.71 | Own-game universal client toolkit
+-- ISB Menu 2.6.72 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.71",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.72",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -675,6 +675,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.72"]="Piano playback speed changes immediately while playing, without pausing or restarting.\nThe Roblox hotbar is temporarily disabled during playback and restored afterwards; newly equipped tools are returned to the backpack.",
     ["2.6.71"]="Selecting a piano song smoothly scrolls back to the playback controls.\nChanging song pages smoothly aligns the start of the list; manual scrolling interrupts the animation.",
     ["2.6.70"]="A compact speed control with a prominent playback rate centered inside one unified panel.\nLarger, precisely centered minus and plus symbols with matching button surfaces.",
     ["2.6.69"]="Your local songs now support VP text sheets (.txt or extensionless), including chords, rests and saved tempo/timing data. MIDI files remain supported.\nA more compact main Piano card with smaller gaps and speed controls alongside playback.",
@@ -2994,6 +2995,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.72",text="Das Piano-Tempo laesst sich waehrend der Wiedergabe direkt aendern, ohne Pause oder Neustart.\nDie Roblox-Hotbar wird waehrend des Spielens voruebergehend deaktiviert und danach wiederhergestellt; neu ausgeruestete Tools werden im Rucksack verstaut."},
     {version="2.6.71",text="Nach der Piano-Songauswahl scrollt die Ansicht sanft zur Wiedergabe-Steuerung.\nBeim Wechsel einer Liedseite gleitet die Liste genau zu ihrem Anfang; eigenes Scrollen unterbricht die Animation."},
     {version="2.6.70",text="Neue kompakte Tempo-Steuerung mit hervorgehobener Geschwindigkeitsanzeige in der Mitte.\nGroessere, exakt zentrierte Minus- und Plus-Symbole mit einheitlichen Tastenflaechen."},
     {version="2.6.69",text="Eigene Lieder akzeptieren jetzt auch VP-Textdateien (.txt oder ohne Endung), einschlie\195\159lich Akkorden, Pausen und gespeicherten Tempo-/Zeitangaben. MIDI-Dateien bleiben ebenfalls nutzbar.\nKompaktere Piano-Hauptkarte mit deutlich kleineren Abst\195\164nden. Tempo und Wiedergabe sitzen zusammen in einer Karte."},
@@ -5084,6 +5086,41 @@ function runtime.pianoShiftGuard(enable)
         notify(runtime.pianoText("Shift-Lock kann hier nicht automatisch gesperrt werden. Bei Bedarf in den Roblox-Einstellungen ausschalten.","Shift Lock cannot be blocked automatically here. Disable it in Roblox settings if needed."),"Piano")
     end
 end
+function runtime.pianoHotbarGuard(enable)
+    local owned=runtime.pianoHotbar
+    if not enable then
+        runtime.pianoHotbar=nil
+        if not owned then return end
+        if owned.connection then owned.connection:Disconnect() end
+        if owned.disabled then pcall(function()
+            if not game:GetService("StarterGui"):GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) then
+                game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack,owned.enabled)
+            end
+        end)end
+        return
+    end
+    if owned then return end
+    owned={};runtime.pianoHotbar=owned
+    local starter=game:GetService("StarterGui")
+    local ok,enabled=pcall(function()return starter:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack)end)
+    if ok and enabled then
+        owned.enabled=enabled
+        owned.disabled=pcall(function()starter:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack,false)end)
+    end
+    local character=player.Character
+    if character then owned.connection=character.ChildAdded:Connect(function(child)
+        if not child:IsA("Tool") then return end
+        task.defer(function()
+            if runtime.pianoHotbar~=owned or child.Parent~=character then return end
+            local h=character:FindFirstChildOfClass("Humanoid")
+            if h then pcall(function()h:UnequipTools()end)end
+        end)
+    end)end
+end
+function runtime.pianoInputGuard(enable)
+    runtime.pianoHotbarGuard(enable)
+    runtime.pianoShiftGuard(enable)
+end
 function runtime.loadPianoSamples()
     if runtime.pianoSampleBank then return runtime.pianoSampleBank end
     local path="ISBMenu-piano-salamander-v1.bin"
@@ -5387,7 +5424,12 @@ runtime.piano=(function(deps)
         p.changed()
     end
     function p.setSpeed(value)
-        if p.state=='playing' then p.pause() end
+        if type(value)~='number' or value~=value or math.abs(value)==math.huge then return end
+        if p.state=='playing' then
+            local now=deps.clock()
+            p.position=p.position+math.max(0,now-p.anchor)*p.speed
+            p.anchor=now
+        end
         p.speed=math.clamp(value,.25,2);p.changed()
     end
     function p.press(event)
@@ -5787,7 +5829,7 @@ end)({
         if type(isfolder)=="function" and type(makefolder)=="function" and not isfolder(path)then makefolder(path)end
         return listfiles(path)
     end,
-    sampleBank=runtime.loadPianoSamples,guard=runtime.pianoShiftGuard,playPreview=runtime.playPianoPreview,yield=task.wait,
+    sampleBank=runtime.loadPianoSamples,guard=runtime.pianoInputGuard,playPreview=runtime.playPianoPreview,yield=task.wait,
     preferences=function(favorites,sort)settings.pianoFavorites=favorites;settings.pianoSort=sort;save()end,
     clock=os.clock,spawn=task.spawn,get=function(url)
         local headers=(type(request)=="function" or type(http_request)=="function" or (type(syn)=="table" and type(syn.request)=="function"))
