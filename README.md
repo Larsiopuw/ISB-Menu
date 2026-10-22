@@ -1,4 +1,14 @@
-# ISB Menu 2.6.81 · by Larsiopuw
+# ISB Menu 2.6.82 · by Larsiopuw
+
+## 777 Auto-Spin
+
+Unter **Scripts → Dieses Spiel → 777 Auto-Spin** öffnen. **Auto-Spin starten** sucht eine freie, bodennahe Position am Automaten, teleportiert einmal dorthin und betätigt den normalen Spin-Prompt. Die Funktion wartet auf die Drehung und ein stabiles eigenes Ergebnis, bevor der nächste Versuch beginnt. Belegte Automaten werden abgewartet; es werden keine Ergebnisse oder Gewinnchancen verändert. Es gibt keine Sieg- oder Zeitgarantie.
+
+**Bei freigeschaltetem Titel stoppen** ist standardmäßig an. Wer 777 bereits besitzt, wird deshalb beim Start weder teleportiert noch dreht er weiter. Für weitere Drehungen kann diese Option bewusst ausgeschaltet werden. Ein bestätigtes eigenes 777 oder der entsprechende Profilfortschritt beendet die Automatik bei aktiver Option. Drehungen und letztes eigenes Ergebnis stehen kompakt in der Hauptkarte.
+
+Der lokale AFK-Schutz ist ausschließlich während Auto-Spin aktiv und verwendet Roblox VirtualUser; es werden keine PC-weiten Tasten und keine dauerhaft deaktivierten fremden Idle-Verbindungen verwendet. Stop, Respawn, entfernte/ersetzte Automaten, Verlassen des Knopfbereichs und Fehler entfernen die eigene Idle-Verbindung. Backend-Fehler stoppen die Funktion. Der Backend-Aufruf und die Bereinigung sind live geprüft; ein kompletter 20-Minuten-Idle-Test ist nicht durchgeführt. Spiel- oder Verbindungsabbrüche können dadurch nicht ausgeschlossen werden.
+
+Start beendet aktive Flug-/Freecam-/Quick-Action-/Piano-Steuerung, damit sich diese nicht mit der Platzierung überlagert. Danach bleibt der Charakter frei beweglich; Weglaufen stoppt die Automatik, statt ihn zurückzuziehen. Die Funktion startet nicht automatisch nach Laden oder Respawn und wird nicht als aktiv gespeichert. Sie ist an dasselbe registrierte Spiel/Place wie die drei Brettspiele gebunden und steht nach Schach, Vier gewinnt und Tic Tac Toe.
 
 ## Vier gewinnt automatisch spielen
 
@@ -111,6 +121,10 @@ Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden ab
 ## Änderungshistorie
 
 Zusammengehörige Zwischenstände sind als abgeschlossene Funktionen zusammengefasst. Technische Versuche und Prüfergebnisse stehen separat im Prüfbericht.
+
+### 2.6.82
+
+- 777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren, automatisch weiterdrehen und optional beim freigeschalteten Titel stoppen. Ein zeitlich begrenzter AFK-Schutz läuft nur während Auto-Spin.
 
 ### 2.6.81
 

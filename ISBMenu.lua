@@ -1,7 +1,7 @@
--- ISB Menu 2.6.81 | Own-game universal client toolkit
+-- ISB Menu 2.6.82 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.81",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.82",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -695,6 +695,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.82"]="777 Auto-Spin under Scripts > This Game: teleport safely to the button, spin automatically and optionally stop when the title is unlocked. Idle protection runs only while auto-spin is active.",
     ["2.6.81"]="Connect Four Auto-Player under Scripts > This Game with local move calculation, a board view, winning lines and search depth. Automatic play continues across rounds, with pause and single-move controls.",
     ["2.6.80"]="Tic Tac Toe Auto-Player under Scripts > This Game with complete local move calculation, a board view and winning lines. Autoplay continues through subsequent rounds at the same table until paused or you leave the seat.",
     ["2.6.78"]="Anti-Void with pixel recovery, a cyan light trail and a guided return camera. Recovery uses an earlier ground position with verified surrounding support, edge clearance and no added height offset.",
@@ -2996,6 +2997,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.82",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren, automatisch weiterdrehen und optional beim freigeschalteten Titel stoppen. Ein zeitlich begrenzter AFK-Schutz l\195\164uft nur w\195\164hrend Auto-Spin."},
     {version="2.6.81",text="Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen \195\188ber weitere Runden sowie Pause und einzelne Z\195\188ge."},
     {version="2.6.80",text="Tic Tac Toe Auto-Player unter Scripts > Dieses Spiel mit vollst\195\164ndiger lokaler Zugberechnung, Brettansicht und Gewinnlinien. Autoplay spielt weitere Runden am selben Tisch automatisch weiter, bis du pausierst oder aufstehst."},
     {version="2.6.78",text="Anti-Void mit Pixel-Recovery, cyanfarbener Lichtspur und R\195\188ckflug-Kamera. Die R\195\188ckkehr verwendet einen fr\195\188heren, rundum gepr\195\188ften Bodenpunkt mit Kantenabstand und ohne zus\195\164tzlichen H\195\182henversatz."},
@@ -3403,6 +3405,7 @@ runtime.gameCatalog={
         {id="chess",name={"Schach","Chess"},description={"Automatisch spielen oder einen einzelnen Zug berechnen.","Play automatically or calculate a single move."}},
         {id="connect4",name={"Vier gewinnt","Connect Four"},description={"Lokale Zugberechnung und automatisches Spielen.","Local move analysis and automatic play."}},
         {id="tictactoe",name={"Tic Tac Toe","Tic Tac Toe"},description={"Vollst\195\164ndige lokale Suche f\195\188r den besten Zug.","Complete local search for the best move."}},
+        {id="slot777",name={"777 Auto-Spin","777 Auto-Spin"},description={"Zum Knopf reisen und automatisch drehen.","Travel to the button and spin automatically."}},
     }},
 }
 function runtime.currentGame()
@@ -3422,7 +3425,7 @@ function runtime.drawThisGame()
         f.Name="GameFeature_"..feature.id
         for _,child in ipairs(f:GetChildren())do if child:IsA("TextLabel")then child.Size=UDim2.new(1,-156,child.Size.Y.Scale,child.Size.Y.Offset)end end
         local button=rowButton(f,runtime.pianoText("\195\150ffnen","Open"),UDim2.new(1,-124,0,26),UDim2.fromOffset(108,32),function()
-            if feature.id=="chess"then runtime.openChess()elseif feature.id=="tictactoe"then runtime.openTicTacToe()elseif feature.id=="connect4"then runtime.openConnect4()end
+            if feature.id=="chess"then runtime.openChess()elseif feature.id=="tictactoe"then runtime.openTicTacToe()elseif feature.id=="connect4"then runtime.openConnect4()elseif feature.id=="slot777"then runtime.openSlot()end
         end)
         button.Name=feature.id=="chess" and "ChessOpen"or "GameFeatureOpen_"..feature.id
     end
@@ -8256,6 +8259,211 @@ function runtime.drawConnect4()
     label(f,runtime.pianoText("Zeitbegrenzte lokale Suche \194\183 Keine zus\195\164tzliche EXE","Time-bounded local search \194\183 No additional EXE"),10,C.muted,UDim2.fromOffset(16,326),UDim2.new(1,-32,0,20),false)
 end
 
+runtime.slotTarget=(function(context,head,raycast,blocked)
+    local r,h=context.root,context.humanoid
+    local clearance=math.max(.5,h.HipHeight+r.Size.Y*.5)
+    if h.RigType==Enum.HumanoidRigType.R6 then
+        local leg=context.character:FindFirstChild("Left Leg")
+        clearance+=leg and leg.Size.Y or 2
+    end
+    local offsets={}
+    for i=0,7 do
+        local a=i*math.pi/4;table.insert(offsets,Vector3.new(math.cos(a)*4,0,math.sin(a)*4))
+    end
+    table.sort(offsets,function(a,b)return(head.Position+a-r.Position).Magnitude<(head.Position+b-r.Position).Magnitude end)
+    for _,offset in ipairs(offsets)do
+        local origin=head.Position+offset+Vector3.new(0,8,0)
+        local hit=raycast(origin,Vector3.new(0,-32,0))
+        if hit and hit.Normal.Y>.85 and math.abs(hit.Position.Y-head.Position.Y)<12 then
+            local target=Vector3.new(origin.X,hit.Position.Y+clearance,origin.Z)
+            local frame=CFrame.lookAt(target,Vector3.new(head.Position.X,target.Y,head.Position.Z))
+            if not blocked(frame,Vector3.new(math.max(2.5,r.Size.X+1),math.max(2,clearance*2-.5),math.max(2.5,r.Size.Z+1)))then return frame end
+        end
+    end
+    error('no_safe_button_position')
+end)
+function runtime.readSlot()
+    local environment=workspace:FindFirstChild("Environment");local poi=environment and environment:FindFirstChild("PointOfInterest")
+    local games=poi and poi:FindFirstChild("SpinnerGames");local model=games and games:FindFirstChild("SlotMinigame")
+    local button=model and model:FindFirstChild("Button");local head=button and button:FindFirstChild("Head")
+    local prompt=head and head:FindFirstChildOfClass("ProximityPrompt");local r,h=root(),humanoid()
+    if not runtime.currentGame()or not prompt or not r or not h then return nil end
+    local shared=game:GetService("ReplicatedStorage"):FindFirstChild("Shared")
+    local module=shared and shared:FindFirstChild("EchoClient")
+    if not runtime.slotProfile and module then runtime.slotProfile=require(module):GetEcho(player)end
+    local echo=runtime.slotProfile;local profileReady=echo and echo.Initialized==true
+    local owned=false
+    if profileReady then
+        local titles=echo:Read("Profile.Titles")
+        owned=type(titles)=='table'and(table.find(titles,"777")~=nil or titles["777"]==true)
+        local wins=tonumber(echo:Read("Profile.MinigameWins.Slots"))or 0
+        owned=owned or wins>=1
+    end
+    local display=model:FindFirstChild("Display");local digits={}
+    for i=1,3 do local item=display and display:FindFirstChild(tostring(i));local text=item and item:FindFirstChildOfClass("TextLabel");digits[i]=text and text.Text or "?"end
+    local info=display and display:FindFirstChild("InfoGui");local tag=info and info:FindFirstChild("StatusLabel")
+    local owner=tag and tag.Text:match("@([%w_]+)")or ""
+    local result=table.concat(digits);if not result:match("^%d%d%d$")then result=nil end
+    return {supported=true,ready=true,character=player.Character,root=r,humanoid=h,head=head,prompt=prompt,
+        healthy=h.Health>0,profileReady=profileReady,owned=owned,enabled=prompt.Enabled,
+        near=(r.Position-head.Position).Magnitude<=math.max(1,prompt.MaxActivationDistance-1),
+        signature=table.concat(digits).."|"..owner,result=result,ownResult=owner:lower()==player.Name:lower()}
+end
+function runtime.positionAtSlot(c)
+    local params=RaycastParams.new();params.FilterType=Enum.RaycastFilterType.Exclude
+    local ignore={c.character};if runtime.outfitBody and runtime.outfitBody.model then table.insert(ignore,runtime.outfitBody.model)end
+    params.FilterDescendantsInstances=ignore;params.IgnoreWater=true;params.RespectCanCollide=true
+    local overlap=OverlapParams.new();overlap.FilterType=Enum.RaycastFilterType.Exclude
+    overlap.FilterDescendantsInstances=ignore;overlap.RespectCanCollide=true
+    local target=runtime.slotTarget(c,c.head,function(origin,direction)return workspace:Raycast(origin,direction,params)end,
+        function(frame,size)
+            for _,part in ipairs(workspace:GetPartBoundsInBox(frame,size,overlap))do if part.CanCollide then return true end end
+            return false
+        end)
+    c.root.CFrame=target;c.root.AssemblyLinearVelocity=Vector3.zero;c.root.AssemblyAngularVelocity=Vector3.zero
+    if runtime.voidGround then runtime.voidGround.reset()end
+end
+function runtime.slotIdleGuard(failed)
+    local virtual=game:GetService("VirtualUser");local closed=false;local connection
+    local function pulse()
+        if closed then return end
+        virtual:CaptureController();virtual:ClickButton2(Vector2.zero,workspace.CurrentCamera and workspace.CurrentCamera.CFrame or CFrame.new())
+    end
+    local function cleanup()closed=true;if connection then connection:Disconnect();connection=nil end end
+    connection=player.Idled:Connect(function()if not closed then local ok=pcall(pulse);if not ok then cleanup();failed()end end end)
+    local ok,err=pcall(pulse);if not ok then cleanup();error(err)end
+    return cleanup
+end
+function runtime.refreshSlot()
+    if not alive or not opened or page~="777 Auto-Spin"or runtime.slotRefresh then return end
+    runtime.slotRefresh=true
+    task.defer(function()runtime.slotRefresh=false;if alive and opened and page=="777 Auto-Spin"then render()end end)
+end
+runtime.slot=(function(deps)
+    local p:any={active=false,alive=true,status='ready',spins=0,stopOnWin=true,epoch=0}
+    local function changed()if p.alive and deps.changed then deps.changed()end end
+    local function status(value)if p.status~=value then p.status=value;changed()end end
+    function p.stop(reason)
+        p.epoch+=1;p.active=false;p.starting=false;p.pending=nil;p.antiAfk=false
+        if p.cleanup then pcall(p.cleanup);p.cleanup=nil end
+        status(reason or 'stopped')
+    end
+    function p.setStopOnWin(value)
+        p.stopOnWin=value==true;changed()
+    end
+    local function valid(s)return s and s.supported and s.ready and s.character and s.healthy and s.prompt end
+    function p.start()
+        if not p.alive or p.active then return false end
+        local ok,s=pcall(deps.snapshot)
+        if not ok or not valid(s)then status('unavailable');return false end
+        if not s.profileReady then status('loading');return false end
+        if p.stopOnWin and s.owned then status('won');return false end
+        p.epoch+=1;local epoch=p.epoch;p.active=true;p.starting=true;p.context={character=s.character,prompt=s.prompt};p.pending=nil;p.last=nil;p.lastError=nil
+        status('positioning')
+        deps.spawn(function()
+            local success,err=pcall(function()
+                if not p.active or p.epoch~=epoch then return end
+                deps.prepare(s)
+                if not p.active or p.epoch~=epoch then return end
+                local fresh=deps.snapshot()
+                assert(valid(fresh)and fresh.character==p.context.character and fresh.prompt==p.context.prompt,'context_changed')
+                deps.move(fresh)
+                if not p.active or p.epoch~=epoch then return end
+                local cleanup=deps.guard(function()if p.active and p.epoch==epoch then p.stop('idle_error')end end)
+                if not p.active or p.epoch~=epoch then if cleanup then cleanup()end;return end
+                p.cleanup=cleanup;p.antiAfk=true;p.starting=false;p.next=deps.clock()+.75;status('waiting')
+            end)
+            if not success and p.epoch==epoch then p.lastError=tostring(err);p.stop('error')end
+        end)
+        return true
+    end
+    function p.tick()
+        if not p.alive or not p.active or p.starting then return end
+        local ok,s=pcall(deps.snapshot)
+        if not ok or not valid(s)then p.stop('unavailable');return end
+        if s.character~=p.context.character or s.prompt~=p.context.prompt then p.stop('changed');return end
+        if deps.interrupted and deps.interrupted()then p.stop('interrupted');return end
+        if not s.near then p.stop('moved');return end
+        if p.stopOnWin and s.profileReady and s.owned then p.stop('won');return end
+        local now=deps.clock()
+        if p.pending then
+            local request=p.pending
+            if not s.enabled or s.signature~=request.before then request.accepted=true end
+            if s.signature~=request.signature then request.signature=s.signature;request.stable=now end
+            if request.accepted and now-request.time>=7.2 and s.enabled and s.result and now-(request.stable or now)>=.5 then
+                p.pending=nil;p.next=now+.8
+                if s.ownResult then
+                    p.spins+=1;p.last=s.result;changed()
+                    if p.stopOnWin and s.result=='777'then p.stop('won')else status('waiting')end
+                else status('other_player')end
+            elseif now-request.time>(request.accepted and 25 or 10)then p.stop('timeout')
+            else status(request.accepted and 'spinning'or 'confirming')end
+            return
+        end
+        if now<(p.next or 0)then return end
+        if not s.enabled then status('other_player');return end
+        p.pending={time=now,before=s.signature,signature=s.signature,stable=now,accepted=false}
+        p.next=now+1
+        local fired,err=pcall(deps.press,s.prompt)
+        if not fired then p.lastError=tostring(err);p.stop('error');return end
+        status('confirming')
+    end
+    function p.dispose()p.stop('stopped');p.alive=false end
+    return p
+end)({clock=os.clock,spawn=task.spawn,snapshot=runtime.readSlot,
+    prepare=function(c)
+        runtime.recovery.cancel(true);runtime.stopRoleplay();runtime.stopFreecam(false)
+        if state.fly then state.fly=false;stopFly();runtime.updateActiveKeys()end
+        runtime.piano.stop();c.humanoid.Sit=false
+        for _=1,12 do if not c.humanoid.SeatPart then break end;task.wait(.05)end
+    end,
+    move=runtime.positionAtSlot,guard=runtime.slotIdleGuard,
+    interrupted=function()return state.fly or runtime.freecam~=nil or runtime.roleplay~=nil end,
+    press=function(prompt)assert(type(fireproximityprompt)=='function','prompt_input_unavailable');fireproximityprompt(prompt)end,
+    changed=runtime.refreshSlot})
+connect(player.CharacterRemoving,function()runtime.slot.stop('changed')end)
+connect(Run.Heartbeat,function(dt)
+    runtime.slotClock=(runtime.slotClock or 0)+(dt or 0)
+    if runtime.slotClock>=.15 then runtime.slotClock=0;runtime.slot.tick()end
+end)
+function runtime.openSlot()if not runtime.currentGame()then return false end;page="777 Auto-Spin";query="";render();return true end
+function runtime.drawSlot()
+    local p=runtime.slot
+    local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+    rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    local messages={ready={"Zum Knopf reisen und automatisch drehen.","Travel to the button and spin automatically."},
+        positioning={"Sicheren Platz am Knopf suchen\226\128\166","Finding a safe position at the button\226\128\166"},
+        waiting={"Auto-Spin aktiv. Warte auf den n\195\164chsten Versuch.","Auto-spin on. Waiting for the next attempt."},
+        confirming={"Warte auf den Start der Drehung.","Waiting for the spin to start."},spinning={"Drehung l\195\164uft\226\128\166","Spin in progress\226\128\166"},
+        other_player={"Der Automat ist gerade belegt.","The machine is currently in use."},
+        stopped={"Gestoppt.","Stopped."},won={"777 ist freigeschaltet. Auto-Spin gestoppt.","777 is unlocked. Auto-spin stopped."},
+        unavailable={"Automat oder Charakter nicht verf\195\188gbar.","Machine or character unavailable."},
+        loading={"Profildaten werden geladen. Bitte kurz warten.","Profile loading. Please wait a moment."},
+        timeout={"Keine best\195\164tigte Drehung. Auto-Spin gestoppt.","No confirmed spin. Auto-spin stopped."},
+        changed={"Charakter oder Automat ge\195\164ndert. Gestoppt.","Character or machine changed. Stopped."},
+        moved={"Du hast den Knopfbereich verlassen. Gestoppt.","You left the button area. Stopped."},
+        interrupted={"Bewegungsmodus aktiviert. Auto-Spin gestoppt.","Movement mode activated. Auto-spin stopped."},
+        idle_error={"AFK-Schutz nicht verf\195\188gbar. Auto-Spin gestoppt.","Idle protection unavailable. Auto-spin stopped."},
+        error={"Auto-Spin konnte nicht gestartet werden.","Auto-spin could not be started."}}
+    local message=messages[p.status]or messages.ready
+    local f=plainCard("777 Auto-Spin",runtime.pianoText(message[1],message[2]),242,false);f.Name="SlotPlayback"
+    local buttons=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,72),Size=UDim2.new(1,-32,0,36)},f)
+    local start=rowButton(buttons,runtime.pianoText("Auto-Spin starten","Start auto-spin"),UDim2.new(),UDim2.new(.65,-4,1,0),function()p.start()end)
+    start.Name="SlotStart";start.BackgroundColor3=p.active and C.accent or C.panel;start.TextColor3=p.active and C.panel or C.accent
+    rowButton(buttons,runtime.pianoText("Stoppen","Stop"),UDim2.new(.65,4,0,0),UDim2.new(.35,-4,1,0),function()p.stop()end).Name="SlotStop"
+    local controls=make("Frame",{BackgroundColor3=C.panel,BackgroundTransparency=.25,Position=UDim2.fromOffset(16,120),Size=UDim2.new(1,-32,0,42)},f);round(controls,11)
+    label(controls,runtime.pianoText("Bei freigeschaltetem Titel stoppen","Stop when title is unlocked"),11,C.text,UDim2.fromOffset(12,0),UDim2.new(1,-82,1,0),false)
+    local toggle=rowButton(controls,"",UDim2.new(1,-56,0,9),UDim2.fromOffset(44,24),function()p.setStopOnWin(not p.stopOnWin)end)
+    toggle.Name="SlotStopOnWin";toggle.BackgroundColor3=p.stopOnWin and C.accent or C.line;round(toggle,12)
+    local knob=make("Frame",{BackgroundColor3=p.stopOnWin and C.panel or C.text,Position=UDim2.fromOffset(p.stopOnWin and 24 or 4,4),Size=UDim2.fromOffset(16,16)},toggle);round(knob,8)
+    for i,item in ipairs({{runtime.pianoText("Drehungen","Spins"),tostring(p.spins)},{runtime.pianoText("Letztes Ergebnis","Last result"),p.last or "\226\128\148"}})do
+        local chip=make("Frame",{BackgroundColor3=C.panel,Position=UDim2.new((i-1)*.5,i==1 and 16 or 4,0,174),Size=UDim2.new(.5,-20,0,26)},f);round(chip,8)
+        label(chip,item[1],10,C.muted,UDim2.fromOffset(10,0),UDim2.new(.65,-10,1,0),false)
+        local value=label(chip,item[2],11,C.accent,UDim2.new(.65,0,0,0),UDim2.new(.35,-10,1,0),false);value.TextXAlignment=Enum.TextXAlignment.Right
+    end
+    label(f,runtime.pianoText(p.antiAfk and "AFK-Schutz aktiv"or "AFK-Schutz nur w\195\164hrend Auto-Spin",p.antiAfk and "Idle protection active"or "Idle protection only during auto-spin"),10,C.muted,UDim2.fromOffset(16,210),UDim2.new(1,-32,0,20),false)
+end
+
 function runtime.openChess()if not runtime.currentGame()then return false end;page="Schach";query="";render();return true end
 function runtime.drawChess()
     local p=runtime.chess
@@ -8327,7 +8535,7 @@ end
 
 render = function()
     if not alive then return end
-    if (page=="Dieses Spiel"or page=="Schach"or page=="Tic Tac Toe"or page=="Vier gewinnt")and not runtime.currentGame()then page="Skripte"end
+    if (page=="Dieses Spiel"or page=="Schach"or page=="Tic Tac Toe"or page=="Vier gewinnt"or page=="777 Auto-Spin")and not runtime.currentGame()then page="Skripte"end
     local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
     local scroll=context==runtime.renderContext and content.CanvasPosition or Vector2.zero
     if runtime.renderContext~=context or page~="Musik" or runtime.musicMode~="piano" then runtime.cancelPianoScroll()end
@@ -8350,18 +8558,18 @@ render = function()
     if search.Text ~= desired then
         updatingSearch=true; search.Text=desired; updatingSearch=false
     end
-    local heights={["Vier gewinnt"]=490,["Dieses Spiel"]=400,Start=398,Bewegung=390,Spieler=400,Server=420,Darstellung=400,Skripte=420,Musik=420,Favoriten=400,Einstellungen=400,Voice=390}
+    local heights={["Vier gewinnt"]=490,["Dieses Spiel"]=490,Start=398,Bewegung=390,Spieler=400,Server=420,Darstellung=400,Skripte=420,Musik=420,Favoriten=400,Einstellungen=400,Voice=390}
     animate(window,{Size=UDim2.fromOffset(600,heights[page] or 400)})
     for _,child in ipairs(headerIcon:GetChildren()) do child:Destroy() end
     local pageIndex=table.find(navNames,page) or 9
-    imageIcon(headerIcon,(page=="Schach"or page=="Dieses Spiel"or page=="Tic Tac Toe"or page=="Vier gewinnt") and navAssetNames[6] or (page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex])),20,UDim2.new(),C.accent)
+    imageIcon(headerIcon,(page=="Schach"or page=="Dieses Spiel"or page=="Tic Tac Toe"or page=="Vier gewinnt"or page=="777 Auto-Spin") and navAssetNames[6] or (page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex])),20,UDim2.new(),C.accent)
     for name,b in pairs(navButtons) do
         b.TextColor3=name == page and C.accent or C.muted
         b.BackgroundTransparency=name==page and .15 or 1
         b.BackgroundColor3=name == page and C.card or C.panel
         for _,part in ipairs(navIcons[name]) do part.obj[part.property]=name==page and C.accent or C.muted end
     end
-    indicator.Visible=page~="Vier gewinnt" and page~="Tic Tac Toe" and page~="Dieses Spiel" and page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
+    indicator.Visible=page~="777 Auto-Spin" and page~="Vier gewinnt" and page~="Tic Tac Toe" and page~="Dieses Spiel" and page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
     if runtime.statusIcon then runtime.statusIcon.ImageColor3=C.accent end
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
@@ -8380,6 +8588,8 @@ render = function()
         drawVoice()
     elseif page=="Dieses Spiel"then
         runtime.drawThisGame()
+    elseif page=="777 Auto-Spin"then
+        runtime.drawSlot()
     elseif page=="Vier gewinnt"then
         runtime.drawConnect4()
     elseif page=="Tic Tac Toe"then
@@ -8952,6 +9162,7 @@ api.Destroy = function()
     alive=false
     runtime.recovery.cancel(false)
     runtime.piano.dispose()
+    runtime.slot.dispose()
     runtime.connect4Roster.clear()
     runtime.connect4.dispose()
     runtime.tictactoe.dispose()
@@ -8992,6 +9203,7 @@ api.AddAction = function(id, category, name, description, callback)
     render()
 end
 api.Language=runtime.language
+api.OpenSlot=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openSlot()end
 api.OpenConnect4=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openConnect4()end
 api.OpenTicTacToe=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openTicTacToe()end
 api.OpenChess=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openChess()end
