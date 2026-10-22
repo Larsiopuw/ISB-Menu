@@ -1,7 +1,7 @@
--- ISB Menu 2.6.70 | Own-game universal client toolkit
+-- ISB Menu 2.6.71 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.70",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.71",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -675,6 +675,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.71"]="Selecting a piano song smoothly scrolls back to the playback controls.\nChanging song pages smoothly aligns the start of the list; manual scrolling interrupts the animation.",
     ["2.6.70"]="A compact speed control with a prominent playback rate centered inside one unified panel.\nLarger, precisely centered minus and plus symbols with matching button surfaces.",
     ["2.6.69"]="Your local songs now support VP text sheets (.txt or extensionless), including chords, rests and saved tempo/timing data. MIDI files remain supported.\nA more compact main Piano card with smaller gaps and speed controls alongside playback.",
     ["2.6.68"]="Song title and details appear inside the main Piano card above Play, Pause and Stop.\nA more compact player without a separate song card; duration and position remain next to the timeline.",
@@ -2993,6 +2994,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.71",text="Nach der Piano-Songauswahl scrollt die Ansicht sanft zur Wiedergabe-Steuerung.\nBeim Wechsel einer Liedseite gleitet die Liste genau zu ihrem Anfang; eigenes Scrollen unterbricht die Animation."},
     {version="2.6.70",text="Neue kompakte Tempo-Steuerung mit hervorgehobener Geschwindigkeitsanzeige in der Mitte.\nGroessere, exakt zentrierte Minus- und Plus-Symbole mit einheitlichen Tastenflaechen."},
     {version="2.6.69",text="Eigene Lieder akzeptieren jetzt auch VP-Textdateien (.txt oder ohne Endung), einschlie\195\159lich Akkorden, Pausen und gespeicherten Tempo-/Zeitangaben. MIDI-Dateien bleiben ebenfalls nutzbar.\nKompaktere Piano-Hauptkarte mit deutlich kleineren Abst\195\164nden. Tempo und Wiedergabe sitzen zusammen in einer Karte."},
     {version="2.6.68",text="Songtitel und Details stehen direkt in der Piano-Hauptkarte \195\188ber Spielen, Pause und Stop.\nKompaktere Wiedergabeansicht ohne zus\195\164tzliche Songkarte; Dauer und Position bleiben direkt an der Zeitleiste sichtbar."},
@@ -5165,6 +5167,41 @@ function runtime.pianoPaint()
         runtime.pianoProgress.Text=format(elapsed).." / "..format(duration).."  |  F8 Stop  |  "..(runtime.pianoLayoutLabel or runtime.pianoLayout())
     end
 end
+function runtime.cancelPianoScroll()
+    runtime.pianoScrollMotion=nil
+end
+function runtime.pianoScrollTo(anchor)
+    runtime.pendingScroll=nil
+    runtime.pianoScrollMotion={anchor=anchor,start=content.CanvasPosition.Y,elapsed=0,context=runtime.renderContext}
+end
+function runtime.stepPianoScroll(dt)
+    local motion=runtime.pianoScrollMotion
+    if not motion then return end
+    if not alive or not opened or page~="Musik" or runtime.musicMode~="piano" or motion.context~=runtime.renderContext then runtime.cancelPianoScroll();return end
+    local factor=math.max(.1,scale.Scale)
+    local maximum=math.max(0,(content.AbsoluteCanvasSize.Y-content.AbsoluteSize.Y)/factor)
+    local target=0
+    if motion.anchor~="top" then
+        local anchor=content:FindFirstChild(motion.anchor)
+        if not anchor then runtime.cancelPianoScroll();return end
+        target=content.CanvasPosition.Y+(anchor.AbsolutePosition.Y-content.AbsolutePosition.Y)/factor-4
+    end
+    target=math.clamp(target,0,maximum)
+    motion.start=math.min(motion.start,maximum)
+    motion.elapsed+=math.max(0,dt)
+    local t=settings.reducedMotion and 1 or math.clamp(motion.elapsed/.38,0,1)
+    local eased=1-(1-t)^4
+    content.CanvasPosition=Vector2.new(0,motion.start+(target-motion.start)*eased)
+    if t>=1 then runtime.cancelPianoScroll() end
+end
+connect(Run.Heartbeat,function(dt)runtime.stepPianoScroll(dt)end)
+connect(content.InputChanged,function(input)
+    if input.UserInputType==Enum.UserInputType.MouseWheel then runtime.cancelPianoScroll();runtime.pendingScroll=nil end
+end)
+connect(content.InputBegan,function(input)
+    if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then runtime.cancelPianoScroll();runtime.pendingScroll=nil end
+end)
+
 function runtime.drawPiano()
     local p=runtime.piano
     runtime.pianoLayoutLabel=runtime.pianoLayout()
@@ -5266,7 +5303,7 @@ function runtime.drawPiano()
         for i=(p.catalogPage-1)*8+1,math.min(#songs,p.catalogPage*8) do
             local song=songs[i]
             local tile=card(song.title,(song.source=="local" and runtime.pianoText("Eigene Lieddatei","Local song file") or song.artist.."  |  "..tostring(song.downloads or 0).." Downloads"),112,false);tile.Name="PianoSong_"..song.id
-            rowButton(tile,runtime.pianoText("Ausw\195\164hlen","Select"),UDim2.fromOffset(16,64),UDim2.fromOffset(104,30),function()p.select(song)end)
+            rowButton(tile,runtime.pianoText("Ausw\195\164hlen","Select"),UDim2.fromOffset(16,64),UDim2.fromOffset(104,30),function()runtime.pianoScrollTo("top");p.select(song)end)
             local previewing=p.preview and p.songKey(p.preview.song)==p.songKey(song)
             local previewText=previewing and (p.preview.state=="loading" and runtime.pianoText("Abbrechen","Cancel") or p.preview.state=="playing" and runtime.pianoText("Vorschau stoppen","Stop preview") or runtime.pianoText("Erneut versuchen","Retry preview")) or runtime.pianoText("Vorschau","Preview")
             local preview=rowButton(tile,previewText,UDim2.fromOffset(130,64),UDim2.fromOffset(142,30),function()p.togglePreview(song)end);preview.Name="PianoPreview_"..song.id
@@ -5276,7 +5313,7 @@ function runtime.drawPiano()
             if star then star.Name="PianoFavoriteStar";star.Position=UDim2.fromScale(.5,.5)end
         end
         local pager=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
-        runtime.pagination(pager,"PianoPagination",p.catalogPage,pages,function()p.catalogPage=math.max(1,p.catalogPage-1);render()end,function()p.catalogPage=math.min(pages,p.catalogPage+1);render()end)
+        runtime.pagination(pager,"PianoPagination",p.catalogPage,pages,function()runtime.pianoScrollTo("PianoLibraryControls");p.catalogPage=math.max(1,p.catalogPage-1);render()end,function()runtime.pianoScrollTo("PianoLibraryControls");p.catalogPage=math.min(pages,p.catalogPage+1);render()end)
     end
     local hint=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,28)},content)
     label(hint,runtime.pianoText("F8 Stop \194\183 Vorschau: 20 Sekunden, nur lokal h\195\182rbar.","F8 Stop \194\183 Preview: 20 seconds, audible only to you."),10,C.muted,UDim2.fromOffset(4,0),UDim2.new(1,-8,1,0))
@@ -5778,6 +5815,7 @@ render = function()
     if not alive then return end
     local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
     local scroll=context==runtime.renderContext and content.CanvasPosition or Vector2.zero
+    if runtime.renderContext~=context or page~="Musik" or runtime.musicMode~="piano" then runtime.cancelPianoScroll()end
     runtime.renderContext=context
     runtime.renderRevision=(runtime.renderRevision or 0)+1
     local revision=runtime.renderRevision
@@ -5933,7 +5971,7 @@ render = function()
         if count==0 and page~="Spieler" then card("Noch nichts gefunden", page=="Favoriten" and "Mit dem Stern an einer Funktion f\195\188gst du sie hier hinzu." or "Versuche einen anderen Suchbegriff.") end
     end
     content.CanvasPosition=scroll
-    runtime.pendingScroll={position=scroll,revision=revision}
+    runtime.pendingScroll=not runtime.pianoScrollMotion and {position=scroll,revision=revision} or nil
 end
 connect(content:GetPropertyChangedSignal("AbsoluteCanvasSize"),function()
     local pending=runtime.pendingScroll
