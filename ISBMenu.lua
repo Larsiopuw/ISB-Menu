@@ -99,7 +99,7 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {halloweenAutomatic=true,halloweenNotifications=true,halloweenEsp=true,flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish",chessHumanize=false,chessDelayMin=1.2,chessDelayMax=3.2, favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, adminAutoHop=false, lowEffects=false, fpsCap=60}
+local settings = {halloweenClaims={},halloweenAutomatic=true,halloweenNotifications=true,halloweenEsp=true,flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish",chessHumanize=false,chessDelayMin=1.2,chessDelayMax=3.2, favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, adminAutoHop=false, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -134,6 +134,7 @@ if type(readfile) == "function" then
             local low,high=tonumber(data.chessDelayMin),tonumber(data.chessDelayMax)
             if low and high and low==low and high==high and low>=0 and high<=60 and low<=high then settings.chessDelayMin=low;settings.chessDelayMax=high end
         end
+        if type(data.halloweenClaims)=="table"then settings.halloweenClaims=data.halloweenClaims end
         settings.halloweenAutomatic=data.halloweenAutomatic~=false
         settings.halloweenNotifications=data.halloweenNotifications~=false
         settings.halloweenEsp=data.halloweenEsp~=false
@@ -698,7 +699,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
-    ["2.6.91"]="Halloween-Event under Scripts > This Game: automatically ring the doorbell and return, with optional spawn notifications and house highlights. Dedicated event page with Start, Stop and separate options; disabled by default. All three options are saved and default to on until customized.",
+    ["2.6.91"]="Halloween-Event under Scripts > This Game: native doorbell input with confirmed candy credit and return to the previous position. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually.",
     ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game.",
     ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
     ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely to the button and spin as soon as it becomes available. Optionally stop when the title is unlocked; idle protection runs only while auto-spin is active. Lifetime 777 win count shown in the main card. Automatically returns to the button while auto-spin is active.",
@@ -3003,7 +3004,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: automatisches Klingeln mit R\195\188ckkehr zur Ausgangsposition, optionale Spawn-Benachrichtigung und Haus-Highlight. Eigene Event-Seite mit Start, Stop und getrennten Schaltern; standardm\195\164\195\159ig ausgeschaltet. Die drei Optionen werden gespeichert und sind ohne eigene Auswahl alle eingeschaltet."},
+    {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: native Klingeleingabe mit best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur Ausgangsposition. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet."},
     {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar."},
     {version="2.6.89",text="VIP-Aufzug mit eigenen lokalen E-Kn\195\182pfen: direkt hinein und zur\195\188ck teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterst\195\188tzten Spiel."},
     {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz l\195\164uft nur w\195\164hrend Auto-Spin. Gesamtzahl der 777-Gewinne direkt in der Hauptkarte. Automatische R\195\188ckkehr zum Knopf w\195\164hrend Auto-Spin."},
@@ -8854,7 +8855,8 @@ function runtime.scanHalloween()
                 for _,child in ipairs(model:GetDescendants())do
                     if child:IsA("ProximityPrompt")and child.ObjectText=="Doorbell"then prompt=child;break end
                 end
-                table.insert(items,{id=id,model=model,prompt=prompt,ready=prompt~=nil and prompt.Enabled})
+                table.insert(items,{id=id,model=model,prompt=prompt,ready=prompt~=nil and prompt.Enabled,
+                    promptReady=function()return model:IsDescendantOf(workspace)and prompt and prompt:IsDescendantOf(model)and prompt.Enabled end})
             end
         end
     end
@@ -8868,19 +8870,50 @@ function runtime.halloweenCapture()
     assert(not(runtime.slot and runtime.slot.starting),"auto_spin_starting")
     return {character=player.Character,root=r,humanoid=h,frame=r.CFrame}
 end
-function runtime.halloweenValid(item,saved)
+function runtime.halloweenValid(_,saved)
     return alive and runtime.currentGame()~=nil and saved and player.Character==saved.character
         and saved.root.Parent and saved.humanoid.Health>0 and not saved.humanoid.SeatPart
         and not state.fly and not runtime.freecam and not runtime.roleplay
-        and item.model:IsDescendantOf(workspace)and item.model:GetAttribute("HalloweenHouseSpawnId")==item.id
-        and item.prompt and item.prompt:IsDescendantOf(item.model)and item.prompt.Enabled
 end
+runtime.halloweenTarget=(function(c,bell,inside,range,raycast,blocked)
+    local r,h=c.root,c.humanoid
+    local clearance=math.max(.5,h.HipHeight+r.Size.Y*.5)
+    if h.RigType==Enum.HumanoidRigType.R6 then local leg=c.character:FindFirstChild('Left Leg');clearance+=leg and leg.Size.Y or 2 end
+    local axis=Vector3.new(inside.X-bell.X,0,inside.Z-bell.Z)
+    if axis.Magnitude<.1 then axis=Vector3.new(0,0,1)else axis=axis.Unit end
+    local candidates={}
+    -- Prefer the interior behind the bell, then fall back to nearby free ground.
+    for _,distance in ipairs({3,5,7})do table.insert(candidates,bell+axis*distance)end
+    for _,distance in ipairs({4,6,8,10})do
+        for i=0,15 do local angle=i*math.pi/8;table.insert(candidates,bell+Vector3.new(math.cos(angle)*distance,0,math.sin(angle)*distance))end
+    end
+    for _,point in ipairs(candidates)do
+        local hit=raycast(point+Vector3.new(0,8,0),Vector3.new(0,-32,0))
+        if hit and hit.Normal.Y>.85 and math.abs(hit.Position.Y-bell.Y)<12 then
+            local target=Vector3.new(point.X,hit.Position.Y+clearance,point.Z)
+            if(target-bell).Magnitude<=math.max(1,range-1)then
+                local frame=CFrame.lookAt(target,Vector3.new(bell.X,target.Y,bell.Z))
+                if not blocked(frame,Vector3.new(math.max(2.5,r.Size.X+1),math.max(2,clearance*2-.5),math.max(2.5,r.Size.Z+1)))then return frame end
+            end
+        end
+    end
+    error('no_safe_doorbell_position')
+end)
 function runtime.halloweenMove(item,saved)
     local parent=item.prompt.Parent
     local position=parent:IsA("Attachment")and parent.WorldPosition or(parent:IsA("BasePart")and parent.Position)
     assert(position,"doorbell_position_unavailable")
-    runtime.positionAtSlot({character=saved.character,root=saved.root,humanoid=saved.humanoid,head={Position=position}})
-    assert((saved.root.Position-position).Magnitude<=item.prompt.MaxActivationDistance,"doorbell_out_of_range")
+    local params=RaycastParams.new();params.FilterType=Enum.RaycastFilterType.Exclude
+    local ignore={saved.character};if runtime.outfitBody and runtime.outfitBody.model then table.insert(ignore,runtime.outfitBody.model)end
+    params.FilterDescendantsInstances=ignore;params.IgnoreWater=true;params.RespectCanCollide=true
+    local overlap=OverlapParams.new();overlap.FilterType=Enum.RaycastFilterType.Exclude
+    overlap.FilterDescendantsInstances=ignore;overlap.RespectCanCollide=true
+    local center=item.model:GetBoundingBox()
+    local target=runtime.halloweenTarget(saved,position,center.Position,item.prompt.MaxActivationDistance,
+        function(origin,direction)return workspace:Raycast(origin,direction,params)end,
+        function(frame,size)for _,part in ipairs(workspace:GetPartBoundsInBox(frame,size,overlap))do if part.CanCollide then return true end end;return false end)
+    saved.root.CFrame=target;saved.root.AssemblyLinearVelocity=Vector3.zero;saved.root.AssemblyAngularVelocity=Vector3.zero
+    saved.bellFrame=target;if runtime.voidGround then runtime.voidGround.reset()end
 end
 function runtime.halloweenRestore(saved)
     if not saved or player.Character~=saved.character or not saved.root.Parent or saved.humanoid.Health<=0 then return end
@@ -8902,7 +8935,15 @@ function runtime.drawHalloween()
         travelling={"Zur Klingel unterwegs\226\128\166","Travelling to the doorbell\226\128\166"},returning={"Geklingelt \194\183 Kehre zur Ausgangsposition zur\195\188ck.","Doorbell rung \194\183 Returning to your previous position."},
         error={"Besuch nicht m\195\182glich. Warte auf das n\195\164chste Haus. Stehe auf und beende aktive Bewegungsmodi.","Visit unavailable. Waiting for the next house. Leave your seat and stop active movement modes."},
         return_error={"R\195\188ckkehr fehlgeschlagen. Bitte Position pr\195\188fen und neu starten.","Return failed. Check your position and restart."}}
+    messages.confirming={"Warte auf die Candy-Gutschrift vom Server\226\128\166","Waiting for the server to credit your candy\226\128\166"}
+    messages.collected={"Candys best\195\164tigt. Zur\195\188ck an der Ausgangsposition.","Candy confirmed. Back at your previous position."}
+    messages.already={"Dieses Haus wurde bereits eingesammelt. Warte auf das n\195\164chste.","This house has already been collected. Waiting for the next one."}
+    messages.retry={"Noch keine Best\195\164tigung. Ein weiterer Versuch folgt automatisch.","Not confirmed yet. Another attempt will follow automatically."}
+    messages.timeout={"Keine Best\195\164tigung nach drei Versuchen. Mit Start erneut versuchen.","No confirmation after three attempts. Press Start to retry."}
+    messages.cancelling={"Vorheriger Besuch wird beendet. Danach Neustart.","Finishing the previous visit, then restarting."}
+    messages.returning={"Candy-Best\195\164tigung erhalten. Kehre zur\195\188ck.","Candy confirmation received. Returning."}
     local message=messages[p.status]or messages.ready
+    if p.status=="retry"and p.lastError and p.lastError:find("profile_loading",1,true)then message={"Das Candy-Profil wird noch geladen. Versuche es gleich erneut.","Candy profile is still loading. Retrying shortly."}end
     local f=plainCard("Halloween-Event",runtime.pianoText(message[1],message[2]),334,false);f.Name="HalloweenEvent"
     for _,child in ipairs(f:GetChildren())do if child:IsA("TextLabel")and child.Text~= "Halloween-Event"then child.Size=UDim2.new(1,-32,0,36)end end
     local transport=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,82),Size=UDim2.new(1,-32,0,36)},f)
@@ -8921,16 +8962,120 @@ function runtime.drawHalloween()
         toggle.Name="Halloween_"..name;toggle.BackgroundColor3=p[name]and C.accent or C.line;round(toggle,12)
         local knob=make("Frame",{BackgroundColor3=p[name]and C.panel or C.text,Position=UDim2.fromOffset(p[name]and 24 or 4,4),Size=UDim2.fromOffset(16,16)},toggle);round(knob,8)
     end
-    label(f,runtime.pianoText("Klingelversuche: ","Doorbell attempts: ")..tostring(p.visits)..runtime.pianoText(" \194\183 Einmal pro Haus"," \194\183 Once per house"),10,C.muted,UDim2.fromOffset(16,302),UDim2.new(1,-32,0,20),false)
+    label(f,runtime.pianoText("Eingesammelt: ","Collected: ")..tostring(p.visits)..runtime.pianoText(" \194\183 Candys: +"," \194\183 Candy: +")..tostring(p.candies)..runtime.pianoText(" \194\183 Versuche: "," \194\183 Attempts: ")..tostring(p.attempts),10,C.muted,UDim2.fromOffset(16,302),UDim2.new(1,-32,0,20),false)
 end
 
+runtime.halloweenReceipt=(function(deps)
+    local p:any={armed=false,closed=false,already=false}
+    local function balance()
+        local c=deps.balance()
+        assert(c and type(c.season)=='string'and type(c.amount)=='number'and c.amount==c.amount and c.amount>=0,'profile_loading')
+        return {season=c.season,amount=c.amount}
+    end
+    balance()
+    function p.arm()p.before=balance();p.already=false;p.serverReward=nil;p.armed=true end
+    function p.message(text)
+        if p.closed or not p.armed or type(text)~='string'then return end
+        text=text:lower():gsub('<[^>]*>','')
+        local reward=text:match('^%+(%d[%d,%.]*)%s+candy%s+corn')
+        if reward then p.serverReward=tonumber((reward:gsub('[,%.]','')))end
+        -- Accept only an explicit house-related duplicate-claim response, never a generic error.
+        if text:find('you',1,true)and text:find('already',1,true)
+            and(text:find('house',1,true)or text:find('doorbell',1,true)or text:find('trick',1,true))
+            and(text:find('collect',1,true)or text:find('receiv',1,true)or text:find('visited',1,true)or text:find('trick',1,true))then
+            p.already=true
+        end
+    end
+    local ok,connection=pcall(deps.listen,p.message)
+    assert(ok and connection,'confirmation_listener_unavailable');p.connection=connection
+    function p.read()
+        if p.closed or not p.armed then return nil end
+        local current=balance()
+        if p.serverReward and p.serverReward>0 and current.season==p.before.season and current.amount-p.before.amount>=p.serverReward then
+            return {reward=p.serverReward}
+        end
+        return p.already and {already=true}or nil
+    end
+    function p.close()
+        if p.closed then return end;p.closed=true;p.armed=false
+        if p.connection then pcall(function()p.connection:Disconnect()end);p.connection=nil end
+    end
+    return p
+end)
+function runtime.halloweenBalance()
+    if not runtime.currentGame()then return nil end
+    local shared=game:GetService("ReplicatedStorage"):FindFirstChild("Shared")
+    local module=shared and shared:FindFirstChild("EchoClient")
+    if not module then return nil end
+    if not runtime.halloweenEcho then runtime.halloweenEcho=require(module):GetEcho(player)end
+    local echo=runtime.halloweenEcho
+    if not echo or echo.Initialized~=true then return nil end
+    local currency=echo:Read("Profile.SeasonalCurrency")
+    return type(currency)=="table"and {season=currency.SeasonId,amount=currency.Amount}or nil
+end
+function runtime.halloweenListen(callback)
+    local shared=game:GetService("ReplicatedStorage").Shared
+    return require(shared.BridgeNet).CreateBridge("Notification"):Connect(callback)
+end
+function runtime.halloweenPress(item,saved)
+    assert(runtime.halloweenValid(item,saved)and item.promptReady(),"prompt_unavailable")
+    -- The same native begin/end pair used by this game's own clickable prompt UI.
+    item.prompt:InputHoldBegin()
+    local ok,err=pcall(function()task.wait(math.max(.12,item.prompt.HoldDuration+.08))end)
+    pcall(function()item.prompt:InputHoldEnd()end)
+    if not ok then error(err)end
+end
+function runtime.halloweenMaintain(item,saved)
+    if not item.model:IsDescendantOf(workspace)or not item.promptReady()then return end
+    local parent=item.prompt.Parent
+    local bell=parent:IsA("Attachment")and parent.WorldPosition or(parent:IsA("BasePart")and parent.Position)
+    if bell and(saved.root.Position-bell).Magnitude>math.max(2,item.prompt.MaxActivationDistance-2)then
+        -- A transient blocked landing must not discard a reward that is still arriving.
+        pcall(runtime.halloweenMove,item,saved)
+    end
+end
+
+runtime.halloweenClaims=(function(saved,server,user)
+    local p:any={server=server,user=user,ids={}}
+    if type(saved)=='table'and saved.server==server and saved.user==user and type(saved.ids)=='table'then
+        for _,id in ipairs(saved.ids)do
+            if #p.ids<64 and type(id)=='string'and #id>0 and #id<=100 and not table.find(p.ids,id)then table.insert(p.ids,id)end
+        end
+    end
+    function p.map()local result={};for _,id in ipairs(p.ids)do result[id]=true end;return result end
+    function p.record(id)
+        if type(id)~='string'or #id==0 or #id>100 or table.find(p.ids,id)then return false end
+        table.insert(p.ids,id);if #p.ids>64 then table.remove(p.ids,1)end;return true
+    end
+    function p.saved()return {server=p.server,user=p.user,ids=table.clone(p.ids)}end
+    return p
+end) (settings.halloweenClaims,game.JobId,player.UserId)
+function runtime.halloweenRecordClaim(id)
+    if runtime.halloweenClaims.record(id)then settings.halloweenClaims=runtime.halloweenClaims.saved();save(true)end
+end
 runtime.halloween=(function(deps)
-    local p:any={active=false,alive=true,status='ready',automatic=true,notifications=true,esp=true,seen={},attempted={},houses={},visits=0,epoch=0,busy=false}
-    local options=deps.options or {}
-    for _,name in ipairs({'automatic','notifications','esp'})do if type(options[name])=='boolean'then p[name]=options[name]end end
+    local p:any={active=false,alive=true,status='ready',automatic=true,notifications=true,esp=true,
+        seen={},claimed={},houses={},visits=0,attempts=0,candies=0,epoch=0,busy=false}
+    for _,name in ipairs({'automatic','notifications','esp'})do
+        if deps.options and type(deps.options[name])=='boolean'then p[name]=deps.options[name]end
+    end
+    for id,confirmed in pairs(deps.claims or {})do if type(id)=='string'and confirmed==true then p.claimed[id]=true end end
     local function changed()if p.alive and deps.changed then deps.changed()end end
     local function status(s)if p.status~=s then p.status=s;changed()end end
+    local function credit(trip,result)
+        if not trip or trip.credited or not result then return false end
+        local reward=type(result.reward)=='number'and result.reward>0 and result.reward or 0
+        if reward==0 and not result.already then return false end
+        trip.credited=true;p.claimed[trip.item.id]=true
+        if reward>0 then p.visits+=1;p.candies+=reward;p.lastReward=reward end
+        if deps.confirmed then pcall(deps.confirmed,trip.item.id)end
+        return true
+    end
+    local function cleanup(trip)
+        if trip and trip.observer then pcall(trip.observer.close);trip.observer=nil end
+    end
     local function restore(trip)
+        cleanup(trip)
         if trip and trip.saved and not trip.returned then
             trip.returned=true
             local ok,err=pcall(deps.restore,trip.saved)
@@ -8938,82 +9083,121 @@ runtime.halloween=(function(deps)
         end
     end
     function p.stop()
-        p.epoch+=1;p.active=false
-        restore(p.trip)
+        -- Drain an already-arrived receipt before Stop closes the listener.
+        if p.trip and p.trip.observer then local ok,result=pcall(p.trip.observer.read);if ok then credit(p.trip,result)end end
+        p.restart=false;p.epoch+=1;p.active=false;restore(p.trip)
         for _,entry in pairs(p.houses)do if entry.highlight then pcall(entry.highlight);entry.highlight=nil end end
-        p.houses={};status(p.returnFailed and 'return_error'or 'stopped');changed()
+        status(p.returnFailed and 'return_error'or 'stopped');changed()
     end
     function p.start()
-        if not p.alive or p.active or p.busy or not deps.supported()then return false end
-        p.epoch+=1;p.active=true;p.returnFailed=false;status('waiting');changed();return true
+        if not p.alive or not deps.supported()then return false end
+        if p.active then
+            if not p.busy then
+                for _,entry in pairs(p.houses)do entry.failures=0;entry.nextTry=0 end
+                status('waiting');p.tick()
+            end
+            return true
+        end
+        if p.busy then p.restart=true;status('cancelling');return true end
+        p.epoch+=1;p.active=true;p.returnFailed=false;p.lastError=nil
+        for _,entry in pairs(p.houses)do entry.failures=0;entry.nextTry=0 end
+        status('waiting');changed();p.tick();return true
     end
     function p.setOption(name,value)
         if name~='automatic'and name~='notifications'and name~='esp'then return false end
-        p[name]=value==true
-        if deps.preference then deps.preference(name,p[name])end
+        p[name]=value==true;if deps.preference then deps.preference(name,p[name])end
         if name=='automatic'and not p.automatic and p.busy then p.stop()end
         if name=='esp'and not p.esp then
             for _,entry in pairs(p.houses)do if entry.highlight then pcall(entry.highlight);entry.highlight=nil end end
         end
         changed();return true
     end
+    local function visit(item,entry)
+        p.busy=true;local epoch=p.epoch;local trip={item=item};p.trip=trip;status('travelling')
+        deps.spawn(function()
+            local outcome='cancelled';local reward=0
+            local function current()return p.alive and p.active and p.epoch==epoch end
+            local ok,err=pcall(function()
+                if not current()then return end
+                trip.saved=deps.capture()
+                if not current()or not deps.valid(item,trip.saved)then error('context_changed')end
+                trip.observer=deps.observe(item,trip.saved)
+                deps.prepare(trip.saved)
+                if not current()or not deps.valid(item,trip.saved)then return end
+                deps.move(item,trip.saved)
+                trip.observer.arm()
+                -- Allow the server to receive the new position before native prompt input.
+                local settle=deps.clock()+.35
+                repeat deps.wait(.1);if not current()then return end until deps.clock()>=settle
+                if not deps.valid(item,trip.saved)or not item.promptReady()then error('prompt_unavailable')end
+                local early=trip.observer.read()
+                if early and early.reward and early.reward>0 then outcome='collected';reward=early.reward;return end
+                if early and early.already then outcome='already';return end
+                deps.press(item,trip.saved)
+                p.attempts+=1;if not current()then return end;status('confirming');changed()
+                local deadline=deps.clock()+12
+                local nextPress=deps.clock()+.4
+                while current()do
+                    local receipt=trip.observer.read()
+                    if receipt and type(receipt.reward)=='number'and receipt.reward>0 then
+                        outcome='collected';reward=receipt.reward;return
+                    end
+                    if receipt and receipt.already then outcome='already';return end
+                    if not deps.valid(item,trip.saved)then error('context_changed')end
+                    if deps.clock()>=deadline then outcome='timeout';return end
+                    if deps.maintain then deps.maintain(item,trip.saved)end
+                    if deps.clock()>=nextPress and item.promptReady()then
+                        deps.press(item,trip.saved);p.attempts+=1;nextPress=deps.clock()+.4;changed()
+                    end
+                    deps.wait(.1)
+                end
+            end)
+            -- Only a server-observed receipt can retire a house or increment collected totals.
+            if ok and(outcome=='collected'or outcome=='already')then
+                credit(trip,outcome=='collected'and {reward=reward}or {already=true})
+            elseif current()then
+                entry.failures=(entry.failures or 0)+1;entry.nextTry=deps.clock()+3
+                if not ok then p.lastError=tostring(err)end
+            end
+            restore(trip)
+            if p.trip==trip then p.trip=nil end;p.busy=false
+            if p.returnFailed then p.stop()
+            elseif current()then
+                status(p.claimed[item.id]and outcome or((entry.failures or 0)>=3 and 'timeout'or 'retry'))
+            end
+            changed()
+            if p.restart and p.alive then p.restart=false;p.start()end
+        end)
+    end
     function p.tick()
         if not p.active or not p.alive then return end
         if not deps.supported()then p.stop();return end
         local ok,items=pcall(deps.scan)
         if not ok then p.lastError=tostring(items);status('error');return end
-        local present={}
+        local present={};local now=deps.clock()
         for _,item in ipairs(items)do
             present[item.id]=true
             local entry=p.houses[item.id]
             if not entry or entry.model~=item.model then
                 if entry and entry.highlight then pcall(entry.highlight)end
-                entry={model=item.model,since=deps.clock()};p.houses[item.id]=entry
-                if not p.seen[item.id]then
-                    p.seen[item.id]=true
-                    if p.notifications then pcall(deps.notify)end
-                    changed()
-                end
+                entry={model=item.model,since=now,failures=0,nextTry=0};p.houses[item.id]=entry
+                if not p.seen[item.id]then p.seen[item.id]=true;if p.notifications then pcall(deps.notify)end;changed()end
             end
-            if p.esp and not entry.highlight then
-                local success,cleanup=pcall(deps.highlight,item.model)
-                if success then entry.highlight=cleanup end
-            end
-            if p.automatic and not p.busy and not p.attempted[item.id]and item.ready and deps.clock()-entry.since>=3.6 then
-                p.attempted[item.id]=true;p.busy=true
-                local epoch=p.epoch;local trip={};p.trip=trip;status('travelling')
-                deps.spawn(function()
-                    local success,err=pcall(function()
-                        if not p.active or p.epoch~=epoch then return end
-                        trip.saved=deps.capture()
-                        local valid=function()return p.alive and p.active and p.epoch==epoch and deps.valid(item,trip.saved)end
-                        if not valid()then error('context_changed')end
-                        deps.prepare(trip.saved)
-                        if not valid()then return end
-                        deps.move(item,trip.saved)
-                        deps.wait(.25)
-                        if not valid()then return end
-                        deps.press(item)
-                        status('returning');deps.wait(.7)
-                        p.visits+=1
-                    end)
-                    restore(trip)
-                    if p.trip==trip then p.trip=nil end
-                    p.busy=false
-                    if not success then p.lastError=tostring(err)end
-                    if p.returnFailed then p.stop()
-                    elseif p.active and p.epoch==epoch then status(success and 'waiting'or 'error')end
-                    changed()
-                end)
-            end
+            if p.esp and not entry.highlight then local success,close=pcall(deps.highlight,item.model);if success then entry.highlight=close end end
+            if p.automatic and not p.busy and not p.claimed[item.id]and item.ready
+                and now-entry.since>=3.6 and now>=(entry.nextTry or 0)and(entry.failures or 0)<3 then
+                visit(item,entry)
+            elseif not p.busy and p.claimed[item.id]then status('already')end
         end
         for id,entry in pairs(p.houses)do
             if not present[id]then if entry.highlight then pcall(entry.highlight)end;p.houses[id]=nil;changed()end
         end
+        if #items==0 and not p.busy then status('waiting')end
     end
-    function p.dispose()p.stop();p.alive=false end
+    function p.dispose()p.stop();p.alive=false;p.houses={}end
     return p
 end)({supported=function()return alive and runtime.currentGame()~=nil end,clock=os.clock,spawn=task.spawn,wait=task.wait,
+    claims=runtime.halloweenClaims.map(),confirmed=runtime.halloweenRecordClaim,
     options={automatic=settings.halloweenAutomatic,notifications=settings.halloweenNotifications,esp=settings.halloweenEsp},
     preference=function(name,value)
         local keys={automatic="halloweenAutomatic",notifications="halloweenNotifications",esp="halloweenEsp"}
@@ -9021,7 +9205,8 @@ end)({supported=function()return alive and runtime.currentGame()~=nil end,clock=
     end,
     scan=runtime.scanHalloween,capture=runtime.halloweenCapture,valid=runtime.halloweenValid,
     prepare=function()runtime.piano.stop()end,move=runtime.halloweenMove,restore=runtime.halloweenRestore,
-    press=function(item)assert(type(fireproximityprompt)=="function","prompt_input_unavailable");fireproximityprompt(item.prompt)end,
+    press=runtime.halloweenPress,maintain=runtime.halloweenMaintain,
+    observe=function()return runtime.halloweenReceipt({balance=runtime.halloweenBalance,listen=runtime.halloweenListen})end,
     highlight=runtime.halloweenHighlight,notify=function()notify(runtime.pianoText("Ein Halloween-Haus ist erschienen!","A Halloween house has appeared!"),"Halloween-Event")end,
     changed=runtime.refreshHalloween})
 connect(player.CharacterRemoving,function()runtime.halloween.stop()end)
