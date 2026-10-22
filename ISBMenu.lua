@@ -1,7 +1,7 @@
--- ISB Menu 2.6.78 | Own-game universal client toolkit
+-- ISB Menu 2.6.79 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.78",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.79",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -694,6 +694,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.79"]="Tic Tac Toe Auto-Player under Scripts > This Game with automatic play, single moves, a board view and complete local calculation of the best move. Visible only in the supported game.",
     ["2.6.78"]="Anti-Void with pixel recovery, a cyan light trail and a guided return camera. Recovery uses an earlier ground position with verified surrounding support, edge clearance and no added height offset.",
     ["2.6.76"]="Chess Auto-Player under Scripts > This Game: Stockfish or offline search, automatic play and single moves with a configurable random move delay.\nOptional server hopping when game staff is detected under Detection, off by default. A compact left-center list shows active functions and their keybinds.\nPlayer Info is placed at the end of the inventory after game items finish loading.",
     ["2.6.72"]="Piano Auto-Player with an online library, search, sorting and favorites, plus imports of personal MIDI and VP text files.\nPlayback includes pause, stop, seeking and live tempo changes. Previews use recorded piano samples.\nRoblox-only input supports background playback and keyboard layouts; the hotbar and standard Shift-Lock binding are temporarily disabled while playing.",
@@ -2993,6 +2994,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.79",text="Tic Tac Toe Auto-Player unter Scripts > Dieses Spiel mit automatischem Spielen, einzelnen Z\195\188gen, Brettansicht und vollst\195\164ndiger lokaler Berechnung des besten Zugs. Nur im unterst\195\188tzten Spiel sichtbar."},
     {version="2.6.78",text="Anti-Void mit Pixel-Recovery, cyanfarbener Lichtspur und R\195\188ckflug-Kamera. Die R\195\188ckkehr verwendet einen fr\195\188heren, rundum gepr\195\188ften Bodenpunkt mit Kantenabstand und ohne zus\195\164tzlichen H\195\182henversatz."},
     {version="2.6.76",text="Schach Auto-Player unter Scripts > Dieses Spiel: Stockfish oder Offline-Suche, automatisches Spielen und einzelne Z\195\188ge mit frei einstellbarer zuf\195\164lliger Zugpause.\nOptionaler Serverwechsel bei erkannten Spiel-Admins unter Erkennung, standardm\195\164\195\159ig aus. Links mittig zeigt eine kompakte Liste aktive Funktionen mit ihren Keybinds.\nDas Spielerinfo-Item wird nach dem Laden der Spiel-Items am Ende des Inventars einsortiert."},
     {version="2.6.72",text="Piano Auto-Player mit Online-Bibliothek, Suche, Sortierung und Favoriten sowie Import eigener MIDI- und VP-Textdateien.\nWiedergabe mit Pause, Stop, Zeitleiste und direkt ver\195\164nderbarem Tempo. Vorschauen verwenden echte Piano-Aufnahmen.\nRoblox-interne Eingaben unterst\195\188tzen Hintergrundwiedergabe und Tastaturlayouts; w\195\164hrend des Spielens werden Hotbar und die normale Shift-Lock-Belegung vor\195\188bergehend gesperrt."},
@@ -3395,6 +3397,7 @@ local function drawVoice()
 end
 runtime.gameCatalog={
     [7447878628]={places={[136162036182779]=true},features={
+        {id="tictactoe",name={"Tic Tac Toe","Tic Tac Toe"},description={"Vollst\195\164ndige lokale Suche f\195\188r den besten Zug.","Complete local search for the best move."}},
         {id="chess",name={"Schach","Chess"},description={"Automatisch spielen oder einen einzelnen Zug berechnen.","Play automatically or calculate a single move."}},
     }},
 }
@@ -3413,8 +3416,9 @@ function runtime.drawThisGame()
     for _,feature in ipairs(entry.features)do
         local f=card(runtime.pianoText(feature.name[1],feature.name[2]),runtime.pianoText(feature.description[1],feature.description[2]),86,false)
         f.Name="GameFeature_"..feature.id
+        for _,child in ipairs(f:GetChildren())do if child:IsA("TextLabel")then child.Size=UDim2.new(1,-156,child.Size.Y.Scale,child.Size.Y.Offset)end end
         local button=rowButton(f,runtime.pianoText("\195\150ffnen","Open"),UDim2.new(1,-124,0,26),UDim2.fromOffset(108,32),function()
-            if feature.id=="chess"then runtime.openChess()end
+            if feature.id=="chess"then runtime.openChess()elseif feature.id=="tictactoe"then runtime.openTicTacToe()end
         end)
         button.Name=feature.id=="chess" and "ChessOpen"or "GameFeatureOpen_"..feature.id
     end
@@ -7626,6 +7630,214 @@ connect(Run.Heartbeat,function(dt)
     runtime.chessClock=(runtime.chessClock or 0)+(dt or 0)
     if runtime.chessClock>=.15 then runtime.chessClock=0;runtime.chess.tick()end
 end)
+function runtime.prepareTicTacToe()
+    assert(runtime.currentGame(),'unsupported_tictactoe_place')
+    if runtime.ticController then return runtime.ticController end
+    local first=game:GetService("ReplicatedFirst"):FindFirstChild("Controllers")
+    local gameplay=first and first:FindFirstChild("Gameplay")
+    local host=gameplay and gameplay:FindFirstChild("MinigameController")
+    assert(host,'tictactoe_modules_unavailable')
+    local controller=require(host)
+    assert(type(controller)=='table'and type(controller.GetMinigame)=='function'and type(controller.SendAction)=='function','tictactoe_api_changed')
+    runtime.ticController=controller;return controller
+end
+function runtime.readTicTacToe()
+    local controller=runtime.prepareTicTacToe();local found;local h=humanoid()
+    for index,model in ipairs(game:GetService("CollectionService"):GetTagged("TicTacToeMinigame"))do
+        if index>80 then break end
+        local id=model:GetAttribute("MinigameId")
+        local object=id and controller:GetMinigame("TicTacToeMinigame",id)
+        local st=object and object.State
+        if st and type(st.PlayerUserIds)=='table'and(st.PlayerUserIds[1]==player.UserId or st.PlayerUserIds[2]==player.UserId)then
+            local seated=h and h.Health>0 and h.SeatPart and h.SeatPart:IsDescendantOf(model)
+            if seated then
+                assert(not found,'ambiguous_tictactoe_session')
+                found={id=id,players=table.clone(st.PlayerUserIds),board=type(st.Grid)=='table'and table.clone(st.Grid)or {},
+                    turn=st.Turn,currentUserId=st.CurrentPlayerUserId,busy=st.IsBusy,version=st.Version,
+                    seated=true,character=player.Character,tableName=model.Name}
+            end
+        end
+    end
+    return found
+end
+function runtime.refreshTicTacToe()
+    if not alive or not opened or page~="Tic Tac Toe"or runtime.ticRefresh then return end
+    runtime.ticRefresh=true
+    task.defer(function()runtime.ticRefresh=false;if alive and opened and page=="Tic Tac Toe"then render()end end)
+end
+runtime.tictactoe=(function(deps)
+    local p:any={alive=true,auto=false,once=false,status='ready',nodes=0}
+    local lines={{1,2,3},{4,5,6},{7,8,9},{1,4,7},{2,5,8},{3,6,9},{1,5,9},{3,5,7}}
+    local order={5,1,3,7,9,2,4,6,8}
+    local cache={}
+    local function changed()if deps.changed and p.alive then deps.changed()end end
+    local function status(value)if p.status~=value then p.status=value;changed()end end
+    local function stop(value)p.auto=false;p.once=false;status(value)end
+    function p.inspect(board)
+        assert(type(board)=='table' and #board==9,'invalid_grid')
+        local counts={0,0};local empty=0;local winner=0
+        for i=1,9 do
+            local value=board[i];assert(value==0 or value==1 or value==2,'invalid_cell')
+            if value==0 then empty+=1 else counts[value]+=1 end
+        end
+        assert(math.abs(counts[1]-counts[2])<=1,'invalid_counts')
+        for _,line in ipairs(lines)do
+            local value=board[line[1]]
+            if value~=0 and value==board[line[2]]and value==board[line[3]]then
+                assert(winner==0 or winner==value,'two_winners');winner=value
+            end
+        end
+        return winner,empty,counts
+    end
+    function p.solve(input,turn)
+        assert(turn==1 or turn==2,'invalid_turn')
+        local _,_,counts=p.inspect(input)
+        assert(counts[turn]<=counts[3-turn],'invalid_turn_counts')
+        local board=table.clone(input);local nodes=0
+        local visit
+        visit=function(side)
+            nodes+=1
+            local key=tostring(side)..table.concat(board)
+            if cache[key]then return cache[key][1],cache[key][2]end
+            local winner,empty=p.inspect(board)
+            if winner~=0 then return winner==side and 10+empty or -10-empty,nil end
+            if empty==0 then return 0,nil end
+            local best=-math.huge;local move
+            for _,cell in ipairs(order)do
+                if board[cell]==0 then
+                    board[cell]=side;local score=-visit(3-side);board[cell]=0
+                    if score>best then best=score;move=cell end
+                end
+            end
+            cache[key]={best,move};return best,move
+        end
+        local score,move=visit(turn)
+        return move,{score=score,nodes=nodes}
+    end
+    local function valid(c)
+        if not c or type(c.id)~='string'or c.seated~=true or not c.character then return false end
+        if type(c.players)~='table'or(c.players[1]~=deps.userId and c.players[2]~=deps.userId)then return false end
+        for i=1,2 do if type(c.players[i])~='number'or c.players[i]<0 or c.players[i]%1~=0 then return false end end
+        if c.players[1]~=0 and c.players[1]==c.players[2]then return false end
+        if type(c.version)~='number'or c.version<0 or c.version%1~=0 then return false end
+        return pcall(p.inspect,c.board)
+    end
+    local function key(c)return c.id..':'..tostring(c.version)..':'..tostring(c.turn)..':'..table.concat(c.board)end
+    local function same(a,b)
+        return valid(b)and a.character==b.character and a.players[1]==b.players[1]and a.players[2]==b.players[2]and key(a)==key(b)
+    end
+    function p.pause()stop('paused')end
+    function p.start(automatic)
+        if not p.alive then return end
+        if deps.supported and not deps.supported()then stop('unsupported');return end
+        p.auto=automatic==true;p.once=not p.auto
+        if not p.pending then p.match=nil;p.character=nil;p.roster=nil;p.version=nil;p.board=nil end
+        status('ready');p.tick()
+    end
+    function p.tick()
+        if not p.alive or(not p.auto and not p.once and not p.pending)then return end
+        local ok,c=pcall(deps.snapshot)
+        if not ok then stop('unsupported');p.pending=nil;return end
+        if not valid(c)then stop('no_seat');p.pending=nil;return end
+        p.context=c
+        local roster=tostring(c.players[1])..':'..tostring(c.players[2])
+        if (p.match and p.match~=c.id)or(p.character and p.character~=c.character)or(p.roster and p.roster~=roster)or(p.version and c.version<p.version)then
+            stop('changed');p.pending=nil;return
+        end
+        if p.board then
+            for i=1,9 do if p.board[i]~=0 and c.board[i]~=p.board[i]then stop('changed');p.pending=nil;return end end
+        end
+        p.board=table.clone(c.board)
+        p.match=c.id;p.character=c.character;p.roster=roster;p.version=c.version
+        if p.pending then
+            local sent=p.pending
+            local preserved=true
+            for i=1,9 do if sent.board[i]~=0 and c.board[i]~=sent.board[i]then preserved=false end end
+            if not preserved then p.pending=nil;stop('changed');return end
+            if c.board[sent.cell]==sent.side then
+                p.pending=nil;p.lastMove=sent.cell;changed()
+                if not p.auto and not p.once then status(p.status=='paused'and 'paused'or 'ready');return end
+            elseif deps.clock()-sent.time>4 then p.pending=nil;stop('timeout');return
+            else status(p.status=='paused'and 'paused'or 'confirming');return end
+        end
+        if not p.auto and not p.once then return end
+        local winner,empty=p.inspect(c.board)
+        if winner~=0 or empty==0 then stop('finished');return end
+        if c.players[1]==0 or c.players[2]==0 or(c.turn~=1 and c.turn~=2)then status('waiting');return end
+        if c.busy then status('waiting');return end
+        local side=c.players[1]==deps.userId and 1 or 2
+        if c.turn~=side or c.currentUserId~=deps.userId then p.once=false;status('opponent');return end
+        local success,cell,stats=pcall(p.solve,c.board,c.turn)
+        if not success then stop('error');return end
+        if not cell then stop('finished');return end
+        p.nodes=stats.nodes;p.score=stats.score;p.suggested=cell
+        local freshOK,fresh=pcall(deps.snapshot)
+        if not freshOK or not same(c,fresh)or fresh.busy or fresh.currentUserId~=deps.userId then stop('changed');return end
+        local token=key(c)
+        if token==p.lastSent then stop('timeout');return end
+        p.lastSent=token;p.once=false
+        p.pending={cell=cell,side=side,time=deps.clock(),board=table.clone(c.board)}
+        local sent,err=pcall(deps.send,c.id,cell)
+        if not sent then p.pending=nil;p.error=tostring(err);stop('error');return end
+        status('confirming')
+    end
+    function p.dispose()p.alive=false;p.auto=false;p.once=false;p.pending=nil;table.clear(cache)end
+    return p
+end)({userId=player.UserId,clock=os.clock,supported=runtime.currentGame,
+    snapshot=runtime.readTicTacToe,send=function(id,cell)runtime.prepareTicTacToe():SendAction("TicTacToeMinigame",id,"Place",cell)end,
+    changed=runtime.refreshTicTacToe})
+connect(Run.Heartbeat,function(dt)
+    runtime.ticClock=(runtime.ticClock or 0)+(dt or 0)
+    if runtime.ticClock<.15 then return end;runtime.ticClock=0;runtime.tictactoe.tick()
+    if opened and page=="Tic Tac Toe"then
+        local ok,c=pcall(runtime.readTicTacToe)
+        local token=ok and c and(c.id..':'..tostring(c.turn)..':'..tostring(c.busy)..':'..table.concat(c.board))or 'no_seat'
+        if token~=runtime.ticViewToken then runtime.ticViewToken=token;runtime.refreshTicTacToe()end
+    end
+end)
+function runtime.openTicTacToe()if not runtime.currentGame()then return false end;page="Tic Tac Toe";query="";render();return true end
+function runtime.drawTicTacToe()
+    local p=runtime.tictactoe
+    local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+    rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    local ok,c=pcall(runtime.readTicTacToe)
+    if not ok then c=nil end
+    local states={ready={"Bereit. W\195\164hle Auto spielen oder Ein Zug.","Ready. Choose Auto play or One move."},
+        paused={"Pausiert.","Paused."},opponent={"Der Gegner ist am Zug.","Opponent to move."},
+        waiting={"Warte auf den Gegner oder den Rundenstart.","Waiting for opponent or round start."},
+        confirming={"Warte auf die Serverbest\195\164tigung.","Waiting for server confirmation."},
+        finished={"Runde beendet. Automatik gestoppt.","Round ended. Automatic play stopped."},
+        timeout={"Keine Zugbest\195\164tigung. Bitte Brett und Verbindung pr\195\188fen.","No move confirmation. Check board and connection."},
+        changed={"Tisch oder Runde ge\195\164ndert. Automatik gestoppt.","Table or round changed. Automatic play stopped."},
+        no_seat={"Setze dich an einen Tic-Tac-Toe-Tisch.","Sit at a Tic Tac Toe table."},
+        unsupported={"Spielanbindung nicht verf\195\188gbar.","Game adapter unavailable."},
+        error={"Ung\195\188ltige Stellung oder Zugfehler. Automatik gestoppt.","Invalid position or move error. Automatic play stopped."}}
+    local message=states[not ok and 'unsupported'or not c and 'no_seat'or p.status]or states.ready
+    local text=runtime.pianoText(message[1],message[2])
+    if c then text=c.tableName.."  \194\183  "..(c.players[1]==player.UserId and "X"or "O").."\n"..text end
+    local title="Tic Tac Toe Auto-Player"
+    local f=plainCard(title,text,286,false);f.Name="TicTacToePlayback"
+    for _,child in ipairs(f:GetChildren())do if child:IsA("TextLabel")then child.Size=UDim2.new(1,-32,0,child.Text==title and 24 or 32)end end
+    local controls=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,78),Size=UDim2.new(1,-32,0,36)},f)
+    local auto=rowButton(controls,runtime.pianoText("Auto spielen","Auto play"),UDim2.new(),UDim2.new(.46,-6,1,0),function()p.start(true)end)
+    auto.Name="TicTacToeAuto";auto.TextColor3=C.accent;auto.BackgroundColor3=C.panel
+    rowButton(controls,"Pause",UDim2.new(.46,2,0,0),UDim2.new(.25,-6,1,0),p.pause).Name="TicTacToePause"
+    rowButton(controls,runtime.pianoText("Ein Zug","One move"),UDim2.new(.71,4,0,0),UDim2.new(.29,-4,1,0),function()p.start(false)end).Name="TicTacToeOnce"
+    local board=make("Frame",{Name="TicTacToeBoard",BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,126),Size=UDim2.fromOffset(114,114)},f);round(board,11)
+    for i=1,9 do
+        local value=c and c.board[i]or 0
+        local square=make("Frame",{Name="Cell"..i,BackgroundColor3=C.card,Position=UDim2.fromOffset(4+((i-1)%3)*36,4+math.floor((i-1)/3)*36),Size=UDim2.fromOffset(34,34)},board);round(square,7)
+        local mark=label(square,value==1 and "X"or value==2 and "O"or "",20,value==1 and C.accent or C.text,UDim2.new(),UDim2.fromScale(1,1),false)
+        mark.TextXAlignment=Enum.TextXAlignment.Center;mark.TextYAlignment=Enum.TextYAlignment.Center;mark.Font=Enum.Font.BuilderSansBold
+    end
+    local analysis=make("Frame",{Name="TicTacToeAnalysis",BackgroundColor3=C.panel,BackgroundTransparency=.25,Position=UDim2.fromOffset(142,126),Size=UDim2.new(1,-158,0,114)},f);round(analysis,11)
+    label(analysis,runtime.pianoText("Vollst\195\164ndige Suche","Complete search"),12,C.text,UDim2.fromOffset(12,10),UDim2.new(1,-24,0,20),false)
+    local outcome=p.score and runtime.pianoText(p.score>0 and "Gewinn erzwingbar"or p.score==0 and "Remis bei bestem Spiel"or "Verlust bei bestem Gegenspiel",p.score>0 and "Forced win"or p.score==0 and "Draw with best play"or "Loss against best play")or runtime.pianoText("Berechnung beim n\195\164chsten Zug","Analysis on next move")
+    label(analysis,outcome,11,C.accent,UDim2.fromOffset(12,38),UDim2.new(1,-24,0,32))
+    label(analysis,runtime.pianoText("Letztes Feld: ","Last cell: ")..tostring(p.lastMove or "\226\128\147"),11,C.muted,UDim2.fromOffset(12,82),UDim2.new(1,-24,0,20),false)
+    label(f,runtime.pianoText("Lokal berechnet \194\183 Keine zus\195\164tzliche EXE","Calculated locally \194\183 No additional EXE"),10,C.muted,UDim2.fromOffset(16,252),UDim2.new(1,-32,0,20),false)
+end
+
 function runtime.openChess()if not runtime.currentGame()then return false end;page="Schach";query="";render();return true end
 function runtime.drawChess()
     local p=runtime.chess
@@ -7697,7 +7909,7 @@ end
 
 render = function()
     if not alive then return end
-    if (page=="Dieses Spiel"or page=="Schach")and not runtime.currentGame()then page="Skripte"end
+    if (page=="Dieses Spiel"or page=="Schach"or page=="Tic Tac Toe")and not runtime.currentGame()then page="Skripte"end
     local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
     local scroll=context==runtime.renderContext and content.CanvasPosition or Vector2.zero
     if runtime.renderContext~=context or page~="Musik" or runtime.musicMode~="piano" then runtime.cancelPianoScroll()end
@@ -7720,18 +7932,18 @@ render = function()
     if search.Text ~= desired then
         updatingSearch=true; search.Text=desired; updatingSearch=false
     end
-    local heights={["Dieses Spiel"]=270,Start=398,Bewegung=390,Spieler=400,Server=420,Darstellung=400,Skripte=420,Musik=420,Favoriten=400,Einstellungen=400,Voice=390}
+    local heights={["Dieses Spiel"]=330,Start=398,Bewegung=390,Spieler=400,Server=420,Darstellung=400,Skripte=420,Musik=420,Favoriten=400,Einstellungen=400,Voice=390}
     animate(window,{Size=UDim2.fromOffset(600,heights[page] or 400)})
     for _,child in ipairs(headerIcon:GetChildren()) do child:Destroy() end
     local pageIndex=table.find(navNames,page) or 9
-    imageIcon(headerIcon,(page=="Schach"or page=="Dieses Spiel") and navAssetNames[6] or (page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex])),20,UDim2.new(),C.accent)
+    imageIcon(headerIcon,(page=="Schach"or page=="Dieses Spiel"or page=="Tic Tac Toe") and navAssetNames[6] or (page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex])),20,UDim2.new(),C.accent)
     for name,b in pairs(navButtons) do
         b.TextColor3=name == page and C.accent or C.muted
         b.BackgroundTransparency=name==page and .15 or 1
         b.BackgroundColor3=name == page and C.card or C.panel
         for _,part in ipairs(navIcons[name]) do part.obj[part.property]=name==page and C.accent or C.muted end
     end
-    indicator.Visible=page~="Dieses Spiel" and page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
+    indicator.Visible=page~="Tic Tac Toe" and page~="Dieses Spiel" and page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
     if runtime.statusIcon then runtime.statusIcon.ImageColor3=C.accent end
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
@@ -7750,6 +7962,8 @@ render = function()
         drawVoice()
     elseif page=="Dieses Spiel"then
         runtime.drawThisGame()
+    elseif page=="Tic Tac Toe"then
+        runtime.drawTicTacToe()
     elseif page=="Schach" then
         runtime.drawChess()
     elseif page=="Skripte" then
@@ -8318,6 +8532,7 @@ api.Destroy = function()
     alive=false
     runtime.recovery.cancel(false)
     runtime.piano.dispose()
+    runtime.tictactoe.dispose()
     runtime.chess.dispose()
     runtime.clearOutfit(true)
     runtime.stopFreecam(false)
@@ -8355,6 +8570,7 @@ api.AddAction = function(id, category, name, description, callback)
     render()
 end
 api.Language=runtime.language
+api.OpenTicTacToe=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openTicTacToe()end
 api.OpenChess=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openChess()end
 api.Notify=notify
 env.ISBMenu=api

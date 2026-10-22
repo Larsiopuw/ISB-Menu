@@ -1,4 +1,12 @@
-# ISB Menu 2.6.78 · by Larsiopuw
+# ISB Menu 2.6.79 · by Larsiopuw
+
+## Tic Tac Toe automatisch spielen
+
+Unter **Scripts → Dieses Spiel → Tic Tac Toe** öffnen. Der Bereich erscheint nur im registrierten Spiel und Ort (Universe `7447878628`, Place `136162036182779`). Mit beiden Spielern am Tisch **Auto spielen** oder **Ein Zug** wählen; **Pause** beendet weitere automatische Züge. Jeder Start ist manuell, nach einer beendeten Runde muss erneut gestartet werden. Schach bleibt im selben Spielbereich erreichbar.
+
+Das Brett wird direkt aus den replizierten Spieldaten gelesen. Die lokale vollständige Minimax-Suche berücksichtigt beide möglichen Startsymbole, sofortige Gewinne, Abwehr und Gabeln. Bei fehlerfreiem Gegenspiel endet eine ausgeglichene Partie remis; einen Sieg gegen jeden Gegner kann Tic Tac Toe nicht garantieren. Gewinnwege werden möglichst kurz, unvermeidbare Verluste möglichst spät gewählt. Es sind weder eine zusätzliche EXE noch ein Online-Dienst erforderlich.
+
+Ein Zug wird nur für den eigenen Spieler am zugehörigen Tisch gesendet. Vor dem Senden wird die Stellung erneut geprüft; danach wird die vom Spiel gelieferte Belegung des Felds bestätigt. Es gibt keine blinden Wiederholungen. Sitz-, Charakter-, Tisch-, Gegner- oder Rundenwechsel stoppen die Automatik. Die Hauptkarte enthält Steuerung, Brett und die Einschätzung der letzten Berechnung. Vier gewinnt ist noch nicht enthalten.
 
 ## Piano automatisch spielen
 
@@ -95,6 +103,10 @@ Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden ab
 ## Änderungshistorie
 
 Zusammengehörige Zwischenstände sind als abgeschlossene Funktionen zusammengefasst. Technische Versuche und Prüfergebnisse stehen separat im Prüfbericht.
+
+### 2.6.79
+
+- Tic Tac Toe Auto-Player unter Scripts > Dieses Spiel mit automatischem Spielen, einzelnen Zügen, Brettansicht und vollständiger lokaler Berechnung des besten Zugs. Nur im unterstützten Spiel sichtbar.
 
 ### 2.6.78
 
