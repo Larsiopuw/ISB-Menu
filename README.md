@@ -1,4 +1,12 @@
-# ISB Menu 2.6.80 · by Larsiopuw
+# ISB Menu 2.6.81 · by Larsiopuw
+
+## Vier gewinnt automatisch spielen
+
+Unter **Scripts → Dieses Spiel → Vier gewinnt** öffnen. Dieser Eintrag erscheint wie Schach und Tic Tac Toe nur für Universe `7447878628`, Place `136162036182779`. Am eigenen Tisch **Auto spielen** oder **Ein Zug** wählen. **Pause** beendet weitere Züge. Autoplay bleibt nach einer beendeten Runde am selben Tisch aktiv und setzt nach dem automatischen Reset fort. Aufstehen oder Wechsel des Charakters/Tisches beendet es. Der Start ist immer manuell; Autoplay wird nicht gespeichert.
+
+Die Hauptkarte zeigt das 7×6-Brett, die eigene Farbe, Gewinnlinien, letzte Spalte, erreichte Suchtiefe und Stellungseinschätzung. Der Spieler liest das replizierte Echo direkt und bestätigt jeden eigenen Zug über das gesetzte Feld. Die Spielerzuordnung wird zusätzlich gegen die wirklich besetzten Tischsitze geprüft. Fehlt die Echo-Spielerliste nach einem Zug, bleibt eine bestätigte Zuordnung für dieselben Insassen gültig; ansonsten wird sie aus einem stabilen Paar von aktuellem Spieler und Zugseite ermittelt. Widersprüchliche Zwischenstände werden abgewartet, statt blind einen Zug abzusenden.
+
+Die lokale Suche arbeitet mit iterativer Vertiefung, Alpha-Beta-Suche, Stellungsspeicher, Sofortgewinn-/Abwehrprüfung und Zentrum-/Reihenbewertung. Pro Berechnung gelten etwa 0,9 Sekunden, bis zu zwölf reguläre Suchebenen und 80.000 Suchknoten. Die Anzeige nennt die letzte vollständig abgeschlossene Tiefe; der Rest der Suche darf abgebrochen werden, ohne den letzten vollständigen Zug zu verlieren. „Gewinn/Remis nachgewiesen“ erscheint nur bei einer tatsächlich aufgelösten Suchstellung; sonst wird eine heuristische Einschätzung angezeigt. Anders als Tic Tac Toe wird Vier gewinnt damit nicht grundsätzlich bis zum Ende gelöst. Eine Sieg-Garantie gibt es nicht. Es werden keine Daten an einen Online-Dienst gesendet und keine zusätzliche EXE benötigt.
 
 ## Tic Tac Toe automatisch spielen
 
@@ -6,7 +14,7 @@ Unter **Scripts → Dieses Spiel → Tic Tac Toe** öffnen. Der Bereich erschein
 
 Das Brett wird direkt aus den replizierten Spieldaten gelesen. Die lokale vollständige Minimax-Suche berücksichtigt beide möglichen Startsymbole, sofortige Gewinne, Abwehr und Gabeln. Bei fehlerfreiem Gegenspiel endet eine ausgeglichene Partie remis; einen Sieg gegen jeden Gegner kann Tic Tac Toe nicht garantieren. Gewinnwege werden möglichst kurz, unvermeidbare Verluste möglichst spät gewählt. Es sind weder eine zusätzliche EXE noch ein Online-Dienst erforderlich.
 
-Ein Zug wird nur für den eigenen Spieler am zugehörigen Tisch gesendet. Vor dem Senden wird die Stellung erneut geprüft; danach wird die vom Spiel gelieferte Belegung des Felds bestätigt. Es gibt keine blinden Wiederholungen. Aufstehen, Charakter- oder Tischwechsel stoppen die Automatik. Rundenende, Remis, automatische Brett-Resets und wechselnde Gegner am selben Sitz werden als Wartephase behandelt; neue Züge werden erst bei einer gültigen eigenen Spielzuordnung gesendet. Gewinnreihen werden in der Brettansicht durchgestrichen. Die Hauptkarte enthält Steuerung, Brett und die Einschätzung der letzten Berechnung. Vier gewinnt ist noch nicht enthalten.
+Ein Zug wird nur für den eigenen Spieler am zugehörigen Tisch gesendet. Vor dem Senden wird die Stellung erneut geprüft; danach wird die vom Spiel gelieferte Belegung des Felds bestätigt. Es gibt keine blinden Wiederholungen. Aufstehen, Charakter- oder Tischwechsel stoppen die Automatik. Rundenende, Remis, automatische Brett-Resets und wechselnde Gegner am selben Sitz werden als Wartephase behandelt; neue Züge werden erst bei einer gültigen eigenen Spielzuordnung gesendet. Gewinnreihen werden in der Brettansicht durchgestrichen. Die Hauptkarte enthält Steuerung, Brett und die Einschätzung der letzten Berechnung.
 
 ## Piano automatisch spielen
 
@@ -103,6 +111,10 @@ Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden ab
 ## Änderungshistorie
 
 Zusammengehörige Zwischenstände sind als abgeschlossene Funktionen zusammengefasst. Technische Versuche und Prüfergebnisse stehen separat im Prüfbericht.
+
+### 2.6.81
+
+- Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen über weitere Runden sowie Pause und einzelne Züge.
 
 ### 2.6.80
 

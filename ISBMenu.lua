@@ -1,7 +1,7 @@
--- ISB Menu 2.6.80 | Own-game universal client toolkit
+-- ISB Menu 2.6.81 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.80",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.81",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -629,6 +629,7 @@ runtime.english={
     ["F\195\164higkeiten"]="Capabilities",
     ["Dateien: %s  \194\183  Clipboard: %s  \194\183  Asset-Icons: %s"]="Files: %s  \194\183  Clipboard: %s  \194\183  Asset icons: %s",
     ["Dieses Spiel"]="This Game",
+    ["Vier gewinnt"]="Connect Four",
     ["Funktionen speziell fuer dieses Spiel."]="Features specifically for this game.",
     ["Schach"]="Chess",
     ["Schach direkt aus den Spieldaten steuern."]="Play chess using direct game data.",
@@ -694,6 +695,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.81"]="Connect Four Auto-Player under Scripts > This Game with local move calculation, a board view, winning lines and search depth. Automatic play continues across rounds, with pause and single-move controls.",
     ["2.6.80"]="Tic Tac Toe Auto-Player under Scripts > This Game with complete local move calculation, a board view and winning lines. Autoplay continues through subsequent rounds at the same table until paused or you leave the seat.",
     ["2.6.78"]="Anti-Void with pixel recovery, a cyan light trail and a guided return camera. Recovery uses an earlier ground position with verified surrounding support, edge clearance and no added height offset.",
     ["2.6.76"]="Chess Auto-Player under Scripts > This Game: Stockfish or offline search, automatic play and single moves with a configurable random move delay.\nOptional server hopping when game staff is detected under Detection, off by default. A compact left-center list shows active functions and their keybinds.\nPlayer Info is placed at the end of the inventory after game items finish loading.",
@@ -2994,6 +2996,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.81",text="Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen \195\188ber weitere Runden sowie Pause und einzelne Z\195\188ge."},
     {version="2.6.80",text="Tic Tac Toe Auto-Player unter Scripts > Dieses Spiel mit vollst\195\164ndiger lokaler Zugberechnung, Brettansicht und Gewinnlinien. Autoplay spielt weitere Runden am selben Tisch automatisch weiter, bis du pausierst oder aufstehst."},
     {version="2.6.78",text="Anti-Void mit Pixel-Recovery, cyanfarbener Lichtspur und R\195\188ckflug-Kamera. Die R\195\188ckkehr verwendet einen fr\195\188heren, rundum gepr\195\188ften Bodenpunkt mit Kantenabstand und ohne zus\195\164tzlichen H\195\182henversatz."},
     {version="2.6.76",text="Schach Auto-Player unter Scripts > Dieses Spiel: Stockfish oder Offline-Suche, automatisches Spielen und einzelne Z\195\188ge mit frei einstellbarer zuf\195\164lliger Zugpause.\nOptionaler Serverwechsel bei erkannten Spiel-Admins unter Erkennung, standardm\195\164\195\159ig aus. Links mittig zeigt eine kompakte Liste aktive Funktionen mit ihren Keybinds.\nDas Spielerinfo-Item wird nach dem Laden der Spiel-Items am Ende des Inventars einsortiert."},
@@ -3398,6 +3401,7 @@ end
 runtime.gameCatalog={
     [7447878628]={places={[136162036182779]=true},features={
         {id="tictactoe",name={"Tic Tac Toe","Tic Tac Toe"},description={"Vollst\195\164ndige lokale Suche f\195\188r den besten Zug.","Complete local search for the best move."}},
+        {id="connect4",name={"Vier gewinnt","Connect Four"},description={"Lokale Zugberechnung und automatisches Spielen.","Local move analysis and automatic play."}},
         {id="chess",name={"Schach","Chess"},description={"Automatisch spielen oder einen einzelnen Zug berechnen.","Play automatically or calculate a single move."}},
     }},
 }
@@ -3418,7 +3422,7 @@ function runtime.drawThisGame()
         f.Name="GameFeature_"..feature.id
         for _,child in ipairs(f:GetChildren())do if child:IsA("TextLabel")then child.Size=UDim2.new(1,-156,child.Size.Y.Scale,child.Size.Y.Offset)end end
         local button=rowButton(f,runtime.pianoText("\195\150ffnen","Open"),UDim2.new(1,-124,0,26),UDim2.fromOffset(108,32),function()
-            if feature.id=="chess"then runtime.openChess()elseif feature.id=="tictactoe"then runtime.openTicTacToe()end
+            if feature.id=="chess"then runtime.openChess()elseif feature.id=="tictactoe"then runtime.openTicTacToe()elseif feature.id=="connect4"then runtime.openConnect4()end
         end)
         button.Name=feature.id=="chess" and "ChessOpen"or "GameFeatureOpen_"..feature.id
     end
@@ -7878,6 +7882,380 @@ function runtime.drawTicTacToe()
     label(f,runtime.pianoText("Lokal berechnet \194\183 Keine zus\195\164tzliche EXE","Calculated locally \194\183 No additional EXE"),10,C.muted,UDim2.fromOffset(16,252),UDim2.new(1,-32,0,20),false)
 end
 
+runtime.connect4Rules=(function(deps)
+    local p={}
+    local order={4,3,5,2,6,1,7}
+    local windows={}
+    for row=1,6 do for col=1,7 do
+        for _,d in ipairs({{0,1},{1,0},{1,1},{1,-1}})do
+            local rr,cc=row+3*d[1],col+3*d[2]
+            if rr>=1 and rr<=6 and cc>=1 and cc<=7 then
+                local line={};for n=0,3 do line[n+1]=(row+n*d[1]-1)*7+col+n*d[2]end
+                table.insert(windows,line)
+            end
+        end
+    end end
+    function p.winningLines(board)
+        local result={};if type(board)~='table'or #board~=42 then return result end
+        for _,line in ipairs(windows)do
+            local v=board[line[1]]
+            if (v==1 or v==2)and v==board[line[2]]and v==board[line[3]]and v==board[line[4]]then table.insert(result,line)end
+        end
+        return result
+    end
+    function p.inspect(board)
+        assert(type(board)=='table'and #board==42,'invalid_grid')
+        local counts={0,0};local empty=0
+        for col=1,7 do
+            local gap=false
+            for row=6,1,-1 do
+                local v=board[(row-1)*7+col];assert(v==0 or v==1 or v==2,'invalid_cell')
+                if v==0 then gap=true;empty+=1 else assert(not gap,'floating_chip');counts[v]+=1 end
+            end
+        end
+        assert(math.abs(counts[1]-counts[2])<=1,'invalid_counts')
+        local winner=0
+        for _,line in ipairs(p.winningLines(board))do local v=board[line[1]];assert(winner==0 or winner==v,'two_winners');winner=v end
+        return winner,empty,counts
+    end
+    function p.placement(board,col)
+        if type(col)~='number'or col%1~=0 or col<1 or col>7 then return nil end
+        for row=6,1,-1 do local cell=(row-1)*7+col;if board[cell]==0 then return cell end end
+        return nil
+    end
+    local function won(board,cell,side)
+        local row=math.floor((cell-1)/7)+1;local col=(cell-1)%7+1
+        for _,d in ipairs({{0,1},{1,0},{1,1},{1,-1}})do
+            local count=1
+            for _,sign in ipairs({-1,1})do
+                for step=1,3 do
+                    local rr,cc=row+sign*step*d[1],col+sign*step*d[2]
+                    if rr<1 or rr>6 or cc<1 or cc>7 or board[(rr-1)*7+cc]~=side then break end
+                    count+=1
+                end
+            end
+            if count>=4 then return true end
+        end
+        return false
+    end
+    function p.solve(input,side,cancel)
+        assert(side==1 or side==2,'invalid_turn')
+        local winner,empty,counts=p.inspect(input)
+        assert(counts[side]<=counts[3-side],'invalid_turn_counts')
+        if winner~=0 or empty==0 then return nil,{depth=0,nodes=0,score=0,solved=true}end
+        local b=table.clone(input);local nodes=0;local cache={};local entries=0
+        local clock=deps.clock or os.clock;local started=clock();local budget=deps.budget or .9
+        local function check()
+            nodes+=1
+            if nodes%64==0 then
+                if (cancel and cancel())or nodes>(deps.nodeLimit or 80000)or clock()-started>budget then error('search_cancelled',0)end
+                if deps.yield and nodes%512==0 then deps.yield()end
+                if cancel and cancel()then error('search_cancelled',0)end
+            end
+        end
+        local function winning(sideToMove)
+            for _,col in ipairs(order)do local cell=p.placement(b,col);if cell then
+                b[cell]=sideToMove;local win=won(b,cell,sideToMove);b[cell]=0
+                if win then return col end
+            end end
+            return nil
+        end
+        local function candidates(turn,preferred)
+            local win=winning(turn);if win then return nil,win end
+            local safe={};local legal={}
+            for _,col in ipairs(order)do local cell=p.placement(b,col);if cell then
+                table.insert(legal,col);b[cell]=turn;local loses=winning(3-turn);b[cell]=0
+                if not loses then if col==preferred then table.insert(safe,1,col)else table.insert(safe,col)end end
+            end end
+            return safe,nil,legal
+        end
+        local function evaluate(turn)
+            local score=0
+            for row=1,6 do local v=b[(row-1)*7+4];if v~=0 then score+=v==turn and 6 or -6 end end
+            for _,line in ipairs(windows)do
+                local own,other=0,0
+                for _,cell in ipairs(line)do if b[cell]==turn then own+=1 elseif b[cell]~=0 then other+=1 end end
+                if other==0 then score+=own==3 and 60 or own==2 and 9 or own==1 and 1 or 0 end
+                if own==0 then score-=other==3 and 60 or other==2 and 9 or other==1 and 1 or 0 end
+            end
+            return math.clamp(score,-5000,5000)
+        end
+        local visit
+        visit=function(turn,remaining,depth,alpha,beta)
+            check();if remaining==0 then return 0,nil end
+            local key=tostring(turn)..table.concat(b);local saved=cache[key];local originalAlpha=alpha;local originalBeta=beta
+            if saved and saved.depth>=depth then
+                if saved.flag=='exact'then return saved.score,saved.move end
+                if saved.flag=='lower'then alpha=math.max(alpha,saved.score)else beta=math.min(beta,saved.score)end
+                if alpha>=beta then return saved.score,saved.move end
+            end
+            local moves,win,legal=candidates(turn,saved and saved.move)
+            if win then return 100000+remaining-1,win end
+            if #moves==0 then return -100000-remaining+2,legal[1]end
+            if depth<=0 then return evaluate(turn),moves[1]end
+            local best=-math.huge;local move=moves[1]
+            for _,col in ipairs(moves)do
+                local cell=p.placement(b,col);b[cell]=turn
+                local score=-visit(3-turn,remaining-1,depth-1,-beta,-alpha);b[cell]=0
+                if score>best then best=score;move=col end
+                alpha=math.max(alpha,score);if alpha>=beta then break end
+            end
+            if entries<40000 then
+                if not saved then entries+=1 end
+                cache[key]={score=best,move=move,depth=depth,flag=best<=originalAlpha and 'upper'or best>=originalBeta and 'lower'or 'exact'}
+            end
+            return best,move
+        end
+        local safe,immediate,legal=candidates(side)
+        if immediate then return immediate,{depth=1,nodes=1,score=100000+empty-1,solved=true}end
+        if #safe==0 then return legal[1],{depth=2,nodes=1,score=-100000-empty+2,solved=true}end
+        local best=safe[1];local score=0;local completed=0
+        for depth=1,math.min(empty,deps.maxDepth or 12)do
+            local ok,value,col=pcall(visit,side,empty,depth,-math.huge,math.huge)
+            if not ok then if value~='search_cancelled'then error(value,0)end;break end
+            best=col;score=value;completed=depth
+            if math.abs(score)>90000 or depth>=empty then break end
+        end
+        return best,{depth=completed,nodes=nodes,score=score,solved=math.abs(score)>90000 or completed>=empty}
+    end
+    return p
+end)({clock=os.clock,budget=.9,maxDepth=12,nodeLimit=80000,yield=function()task.wait()end})
+runtime.connect4Roster=(function()
+    local entries={}
+    local p={}
+    function p.read(key,occupants,state,now)
+        if #occupants~=2 or occupants[1]==occupants[2]then entries[key]=nil;return {0,0}end
+        local low,high=math.min(occupants[1],occupants[2]),math.max(occupants[1],occupants[2])
+        local signature=tostring(low)..':'..tostring(high)
+        local entry=entries[key]
+        if not entry or entry.signature~=signature then entry={signature=signature};entries[key]=entry end
+        local ids=state.PlayerUserIds
+        if type(ids)=='table'and((ids[1]==low and ids[2]==high)or(ids[1]==high and ids[2]==low))then
+            entry.players={ids[1],ids[2]};entry.candidate=nil;return table.clone(entry.players)
+        end
+        if entry.players then return table.clone(entry.players)end
+        local turn,current=state.Turn,state.CurrentPlayerUserId
+        if (turn==1 or turn==2)and(current==low or current==high)then
+            local candidate={0,0};candidate[turn]=current;candidate[3-turn]=current==low and high or low
+            local token=tostring(candidate[1])..':'..tostring(candidate[2])
+            if entry.candidate~=token then entry.candidate=token;entry.since=now end
+            if now-entry.since>=.1 then entry.players=candidate;return table.clone(candidate)end
+        else entry.candidate=nil end
+        return {0,0}
+    end
+    function p.clear()table.clear(entries)end
+    return p
+end)()
+function runtime.readConnect4()
+    local controller=runtime.prepareTicTacToe();local found;local h=humanoid()
+    for index,model in ipairs(game:GetService("CollectionService"):GetTagged("Connect4Minigame"))do
+        if index>80 then break end
+        if h and h.Health>0 and h.SeatPart and h.SeatPart:IsDescendantOf(model)then
+            local id=model:GetAttribute("MinigameId");local object=id and controller:GetMinigame("Connect4Minigame",id);local echo=object and object.Echo
+            if echo and echo.Initialized then
+                local st={Grid=echo:Read("Grid"),PlayerUserIds=echo:Read("PlayerUserIds"),Turn=echo:Read("Turn"),
+                    CurrentPlayerUserId=echo:Read("CurrentPlayerUserId"),IsBusy=echo:Read("IsBusy"),Version=echo:Read("Version")or 0}
+                local occupants={}
+                for _,seat in ipairs(model:GetDescendants())do
+                    if seat:IsA("Seat")or seat:IsA("VehicleSeat")then
+                        local humanoid=seat.Occupant;local seated=humanoid and Players:GetPlayerFromCharacter(humanoid.Parent)
+                        if seated then table.insert(occupants,seated.UserId)end
+                    end
+                end
+                assert(not found,'ambiguous_connect4_session')
+                found={id=id,players=runtime.connect4Roster.read(id,occupants,st,os.clock()),board=type(st.Grid)=='table'and table.clone(st.Grid)or {},
+                    turn=st.Turn,currentUserId=st.CurrentPlayerUserId,busy=st.IsBusy,version=st.Version,
+                    seated=true,character=player.Character,tableName=model.Name}
+            end
+        end
+    end
+    return found
+end
+function runtime.refreshConnect4()
+    if not alive or not opened or page~="Vier gewinnt"or runtime.connectRefresh then return end
+    runtime.connectRefresh=true
+    task.defer(function()runtime.connectRefresh=false;if alive and opened and page=="Vier gewinnt"then render()end end)
+end
+runtime.connect4=(function(deps)
+    local p:any={alive=true,auto=false,once=false,status='ready',nodes=0,depth=0,epoch=0}
+    p.inspect=deps.rules.inspect;p.winningLines=deps.rules.winningLines;p.solve=deps.rules.solve;p.placement=deps.rules.placement
+    local function changed()if deps.changed and p.alive then deps.changed()end end
+    local function status(value)if p.status~=value then p.status=value;changed()end end
+    local function stop(value)p.epoch+=1;p.thinking=false;p.activeJob=nil;p.auto=false;p.once=false;status(value)end
+    local function valid(c)
+        if not c or type(c.id)~='string'or c.seated~=true or not c.character then return false end
+        if type(c.players)~='table'then return false end
+        for i=1,2 do if type(c.players[i])~='number'or c.players[i]<0 or c.players[i]%1~=0 then return false end end
+        if c.players[1]~=0 and c.players[1]==c.players[2]then return false end
+        if type(c.version)~='number'or c.version<0 or c.version%1~=0 then return false end
+        return pcall(p.inspect,c.board)
+    end
+    local function key(c)return c.id..':'..tostring(c.version)..':'..tostring(c.turn)..':'..table.concat(c.board)end
+    local function same(a,b)
+        return valid(b)and a.character==b.character and a.players[1]==b.players[1]and a.players[2]==b.players[2]and key(a)==key(b)
+    end
+    function p.pause()stop('paused')end
+    function p.start(automatic)
+        if not p.alive then return end
+        if deps.supported and not deps.supported()then stop('unsupported');return end
+        p.epoch+=1;p.thinking=false;p.activeJob=nil
+        p.auto=automatic==true;p.once=not p.auto
+        if not p.pending then p.match=nil;p.character=nil;p.roster=nil;p.version=nil;p.board=nil;p.roundFinished=false;p.awaitReset=false end
+        status('ready');p.tick()
+    end
+    function p.tick()
+        if not p.alive or(not p.auto and not p.once and not p.pending)then return end
+        if p.thinking and deps.clock()-(p.searchStarted or 0)>4 then stop('error');return end
+        local ok,c=pcall(deps.snapshot)
+        if not ok then stop('unsupported');p.pending=nil;return end
+        if not c or type(c.id)~='string'or c.seated~=true or not c.character then stop('no_seat');p.pending=nil;return end
+        if (p.match and p.match~=c.id)or(p.character and p.character~=c.character)then stop('changed');p.pending=nil;return end
+        p.match=c.id;p.character=c.character
+        if not valid(c)then status('syncing');return end
+        p.context=c
+        local roster=c.players[1]>0 and c.players[2]>0 and(tostring(c.players[1])..':'..tostring(c.players[2]))or nil
+        local reset=(p.roster and roster and p.roster~=roster)or(p.version and c.version<p.version)
+        if p.board then
+            for i=1,42 do if p.board[i]~=0 and c.board[i]~=p.board[i]then reset=true end end
+        end
+        local winner,empty=p.inspect(c.board)
+        if reset then
+            if not p.auto then stop('changed');p.pending=nil;return end
+            p.awaitReset=true
+        end
+        if p.roundFinished and winner==0 and empty>0 then p.awaitReset=true end
+        if p.awaitReset then
+            p.pending=nil
+            -- Echo properties can arrive separately. Only resume on a clean new board,
+            -- allowing the opponent's opening move to arrive before the next poll.
+            if winner==0 and empty>=41 and not c.busy then
+                p.awaitReset=false;p.roundFinished=false;p.lastSent=nil;p.score=nil;p.lastMove=nil;p.suggested=nil
+                changed()
+            else status('intermission');return end
+        end
+        p.board=table.clone(c.board)
+        p.roster=roster or p.roster;p.version=c.version
+        if p.pending then
+            local sent=p.pending
+            local preserved=true
+            for i=1,42 do if sent.board[i]~=0 and c.board[i]~=sent.board[i]then preserved=false end end
+            if not preserved then p.pending=nil;stop('changed');return end
+            if c.board[sent.cell]==sent.side then
+                p.pending=nil;p.lastMove=sent.column;changed()
+                if not p.auto and not p.once then status(p.status=='paused'and 'paused'or 'ready');return end
+            elseif deps.clock()-sent.time>4 then p.pending=nil;stop('timeout');return
+            else status(p.status=='paused'and 'paused'or 'confirming');return end
+        end
+        if not p.auto and not p.once then return end
+        if winner~=0 or empty==0 then
+            p.roundFinished=true;p.once=false
+            if p.auto then status('intermission')else stop('finished')end
+            return
+        end
+        if c.players[1]==0 or c.players[2]==0 or(c.turn~=1 and c.turn~=2)then status('waiting');return end
+        if c.players[1]~=deps.userId and c.players[2]~=deps.userId then status('waiting');return end
+        if c.busy then status('waiting');return end
+        local side=c.players[1]==deps.userId and 1 or 2
+        if c.turn~=side or c.currentUserId~=deps.userId then p.once=false;status('opponent');return end
+        local _,_,counts=p.inspect(c.board)
+        if counts[side]>counts[3-side]then status('syncing');return end
+        if p.thinking then return end
+        p.thinking=true;p.searchStarted=deps.clock();local epoch=p.epoch;local job={};p.activeJob=job;status('thinking')
+        deps.spawn(function()
+            local success,err=pcall(function()
+                local column,stats=p.solve(c.board,c.turn,function()return not p.alive or p.epoch~=epoch end)
+                if not p.alive or p.epoch~=epoch then return end
+                p.nodes=stats.nodes;p.depth=stats.depth;p.score=stats.score;p.solved=stats.solved;p.suggested=column
+                local freshOK,fresh=pcall(deps.snapshot)
+                if not freshOK or not same(c,fresh)or fresh.busy or fresh.currentUserId~=deps.userId then status('changed');p.once=false;return end
+                local cell=column and p.placement(fresh.board,column)
+                if not cell then stop('finished');return end
+                local token=key(c)
+                if token==p.lastSent then stop('timeout');return end
+                p.lastSent=token;p.once=false
+                p.pending={cell=cell,column=column,side=side,time=deps.clock(),board=table.clone(c.board)}
+                deps.send(c.id,column);status('confirming')
+            end)
+            if p.activeJob==job then p.thinking=false;p.activeJob=nil end
+            if not success and p.alive and p.epoch==epoch then p.pending=nil;p.error=tostring(err);stop('error')end
+        end)
+    end
+
+    function p.dispose()p.epoch+=1;p.alive=false;p.auto=false;p.once=false;p.pending=nil;p.thinking=false;p.activeJob=nil end
+    return p
+end)({rules=runtime.connect4Rules,userId=player.UserId,clock=os.clock,spawn=task.spawn,supported=runtime.currentGame,
+    snapshot=runtime.readConnect4,send=function(id,column)runtime.prepareTicTacToe():SendAction("Connect4Minigame",id,"Place",column)end,
+    changed=runtime.refreshConnect4})
+connect(Run.Heartbeat,function(dt)
+    runtime.connectClock=(runtime.connectClock or 0)+(dt or 0)
+    if runtime.connectClock<.15 then return end;runtime.connectClock=0;runtime.connect4.tick()
+    if opened and page=="Vier gewinnt"then
+        local ok,c=pcall(runtime.readConnect4)
+        local token=ok and c and(c.id..':'..tostring(c.turn)..':'..tostring(c.busy)..':'..table.concat(c.board))or 'no_seat'
+        if token~=runtime.connectViewToken then runtime.connectViewToken=token;runtime.refreshConnect4()end
+    end
+end)
+function runtime.openConnect4()if not runtime.currentGame()then return false end;page="Vier gewinnt";query="";render();return true end
+function runtime.drawConnect4()
+    local p=runtime.connect4
+    local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+    rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    local ok,c=pcall(runtime.readConnect4);if not ok then c=nil end
+    local messages={ready={"Bereit. Auto spielen oder Ein Zug w\195\164hlen.","Ready. Choose Auto play or One move."},
+        paused={"Pausiert.","Paused."},opponent={"Der Gegner ist am Zug.","Opponent to move."},
+        syncing={"Spieldaten werden abgeglichen.","Synchronizing game data."},
+        thinking={"Berechne den besten Zug\226\128\166","Calculating the best move\226\128\166"},
+        intermission={"Autoplay aktiv. Warte auf die n\195\164chste Runde.","Autoplay on. Waiting for the next round."},
+        waiting={"Warte auf den Gegner oder die Spielanimation.","Waiting for opponent or game animation."},
+        confirming={"Warte auf die Serverbest\195\164tigung.","Waiting for server confirmation."},
+        finished={"Runde beendet.","Round ended."},changed={"Stellung ge\195\164ndert. Zug verworfen.","Position changed. Move discarded."},
+        no_seat={"Setze dich an einen Vier-gewinnt-Tisch.","Sit at a Connect Four table."},
+        timeout={"Keine Zugbest\195\164tigung. Bitte Brett und Verbindung pr\195\188fen.","No move confirmation. Check board and connection."},
+        unsupported={"Spielanbindung nicht verf\195\188gbar.","Game adapter unavailable."},
+        error={"Zugberechnung gestoppt. Bitte erneut starten.","Move calculation stopped. Please restart."}}
+    local message=messages[not ok and 'unsupported'or not c and 'no_seat'or p.status]or messages.ready
+    local text=runtime.pianoText(message[1],message[2])
+    if c then text=c.tableName.."  \194\183  "..runtime.pianoText("Spieler ","Player ")..(c.players[1]==player.UserId and "1"or "2").."\n"..text end
+    local title=runtime.pianoText("Vier gewinnt Auto-Player","Connect Four Auto-Player")
+    local f=plainCard(title,text,352,false);f.Name="Connect4Playback"
+    for _,child in ipairs(f:GetChildren())do if child:IsA("TextLabel")then child.Size=UDim2.new(1,-32,0,child.Text==title and 24 or 32)end end
+    local controls=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,78),Size=UDim2.new(1,-32,0,36)},f)
+    local auto=rowButton(controls,runtime.pianoText("Auto spielen","Auto play"),UDim2.new(),UDim2.new(.46,-6,1,0),function()p.start(true)end)
+    auto.Name="Connect4Auto";auto.TextColor3=p.auto and C.panel or C.accent;auto.BackgroundColor3=p.auto and C.accent or C.panel
+    rowButton(controls,"Pause",UDim2.new(.46,2,0,0),UDim2.new(.25,-6,1,0),p.pause).Name="Connect4Pause"
+    rowButton(controls,runtime.pianoText("Ein Zug","One move"),UDim2.new(.71,4,0,0),UDim2.new(.29,-4,1,0),function()p.start(false)end).Name="Connect4Once"
+    local board=make("Frame",{Name="Connect4Board",BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,126),Size=UDim2.fromOffset(200,188)},f);round(board,11)
+    for col=1,7 do
+        local number=label(board,tostring(col),9,C.muted,UDim2.fromOffset(4+(col-1)*28,3),UDim2.fromOffset(24,12),false);number.TextXAlignment=Enum.TextXAlignment.Center
+    end
+    for i=1,42 do
+        local v=c and c.board[i]or 0
+        local chip=make("Frame",{Name="Cell"..i,BackgroundColor3=v==1 and Color3.fromRGB(255,94,106)or v==2 and Color3.fromRGB(255,209,84)or C.card,
+            Position=UDim2.fromOffset(4+((i-1)%7)*28,20+math.floor((i-1)/7)*28),Size=UDim2.fromOffset(24,24)},board);round(chip,12)
+    end
+    for index,line in ipairs(p.winningLines(c and c.board or {}))do
+        local first,last=line[1],line[4]
+        local x1,y1=16+((first-1)%7)*28,32+math.floor((first-1)/7)*28
+        local x2,y2=16+((last-1)%7)*28,32+math.floor((last-1)/7)*28
+        local dx,dy=x2-x1,y2-y1
+        local strike=make("Frame",{Name="Connect4WinningLine"..index,BackgroundColor3=C.text,BorderSizePixel=0,AnchorPoint=Vector2.new(.5,.5),
+            Position=UDim2.fromOffset((x1+x2)/2,(y1+y2)/2),Size=UDim2.fromOffset(math.sqrt(dx*dx+dy*dy)+16,3),
+            Rotation=math.deg(math.atan2(dy,dx)),ZIndex=(board.ZIndex or 1)+5},board);round(strike,2)
+    end
+    local analysis=make("Frame",{Name="Connect4Analysis",BackgroundColor3=C.panel,BackgroundTransparency=.25,Position=UDim2.fromOffset(228,126),Size=UDim2.new(1,-244,0,188)},f);round(analysis,11)
+    label(analysis,runtime.pianoText("Lokale Zuganalyse","Local move analysis"),12,C.text,UDim2.fromOffset(12,10),UDim2.new(1,-24,0,32))
+    local evaluation=runtime.pianoText("Berechnung beim n\195\164chsten Zug","Analysis on next move")
+    if p.score then
+        if p.solved then evaluation=runtime.pianoText(p.score>0 and "Gewinn nachgewiesen"or p.score<0 and "Verlust bei bestem Gegenspiel"or "Remis nachgewiesen",p.score>0 and "Proven win"or p.score<0 and "Loss against best play"or "Proven draw")
+        else evaluation=runtime.pianoText(p.score>30 and "G\195\188nstige Stellung"or p.score< -30 and "Gegner im Vorteil"or "Ausgeglichene Stellung",p.score>30 and "Favorable position"or p.score< -30 and "Opponent has an advantage"or "Balanced position")end
+    end
+    label(analysis,evaluation,11,C.accent,UDim2.fromOffset(12,48),UDim2.new(1,-24,0,38))
+    label(analysis,runtime.pianoText("Suchtiefe: ","Search depth: ")..tostring(p.depth),11,C.muted,UDim2.fromOffset(12,100),UDim2.new(1,-24,0,20),false)
+    label(analysis,runtime.pianoText("Letzte Spalte: ","Last column: ")..tostring(p.lastMove or "\226\128\147"),11,C.muted,UDim2.fromOffset(12,130),UDim2.new(1,-24,0,20),false)
+    label(analysis,runtime.pianoText("Du: ","You: ")..runtime.pianoText(c and c.players[1]==player.UserId and "Rot"or "Gelb",c and c.players[1]==player.UserId and "Red"or "Yellow"),11,C.text,UDim2.fromOffset(12,158),UDim2.new(1,-24,0,20),false)
+    label(f,runtime.pianoText("Zeitbegrenzte lokale Suche \194\183 Keine zus\195\164tzliche EXE","Time-bounded local search \194\183 No additional EXE"),10,C.muted,UDim2.fromOffset(16,326),UDim2.new(1,-32,0,20),false)
+end
+
 function runtime.openChess()if not runtime.currentGame()then return false end;page="Schach";query="";render();return true end
 function runtime.drawChess()
     local p=runtime.chess
@@ -7949,7 +8327,7 @@ end
 
 render = function()
     if not alive then return end
-    if (page=="Dieses Spiel"or page=="Schach"or page=="Tic Tac Toe")and not runtime.currentGame()then page="Skripte"end
+    if (page=="Dieses Spiel"or page=="Schach"or page=="Tic Tac Toe"or page=="Vier gewinnt")and not runtime.currentGame()then page="Skripte"end
     local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
     local scroll=context==runtime.renderContext and content.CanvasPosition or Vector2.zero
     if runtime.renderContext~=context or page~="Musik" or runtime.musicMode~="piano" then runtime.cancelPianoScroll()end
@@ -7972,18 +8350,18 @@ render = function()
     if search.Text ~= desired then
         updatingSearch=true; search.Text=desired; updatingSearch=false
     end
-    local heights={["Dieses Spiel"]=330,Start=398,Bewegung=390,Spieler=400,Server=420,Darstellung=400,Skripte=420,Musik=420,Favoriten=400,Einstellungen=400,Voice=390}
+    local heights={["Vier gewinnt"]=490,["Dieses Spiel"]=400,Start=398,Bewegung=390,Spieler=400,Server=420,Darstellung=400,Skripte=420,Musik=420,Favoriten=400,Einstellungen=400,Voice=390}
     animate(window,{Size=UDim2.fromOffset(600,heights[page] or 400)})
     for _,child in ipairs(headerIcon:GetChildren()) do child:Destroy() end
     local pageIndex=table.find(navNames,page) or 9
-    imageIcon(headerIcon,(page=="Schach"or page=="Dieses Spiel"or page=="Tic Tac Toe") and navAssetNames[6] or (page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex])),20,UDim2.new(),C.accent)
+    imageIcon(headerIcon,(page=="Schach"or page=="Dieses Spiel"or page=="Tic Tac Toe"or page=="Vier gewinnt") and navAssetNames[6] or (page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex])),20,UDim2.new(),C.accent)
     for name,b in pairs(navButtons) do
         b.TextColor3=name == page and C.accent or C.muted
         b.BackgroundTransparency=name==page and .15 or 1
         b.BackgroundColor3=name == page and C.card or C.panel
         for _,part in ipairs(navIcons[name]) do part.obj[part.property]=name==page and C.accent or C.muted end
     end
-    indicator.Visible=page~="Tic Tac Toe" and page~="Dieses Spiel" and page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
+    indicator.Visible=page~="Vier gewinnt" and page~="Tic Tac Toe" and page~="Dieses Spiel" and page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
     if runtime.statusIcon then runtime.statusIcon.ImageColor3=C.accent end
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
@@ -8002,6 +8380,8 @@ render = function()
         drawVoice()
     elseif page=="Dieses Spiel"then
         runtime.drawThisGame()
+    elseif page=="Vier gewinnt"then
+        runtime.drawConnect4()
     elseif page=="Tic Tac Toe"then
         runtime.drawTicTacToe()
     elseif page=="Schach" then
@@ -8572,6 +8952,8 @@ api.Destroy = function()
     alive=false
     runtime.recovery.cancel(false)
     runtime.piano.dispose()
+    runtime.connect4Roster.clear()
+    runtime.connect4.dispose()
     runtime.tictactoe.dispose()
     runtime.chess.dispose()
     runtime.clearOutfit(true)
@@ -8610,6 +8992,7 @@ api.AddAction = function(id, category, name, description, callback)
     render()
 end
 api.Language=runtime.language
+api.OpenConnect4=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openConnect4()end
 api.OpenTicTacToe=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openTicTacToe()end
 api.OpenChess=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openChess()end
 api.Notify=notify
