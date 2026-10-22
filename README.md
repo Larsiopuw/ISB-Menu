@@ -1,4 +1,10 @@
-# ISB Menu 2.6.90 · by Larsiopuw
+# ISB Menu 2.6.91 · by Larsiopuw
+
+## Halloween-Event
+
+Unter **Scripts > Dieses Spiel > Halloween-Event > Öffnen** gibt es eine eigene Seite mit Start/Stop. Die Funktion ist auf Universe 7447878628 / Place 136162036182779 begrenzt und startet beim Laden nicht automatisch. Drei getrennte Optionen steuern automatisches Klingeln (voreingestellt an), Spawn-Benachrichtigungen unten rechts (an) und orange Haus-Highlights durch Wände (aus). Mit ausgeschaltetem automatischem Klingeln sind auch nur Hinweise/ESP möglich.
+
+Die Erkennung verwendet das originale HalloweenHouseSpawnId-Attribut und den Doorbell-Prompt. Nach mindestens 3,6 Sekunden für die Hausanimation wird einmal pro Spawn-ID ein sicherer Standplatz an der Klingel gesucht. Der native Prompt wird einmal ausgelöst; danach geht es zur gespeicherten Ausgangsposition und Blickrichtung zurück. Auch Stop und Fehler lösen die Rückkehr aus, solange derselbe lebende Charakter existiert. Bei Respawn wird keine alte Position auf den neuen Charakter angewendet. Im Sitzen oder bei aktiven Bewegungsmodi erfolgt kein Besuch. 777 Auto-Spin pausiert seine Bewegung während des kurzen Besuchs. Highlights werden bei Stop, verschwundenen Häusern und Entladen entfernt. Der Zähler zählt Klingelversuche, keine bestätigten Belohnungen.
 
 ## Spielinformationen je Spieler
 

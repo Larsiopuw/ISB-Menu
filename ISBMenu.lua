@@ -1,7 +1,7 @@
 -- ISB Menu 2.6.90 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.90",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.91",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -695,6 +695,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.91"]="Halloween-Event under Scripts > This Game: automatically ring the doorbell and return, with optional spawn notifications and house highlights. Dedicated event page with Start, Stop and separate options; disabled by default.",
     ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game.",
     ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
     ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely to the button and spin as soon as it becomes available. Optionally stop when the title is unlocked; idle protection runs only while auto-spin is active. Lifetime 777 win count shown in the main card. Automatically returns to the button while auto-spin is active.",
@@ -2999,6 +3000,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: automatisches Klingeln mit R\195\188ckkehr zur Ausgangsposition, optionale Spawn-Benachrichtigung und Haus-Highlight. Eigene Event-Seite mit Start, Stop und getrennten Schaltern; standardm\195\164\195\159ig ausgeschaltet."},
     {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar."},
     {version="2.6.89",text="VIP-Aufzug mit eigenen lokalen E-Kn\195\182pfen: direkt hinein und zur\195\188ck teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterst\195\188tzten Spiel."},
     {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz l\195\164uft nur w\195\164hrend Auto-Spin. Gesamtzahl der 777-Gewinne direkt in der Hauptkarte. Automatische R\195\188ckkehr zum Knopf w\195\164hrend Auto-Spin."},
@@ -3410,6 +3412,7 @@ runtime.gameCatalog={
         {id="connect4",name={"Vier gewinnt","Connect Four"},description={"Lokale Zugberechnung und automatisches Spielen.","Local move analysis and automatic play."}},
         {id="tictactoe",name={"Tic Tac Toe","Tic Tac Toe"},description={"Vollst\195\164ndige lokale Suche f\195\188r den besten Zug.","Complete local search for the best move."}},
         {id="slot777",name={"777 Auto-Spin","777 Auto-Spin"},description={"Zum Knopf reisen und automatisch drehen.","Travel to the button and spin automatically."}},
+        {id="halloween",name={"Halloween-Event","Halloween-Event"},description={"Event-H\195\164user finden, klingeln und zur\195\188ckkehren.","Find event houses, ring the bell and return."}},
     }},
 }
 function runtime.currentGame()
@@ -3507,7 +3510,7 @@ function runtime.drawThisGame()
         f.Name="GameFeature_"..feature.id
         for _,child in ipairs(f:GetChildren())do if child:IsA("TextLabel")then child.Size=UDim2.new(1,-156,child.Size.Y.Scale,child.Size.Y.Offset)end end
         local button=rowButton(f,runtime.pianoText("\195\150ffnen","Open"),UDim2.new(1,-124,0,26),UDim2.fromOffset(108,32),function()
-            if feature.id=="chess"then runtime.openChess()elseif feature.id=="tictactoe"then runtime.openTicTacToe()elseif feature.id=="connect4"then runtime.openConnect4()elseif feature.id=="slot777"then runtime.openSlot()end
+            if feature.id=="chess"then runtime.openChess()elseif feature.id=="tictactoe"then runtime.openTicTacToe()elseif feature.id=="connect4"then runtime.openConnect4()elseif feature.id=="slot777"then runtime.openSlot()elseif feature.id=="halloween"then runtime.openHalloween()end
         end)
         button.Name=feature.id=="chess" and "ChessOpen"or "GameFeatureOpen_"..feature.id
     end
@@ -8748,7 +8751,7 @@ runtime.slot=(function(deps)
         status('confirming')
     end
     function p.tick()
-        if not p.alive or not p.active or p.starting or p.ticking then return end
+        if not p.alive or not p.active or p.starting or p.ticking or(deps.suspended and deps.suspended())then return end
         p.ticking=true
         local ok,err=pcall(step)
         p.ticking=false
@@ -8771,6 +8774,7 @@ end)({clock=os.clock,spawn=task.spawn,snapshot=runtime.readSlot,
     end,
     interrupted=function()return state.fly or runtime.freecam~=nil or runtime.roleplay~=nil end,
     press=function(prompt)assert(type(fireproximityprompt)=='function','prompt_input_unavailable');fireproximityprompt(prompt)end,
+    suspended=function()return runtime.halloween and runtime.halloween.busy end,
     changed=runtime.refreshSlot})
 connect(player.CharacterRemoving,function()runtime.slot.stop('changed')end)
 function runtime.refreshSlotWins()
@@ -8830,6 +8834,191 @@ function runtime.drawSlot()
     end
     label(f,runtime.pianoText(p.antiAfk and "AFK-Schutz aktiv"or "AFK-Schutz nur w\195\164hrend Auto-Spin",p.antiAfk and "Idle protection active"or "Idle protection only during auto-spin"),10,C.muted,UDim2.fromOffset(16,210),UDim2.new(1,-32,0,20),false)
 end
+
+function runtime.refreshHalloween()
+    if not alive or not opened or page~="Halloween-Event"or runtime.halloweenRefresh then return end
+    runtime.halloweenRefresh=true
+    task.defer(function()runtime.halloweenRefresh=false;if alive and opened and page=="Halloween-Event"then render()end end)
+end
+function runtime.scanHalloween()
+    local items={}
+    if not runtime.currentGame()then return items end
+    for _,model in ipairs(workspace:GetDescendants())do
+        if model:IsA("Model")then
+            local id=model:GetAttribute("HalloweenHouseSpawnId")
+            if type(id)=="string"and id~=""then
+                local prompt
+                for _,child in ipairs(model:GetDescendants())do
+                    if child:IsA("ProximityPrompt")and child.ObjectText=="Doorbell"then prompt=child;break end
+                end
+                table.insert(items,{id=id,model=model,prompt=prompt,ready=prompt~=nil and prompt.Enabled})
+            end
+        end
+    end
+    return items
+end
+function runtime.halloweenCapture()
+    local r,h=root(),humanoid()
+    assert(r and h and h.Health>0 and not h.SeatPart,"character_not_ready")
+    assert(not state.fly and not runtime.freecam and not runtime.roleplay,"movement_mode_active")
+    assert(not(runtime.recovery and runtime.recovery.active),"recovery_active")
+    assert(not(runtime.slot and runtime.slot.starting),"auto_spin_starting")
+    return {character=player.Character,root=r,humanoid=h,frame=r.CFrame}
+end
+function runtime.halloweenValid(item,saved)
+    return alive and runtime.currentGame()~=nil and saved and player.Character==saved.character
+        and saved.root.Parent and saved.humanoid.Health>0 and not saved.humanoid.SeatPart
+        and not state.fly and not runtime.freecam and not runtime.roleplay
+        and item.model:IsDescendantOf(workspace)and item.model:GetAttribute("HalloweenHouseSpawnId")==item.id
+        and item.prompt and item.prompt:IsDescendantOf(item.model)and item.prompt.Enabled
+end
+function runtime.halloweenMove(item,saved)
+    local parent=item.prompt.Parent
+    local position=parent:IsA("Attachment")and parent.WorldPosition or(parent:IsA("BasePart")and parent.Position)
+    assert(position,"doorbell_position_unavailable")
+    runtime.positionAtSlot({character=saved.character,root=saved.root,humanoid=saved.humanoid,head={Position=position}})
+    assert((saved.root.Position-position).Magnitude<=item.prompt.MaxActivationDistance,"doorbell_out_of_range")
+end
+function runtime.halloweenRestore(saved)
+    if not saved or player.Character~=saved.character or not saved.root.Parent or saved.humanoid.Health<=0 then return end
+    saved.root.CFrame=saved.frame;saved.root.AssemblyLinearVelocity=Vector3.zero;saved.root.AssemblyAngularVelocity=Vector3.zero
+    if runtime.voidGround then runtime.voidGround.reset()end
+end
+function runtime.halloweenHighlight(model)
+    local visual=make("Highlight",{Name="ISBHalloweenHighlight",Adornee=model,DepthMode=Enum.HighlightDepthMode.AlwaysOnTop,
+        FillColor=Color3.fromRGB(255,140,40),OutlineColor=Color3.fromRGB(255,205,125),FillTransparency=.8,OutlineTransparency=.05},model)
+    return function()visual:Destroy()end
+end
+function runtime.openHalloween()if not runtime.currentGame()then return false end;page="Halloween-Event";query="";render();return true end
+function runtime.drawHalloween()
+    local p=runtime.halloween
+    local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+    rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    local messages={ready={"W\195\164hle deine Optionen und starte das Event.","Choose your options and start the event."},
+        stopped={"Halloween-Event gestoppt.","Halloween event stopped."},waiting={"Aktiv \194\183 Warte auf ein Halloween-Haus.","Active \194\183 Waiting for a Halloween house."},
+        travelling={"Zur Klingel unterwegs\226\128\166","Travelling to the doorbell\226\128\166"},returning={"Geklingelt \194\183 Kehre zur Ausgangsposition zur\195\188ck.","Doorbell rung \194\183 Returning to your previous position."},
+        error={"Besuch nicht m\195\182glich. Warte auf das n\195\164chste Haus. Stehe auf und beende aktive Bewegungsmodi.","Visit unavailable. Waiting for the next house. Leave your seat and stop active movement modes."},
+        return_error={"R\195\188ckkehr fehlgeschlagen. Bitte Position pr\195\188fen und neu starten.","Return failed. Check your position and restart."}}
+    local message=messages[p.status]or messages.ready
+    local f=plainCard("Halloween-Event",runtime.pianoText(message[1],message[2]),334,false);f.Name="HalloweenEvent"
+    for _,child in ipairs(f:GetChildren())do if child:IsA("TextLabel")and child.Text~= "Halloween-Event"then child.Size=UDim2.new(1,-32,0,36)end end
+    local transport=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,82),Size=UDim2.new(1,-32,0,36)},f)
+    local start=rowButton(transport,runtime.pianoText("Starten","Start"),UDim2.new(),UDim2.new(.65,-4,1,0),function()p.start()end)
+    start.Name="HalloweenStart";start.TextColor3=p.active and C.panel or C.accent;start.BackgroundColor3=p.active and C.accent or C.panel
+    rowButton(transport,runtime.pianoText("Stoppen","Stop"),UDim2.new(.65,4,0,0),UDim2.new(.35,-4,1,0),function()p.stop()end).Name="HalloweenStop"
+    for i,option in ipairs({{"automatic","Automatisch klingeln","Ring automatically","Zur Klingel und danach wieder zur\195\188ck","Visit the doorbell, then return"},
+        {"notifications","Spawn-Benachrichtigung","Spawn notification","Hinweis unten rechts, sobald ein Haus erscheint","Notify in the bottom right when a house appears"},
+        {"esp","Haus hervorheben \194\183 ESP","Highlight house \194\183 ESP","Orange Markierung durch W\195\164nde","Orange highlight through walls"}})do
+        local name=option[1]
+        local row=make("Frame",{BackgroundColor3=C.panel,BackgroundTransparency=.25,Position=UDim2.fromOffset(16,130+(i-1)*56),Size=UDim2.new(1,-32,0,48)},f);round(row,11)
+        label(row,runtime.pianoText(option[2],option[3]),11,C.text,UDim2.fromOffset(12,5),UDim2.new(1,-84,0,19),false)
+        label(row,runtime.pianoText(option[4],option[5]),10,C.muted,UDim2.fromOffset(12,25),UDim2.new(1,-84,0,17),false)
+        local toggle=rowButton(row,"",UDim2.new(1,-56,0,12),UDim2.fromOffset(44,24),function()p.setOption(name,not p[name])end)
+        toggle.Name="Halloween_"..name;toggle.BackgroundColor3=p[name]and C.accent or C.line;round(toggle,12)
+        local knob=make("Frame",{BackgroundColor3=p[name]and C.panel or C.text,Position=UDim2.fromOffset(p[name]and 24 or 4,4),Size=UDim2.fromOffset(16,16)},toggle);round(knob,8)
+    end
+    label(f,runtime.pianoText("Klingelversuche: ","Doorbell attempts: ")..tostring(p.visits)..runtime.pianoText(" \194\183 Einmal pro Haus"," \194\183 Once per house"),10,C.muted,UDim2.fromOffset(16,302),UDim2.new(1,-32,0,20),false)
+end
+
+runtime.halloween=(function(deps)
+    local p:any={active=false,alive=true,status='ready',automatic=true,notifications=true,esp=false,seen={},attempted={},houses={},visits=0,epoch=0,busy=false}
+    local function changed()if p.alive and deps.changed then deps.changed()end end
+    local function status(s)if p.status~=s then p.status=s;changed()end end
+    local function restore(trip)
+        if trip and trip.saved and not trip.returned then
+            trip.returned=true
+            local ok,err=pcall(deps.restore,trip.saved)
+            if not ok then p.lastError=tostring(err);p.returnFailed=true end
+        end
+    end
+    function p.stop()
+        p.epoch+=1;p.active=false
+        restore(p.trip)
+        for _,entry in pairs(p.houses)do if entry.highlight then pcall(entry.highlight);entry.highlight=nil end end
+        p.houses={};status(p.returnFailed and 'return_error'or 'stopped');changed()
+    end
+    function p.start()
+        if not p.alive or p.active or p.busy or not deps.supported()then return false end
+        p.epoch+=1;p.active=true;p.returnFailed=false;status('waiting');changed();return true
+    end
+    function p.setOption(name,value)
+        if name~='automatic'and name~='notifications'and name~='esp'then return false end
+        p[name]=value==true
+        if name=='automatic'and not p.automatic and p.busy then p.stop()end
+        if name=='esp'and not p.esp then
+            for _,entry in pairs(p.houses)do if entry.highlight then pcall(entry.highlight);entry.highlight=nil end end
+        end
+        changed();return true
+    end
+    function p.tick()
+        if not p.active or not p.alive then return end
+        if not deps.supported()then p.stop();return end
+        local ok,items=pcall(deps.scan)
+        if not ok then p.lastError=tostring(items);status('error');return end
+        local present={}
+        for _,item in ipairs(items)do
+            present[item.id]=true
+            local entry=p.houses[item.id]
+            if not entry or entry.model~=item.model then
+                if entry and entry.highlight then pcall(entry.highlight)end
+                entry={model=item.model,since=deps.clock()};p.houses[item.id]=entry
+                if not p.seen[item.id]then
+                    p.seen[item.id]=true
+                    if p.notifications then pcall(deps.notify)end
+                    changed()
+                end
+            end
+            if p.esp and not entry.highlight then
+                local success,cleanup=pcall(deps.highlight,item.model)
+                if success then entry.highlight=cleanup end
+            end
+            if p.automatic and not p.busy and not p.attempted[item.id]and item.ready and deps.clock()-entry.since>=3.6 then
+                p.attempted[item.id]=true;p.busy=true
+                local epoch=p.epoch;local trip={};p.trip=trip;status('travelling')
+                deps.spawn(function()
+                    local success,err=pcall(function()
+                        if not p.active or p.epoch~=epoch then return end
+                        trip.saved=deps.capture()
+                        local valid=function()return p.alive and p.active and p.epoch==epoch and deps.valid(item,trip.saved)end
+                        if not valid()then error('context_changed')end
+                        deps.prepare(trip.saved)
+                        if not valid()then return end
+                        deps.move(item,trip.saved)
+                        deps.wait(.25)
+                        if not valid()then return end
+                        deps.press(item)
+                        status('returning');deps.wait(.7)
+                        p.visits+=1
+                    end)
+                    restore(trip)
+                    if p.trip==trip then p.trip=nil end
+                    p.busy=false
+                    if not success then p.lastError=tostring(err)end
+                    if p.returnFailed then p.stop()
+                    elseif p.active and p.epoch==epoch then status(success and 'waiting'or 'error')end
+                    changed()
+                end)
+            end
+        end
+        for id,entry in pairs(p.houses)do
+            if not present[id]then if entry.highlight then pcall(entry.highlight)end;p.houses[id]=nil;changed()end
+        end
+    end
+    function p.dispose()p.stop();p.alive=false end
+    return p
+end)({supported=function()return alive and runtime.currentGame()~=nil end,clock=os.clock,spawn=task.spawn,wait=task.wait,
+    scan=runtime.scanHalloween,capture=runtime.halloweenCapture,valid=runtime.halloweenValid,
+    prepare=function()runtime.piano.stop()end,move=runtime.halloweenMove,restore=runtime.halloweenRestore,
+    press=function(item)assert(type(fireproximityprompt)=="function","prompt_input_unavailable");fireproximityprompt(item.prompt)end,
+    highlight=runtime.halloweenHighlight,notify=function()notify(runtime.pianoText("Ein Halloween-Haus ist erschienen!","A Halloween house has appeared!"),"Halloween-Event")end,
+    changed=runtime.refreshHalloween})
+connect(player.CharacterRemoving,function()runtime.halloween.stop()end)
+connect(Run.Heartbeat,function(dt)
+    if runtime.halloween.active then
+        runtime.halloweenClock=(runtime.halloweenClock or 0)+(dt or 0)
+        if runtime.halloweenClock>=.5 then runtime.halloweenClock=0;runtime.halloween.tick()end
+    end
+end)
 
 function runtime.openChess()if not runtime.currentGame()then return false end;page="Schach";query="";render();return true end
 function runtime.drawChess()
@@ -8902,7 +9091,7 @@ end
 
 render = function()
     if not alive then return end
-    if (page=="Dieses Spiel"or page=="Schach"or page=="Tic Tac Toe"or page=="Vier gewinnt"or page=="777 Auto-Spin")and not runtime.currentGame()then page="Skripte"end
+    if (page=="Dieses Spiel"or page=="Schach"or page=="Tic Tac Toe"or page=="Vier gewinnt"or page=="777 Auto-Spin"or page=="Halloween-Event")and not runtime.currentGame()then page="Skripte"end
     local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
     local scroll=context==runtime.renderContext and content.CanvasPosition or Vector2.zero
     if runtime.renderContext~=context or page~="Musik" or runtime.musicMode~="piano" then runtime.cancelPianoScroll()end
@@ -8925,18 +9114,18 @@ render = function()
     if search.Text ~= desired then
         updatingSearch=true; search.Text=desired; updatingSearch=false
     end
-    local heights={["Vier gewinnt"]=490,["Dieses Spiel"]=490,Start=398,Bewegung=390,Spieler=400,Server=420,Darstellung=400,Skripte=420,Musik=420,Favoriten=400,Einstellungen=400,Voice=390}
+    local heights={["Halloween-Event"]=480,["Vier gewinnt"]=490,["Dieses Spiel"]=490,Start=398,Bewegung=390,Spieler=400,Server=420,Darstellung=400,Skripte=420,Musik=420,Favoriten=400,Einstellungen=400,Voice=390}
     animate(window,{Size=UDim2.fromOffset(600,heights[page] or 400)})
     for _,child in ipairs(headerIcon:GetChildren()) do child:Destroy() end
     local pageIndex=table.find(navNames,page) or 9
-    imageIcon(headerIcon,(page=="Schach"or page=="Dieses Spiel"or page=="Tic Tac Toe"or page=="Vier gewinnt"or page=="777 Auto-Spin") and navAssetNames[6] or (page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex])),20,UDim2.new(),C.accent)
+    imageIcon(headerIcon,(page=="Schach"or page=="Dieses Spiel"or page=="Tic Tac Toe"or page=="Vier gewinnt"or page=="777 Auto-Spin"or page=="Halloween-Event") and navAssetNames[6] or (page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex])),20,UDim2.new(),C.accent)
     for name,b in pairs(navButtons) do
         b.TextColor3=name == page and C.accent or C.muted
         b.BackgroundTransparency=name==page and .15 or 1
         b.BackgroundColor3=name == page and C.card or C.panel
         for _,part in ipairs(navIcons[name]) do part.obj[part.property]=name==page and C.accent or C.muted end
     end
-    indicator.Visible=page~="777 Auto-Spin" and page~="Vier gewinnt" and page~="Tic Tac Toe" and page~="Dieses Spiel" and page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
+    indicator.Visible=page~="Halloween-Event" and page~="777 Auto-Spin" and page~="Vier gewinnt" and page~="Tic Tac Toe" and page~="Dieses Spiel" and page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
     if runtime.statusIcon then runtime.statusIcon.ImageColor3=C.accent end
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
@@ -8955,6 +9144,8 @@ render = function()
         drawVoice()
     elseif page=="Dieses Spiel"then
         runtime.drawThisGame()
+    elseif page=="Halloween-Event"then
+        runtime.drawHalloween()
     elseif page=="777 Auto-Spin"then
         runtime.drawSlot()
     elseif page=="Vier gewinnt"then
@@ -9531,6 +9722,7 @@ api.Destroy = function()
     runtime.piano.dispose()
     runtime.gamePlayerInfo.dispose()
     runtime.gamePassCatalog.dispose()
+    runtime.halloween.dispose()
     runtime.slot.dispose()
     runtime.elevatorPrompts.dispose()
     runtime.connect4Roster.clear()
@@ -9573,6 +9765,7 @@ api.AddAction = function(id, category, name, description, callback)
     render()
 end
 api.Language=runtime.language
+api.OpenHalloween=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openHalloween()end
 api.OpenSlot=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openSlot()end
 api.OpenConnect4=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openConnect4()end
 api.OpenTicTacToe=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openTicTacToe()end
