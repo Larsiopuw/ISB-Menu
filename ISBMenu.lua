@@ -1,7 +1,7 @@
--- ISB Menu 2.6.89 | Own-game universal client toolkit
+-- ISB Menu 2.6.90 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.89",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.90",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -695,6 +695,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game.",
     ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
     ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely to the button and spin as soon as it becomes available. Optionally stop when the title is unlocked; idle protection runs only while auto-spin is active. Lifetime 777 win count shown in the main card. Automatically returns to the button while auto-spin is active.",
     ["2.6.81"]="Connect Four Auto-Player under Scripts > This Game with local move calculation, a board view, winning lines and search depth. Automatic play continues across rounds, with pause and single-move controls.",
@@ -2998,6 +2999,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar."},
     {version="2.6.89",text="VIP-Aufzug mit eigenen lokalen E-Kn\195\182pfen: direkt hinein und zur\195\188ck teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterst\195\188tzten Spiel."},
     {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz l\195\164uft nur w\195\164hrend Auto-Spin. Gesamtzahl der 777-Gewinne direkt in der Hauptkarte. Automatische R\195\188ckkehr zum Knopf w\195\164hrend Auto-Spin."},
     {version="2.6.81",text="Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen \195\188ber weitere Runden sowie Pause und einzelne Z\195\188ge."},
@@ -4811,6 +4813,232 @@ function runtime.clearOutfit()
     runtime.stopOutfitBody()
 end
 
+runtime.gamePlayerInfo=(function(deps)
+    local p:any={alive=true,cache=setmetatable({},{__mode='k'})}
+    p.fields={'Money','Donated','Raised','Minutes','Streak','Reputation','Description','EquippedTitle',
+        'EquippedAura','EquippedGradient','EquippedTools','EquippedEmojis','GamePasses','Titles','Tools'}
+    function p.snapshot(other)
+        if not p.alive or not deps.supported()then return {status='unsupported',values={}}end
+        if not other or not other.Parent then return {status='unavailable',values={}}end
+        local now=deps.clock();local cached=p.cache[other]
+        if cached and now-cached.time<1 then return cached.data end
+        local data={status='loading',values={}};p.cache[other]={time=now,data=data}
+        local ok,echo=pcall(deps.getEcho,other)
+        if not ok or not echo then data.status='unavailable';return data end
+        if echo.Initialized~=true then return data end
+        data.status='ready'
+        for _,field in ipairs(p.fields)do
+            local read,value=pcall(echo.Read,echo,'Profile.'..field)
+            if read then data.values[field]=value end
+        end
+        local read,ranks=pcall(echo.Read,echo,'Session.Ranks')
+        if read then data.values.Ranks=ranks end
+        return data
+    end
+    local function scalar(value)
+        if type(value)=='string'then return value end
+        if type(value)=='number'and value==value and math.abs(value)<math.huge then return tostring(value)end
+        return nil
+    end
+    function p.number(value)
+        if type(value)~='number'or value~=value or math.abs(value)==math.huge then return '\226\128\148'end
+        local raw=value%1==0 and string.format('%.0f',math.abs(value))or string.format('%.2f',math.abs(value))
+        local whole,fraction=raw:match('^(%d+)%.?(%d*)$')
+        whole=whole:reverse():gsub('(%d%d%d)','%1.'):reverse():gsub('^%.','')
+        return(value<0 and '-'or '')..whole..(fraction~=''and ','..fraction or '')
+    end
+    function p.items(value)
+        if type(value)~='table'then local text=scalar(value);return text and text~=''and {text}or {}end
+        local items={};local array=#value>0
+        for key,item in pairs(value)do
+            local text
+            if item==true then text=scalar(key)
+            elseif type(item)=='table'then text=scalar(item.Display or item.Name or item.name or item.Id or item.id)
+            elseif item~=false then
+                if array and type(key)=='number'then text=scalar(item)
+                elseif type(key)=='string'then text=key..(type(item)=='number'and item>1 and(' x'..tostring(item))or '')
+                else text=scalar(key)end
+            end
+            if text and text~=''then table.insert(items,text)end
+        end
+        table.sort(items,function(a,b)return a:lower()<b:lower()end)
+        return items
+    end
+    function p.format(value,empty)
+        empty=empty or '\226\128\148'
+        if type(value)=='number'then return p.number(value)end
+        local items=p.items(value)
+        return #items>0 and table.concat(items,', ')or empty
+    end
+    function p.dispose()p.alive=false;table.clear(p.cache)end
+    return p
+end)({clock=os.clock,supported=function()return runtime.currentGame()~=nil end,
+    getEcho=function(other)
+        if not runtime.gameInfoEchoClient then
+            local shared=game:GetService("ReplicatedStorage"):FindFirstChild("Shared")
+            local module=shared and shared:FindFirstChild("EchoClient")
+            assert(module,"game_profile_module_missing");runtime.gameInfoEchoClient=require(module)
+        end
+        return runtime.gameInfoEchoClient:GetEcho(other)
+    end})
+runtime.gamePassCatalog=(function(deps)
+    local p:any={alive=true,cache={},queue={},workers=0}
+    local function pump()
+        while p.alive and p.workers<2 and #p.queue>0 do
+            local entry=table.remove(p.queue,1);p.workers+=1
+            deps.spawn(function()
+                local ok,info=pcall(deps.fetch,entry.id)
+                p.workers-=1
+                if not p.alive then return end
+                if ok and type(info)=='table'and type(info.Name)=='string'and info.Name~=''then
+                    entry.status='ready';entry.name=info.Name
+                    local icon=tonumber(info.IconImageAssetId)
+                    entry.icon=icon and icon>0 and 'rbxassetid://'..tostring(icon)or nil
+                else entry.status='unavailable';entry.retry=deps.clock()+60 end
+                if deps.changed then deps.changed()end
+                pump()
+            end)
+        end
+    end
+    function p.get(id)
+        id=tonumber(id)
+        if not p.alive or not id or id%1~=0 or id<1 then return nil end
+        local entry=p.cache[id]
+        if entry and not(entry.status=='unavailable'and deps.clock()>entry.retry)then return entry end
+        entry={id=id,status='loading'};p.cache[id]=entry;table.insert(p.queue,entry);pump();return entry
+    end
+    function p.dispose()p.alive=false;table.clear(p.queue);table.clear(p.cache)end
+    return p
+end)({clock=os.clock,spawn=task.spawn,
+    fetch=function(id)return game:GetService("MarketplaceService"):GetProductInfoAsync(id,Enum.InfoType.GamePass)end,
+    changed=function()task.defer(function()if alive then runtime.refreshGamePlayerInfo()end end)end})
+runtime.gameInfoExpanded={}
+runtime.gameInfoMetrics={{"Money","Credits","Credits"},{"Reputation","Reputation","Reputation"},
+    {"Minutes","Spielzeit (Min.)","Play time (min)"},{"Streak","Streak","Streak"},
+    {"Donated","Gespendet","Donated"},{"Raised","Erhalten","Raised"}}
+runtime.gameInfoLists={{"EquippedTools","Ausger\195\188stete Items","Equipped tools"},{"EquippedEmojis","Aktive Emojis","Equipped emojis"},
+    {"GamePasses","Gamepasses","Game passes"},{"Titles","Freigeschaltete Titel","Unlocked titles"},{"Tools","Freigeschaltete Items","Unlocked tools"}}
+function runtime.gameInfoText(de,en)return runtime.language=="de"and de or en end
+function runtime.gameInfoSection(parent,name)
+    local box=make("Frame",{Name="GameInfoSection_"..name,BackgroundColor3=C.panel,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y},parent);round(box,12)
+    make("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,9),PaddingBottom=UDim.new(0,9)},box)
+    make("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,7)},box)
+    local head=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,20),LayoutOrder=1},box)
+    local title=label(head,"",12,C.text,UDim2.new(),UDim2.new(1,-42,1,0),false)
+    local count=label(head,"",11,C.accent,UDim2.new(1,-36,0,0),UDim2.fromOffset(36,20),false);count.TextXAlignment=Enum.TextXAlignment.Right
+    local body=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),LayoutOrder=2},box)
+    return {box=box,title=title,count=count,body=body}
+end
+function runtime.renderGameInfoList(view,section,entry,value,activeTitle)
+    section.title.Text=runtime.gameInfoText(entry[2],entry[3])
+    local names=runtime.gamePlayerInfo.items(value);local items={};local tokens={runtime.language,activeTitle or ""}
+    for _,name in ipairs(names)do
+        local item={name=name}
+        if entry[1]=="GamePasses"and tonumber(name)then
+            local metadata=runtime.gamePassCatalog.get(name)
+            item.name=metadata and metadata.status=="ready"and metadata.name
+                or runtime.gameInfoText(metadata and metadata.status=="loading"and "Name wird geladen \226\128\166"or "Gamepass nicht verf\195\188gbar",
+                    metadata and metadata.status=="loading"and "Loading name \226\128\166"or "Game pass unavailable")
+            item.icon=metadata and metadata.icon
+        end
+        table.insert(items,item);table.insert(tokens,#item.name..":"..item.name..(item.icon or ""))
+    end
+    section.count.Text=runtime.gamePlayerInfo.number(#names)
+    local signature=table.concat(tokens,"|");if section.signature==signature then return end;section.signature=signature
+    section.body:ClearAllChildren()
+    local columns=view.narrow and 1 or 2;local height=entry[1]=="GamePasses"and 56 or 40
+    if #items==0 then
+        local empty=label(section.body,runtime.gameInfoText("Keine Eintr\195\164ge","No entries"),11,C.muted,UDim2.new(),UDim2.new(1,0,0,22),false)
+        section.body.Size=UDim2.new(1,0,0,22);return
+    end
+    section.body.Size=UDim2.new(1,0,0,math.ceil(#items/columns)*(height+6)-6)
+    for i,item in ipairs(items)do
+        local column=(i-1)%columns;local row=math.floor((i-1)/columns)
+        local cell=make("Frame",{Name="GameInfoEntry_"..entry[1].."_"..i,BackgroundColor3=C.card,
+            Position=UDim2.new(column/columns,column*3,0,row*(height+6)),Size=UDim2.new(1/columns,columns==1 and 0 or -3,0,height)},section.body);round(cell,9)
+        local inset=10
+        if entry[1]=="GamePasses"then
+            local icon=make("Frame",{BackgroundColor3=C.panel,Position=UDim2.fromOffset(8,10),Size=UDim2.fromOffset(36,36)},cell);round(icon,8)
+            if item.icon then make("ImageLabel",{BackgroundTransparency=1,Image=item.icon,Size=UDim2.fromScale(1,1)},icon)
+            else imageIcon(icon,"star",18,UDim2.fromOffset(9,9),C.accent)end
+            inset=52
+        end
+        local text=label(cell,item.name,12,item.name==activeTitle and C.accent or C.text,UDim2.fromOffset(inset,4),UDim2.new(1,-inset-10,1,-8),false)
+        text.Name=entry[1]=="GamePasses"and "GameInfoPassName"or "GameInfoItemName";text.TextWrapped=true
+    end
+end
+function runtime.refreshGameInfoView(view)
+    if not view or not view.card.Parent then return end
+    local data=runtime.gamePlayerInfo.snapshot(view.player);local ready=data.status=="ready"
+    view.header.Text=runtime.gameInfoText("Spielinformationen","Game information")
+    view.state.Text=ready and runtime.gameInfoText("Spielprofil \194\183 live aktualisiert","Game profile \194\183 updates live")
+        or data.status=="loading"and runtime.gameInfoText("Profildaten werden geladen \226\128\166","Loading game profile \226\128\166")
+        or runtime.gameInfoText("Spielprofil nicht verf\195\188gbar","Game profile unavailable")
+    view.ranks.Text=runtime.gameInfoText("R\195\164nge: ","Ranks: ")..runtime.gamePlayerInfo.format(data.values.Ranks)
+    for i,entry in ipairs(runtime.gameInfoMetrics)do
+        view.metrics[i].title.Text=runtime.gameInfoText(entry[2],entry[3])
+        view.metrics[i].value.Text=runtime.gamePlayerInfo.format(ready and data.values[entry[1]]or nil)
+    end
+    local expanded=runtime.gameInfoExpanded[view.player.UserId]==true;view.details.Visible=expanded
+    view.toggle.Text=runtime.gameInfoText(expanded and "Ausr\195\188stung & Sammlung ausblenden"or "Ausr\195\188stung & Sammlung anzeigen",
+        expanded and "Hide equipment & collection"or "Show equipment & collection")
+    if not expanded then return end
+    view.description.title.Text=runtime.gameInfoText("Beschreibung","Description")
+    view.description.value.Text=runtime.gamePlayerInfo.format(data.values.Description)
+    view.description.box.Visible=data.values.Description~=nil and data.values.Description~=""
+    view.outfit.title.Text=runtime.gameInfoText("Aktives Outfit","Active outfit")
+    for i,entry in ipairs({{"EquippedTitle","Titel","Title"},{"EquippedAura","Aura","Aura"},{"EquippedGradient","Farbverlauf","Gradient"}})do
+        view.active[i].title.Text=runtime.gameInfoText(entry[2],entry[3])
+        view.active[i].value.Text=runtime.gamePlayerInfo.format(data.values[entry[1]])
+    end
+    for i,entry in ipairs(runtime.gameInfoLists)do runtime.renderGameInfoList(view,view.lists[i],entry,data.values[entry[1]],data.values.EquippedTitle)end
+end
+function runtime.drawGamePlayerInfo(parent,other,binder)
+    if not runtime.currentGame()then return nil end
+    local card=make("Frame",{Name="PlayerGameInformation",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y},parent)
+    round(card,16);stroke(card)
+    make("UIPadding",{PaddingLeft=UDim.new(0,14),PaddingRight=UDim.new(0,14),PaddingTop=UDim.new(0,12),PaddingBottom=UDim.new(0,12)},card)
+    make("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,7)},card)
+    local view={card=card,player=other,metrics={},active={},lists={},narrow=binder==runtime.inspectorButton}
+    view.header=label(card,"",14,C.text,UDim2.new(),UDim2.new(1,0,0,22),false);view.header.LayoutOrder=1
+    view.state=label(card,"",11,C.muted,UDim2.new(),UDim2.new(1,0,0,18),false);view.state.LayoutOrder=2
+    view.ranks=label(card,"",11,C.accent,UDim2.new(),UDim2.new(1,0,0,18),false);view.ranks.LayoutOrder=3
+    view.ranks.TextWrapped=true;view.ranks.AutomaticSize=Enum.AutomaticSize.Y
+    local grid=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,116),LayoutOrder=4},card)
+    for i in ipairs(runtime.gameInfoMetrics)do
+        local column=(i-1)%3;local row=math.floor((i-1)/3)
+        local cell=make("Frame",{BackgroundColor3=C.panel,Position=UDim2.new(column/3,column*2,0,row*61),Size=UDim2.new(1/3,-4,0,55)},grid);round(cell,10)
+        local title=label(cell,"",11,C.muted,UDim2.fromOffset(9,6),UDim2.new(1,-18,0,15),false)
+        local value=label(cell,"",15,C.accent,UDim2.fromOffset(9,25),UDim2.new(1,-18,0,23),false)
+        value.Name="GameInfo_"..runtime.gameInfoMetrics[i][1];value.TextTruncate=Enum.TextTruncate.AtEnd;value.TextWrapped=false
+        view.metrics[i]={title=title,value=value}
+    end
+    view.toggle=binder(card,"",UDim2.new(),UDim2.new(1,0,0,30),function()
+        runtime.gameInfoExpanded[other.UserId]=not runtime.gameInfoExpanded[other.UserId];runtime.refreshGameInfoView(view)
+    end);view.toggle.Name="GameInfoExpand";view.toggle.LayoutOrder=5
+    view.details=make("Frame",{Name="GameInfoCollection",BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=6},card)
+    make("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,10)},view.details)
+    view.description=runtime.gameInfoSection(view.details,"Description");view.description.box.LayoutOrder=1
+    view.description.body.AutomaticSize=Enum.AutomaticSize.Y
+    view.description.value=label(view.description.body,"",12,C.text,UDim2.new(),UDim2.new(1,0,0,18),false)
+    view.description.value.AutomaticSize=Enum.AutomaticSize.Y;view.description.value.TextWrapped=true
+    view.outfit=runtime.gameInfoSection(view.details,"Outfit");view.outfit.box.LayoutOrder=2;view.outfit.body.Size=UDim2.new(1,0,0,52)
+    for i=1,3 do
+        local cell=make("Frame",{BackgroundColor3=C.card,Position=UDim2.new((i-1)/3,(i-1)*2,0,0),Size=UDim2.new(1/3,-4,0,52)},view.outfit.body);round(cell,9)
+        local title=label(cell,"",11,C.muted,UDim2.fromOffset(8,5),UDim2.new(1,-16,0,15),false)
+        local value=label(cell,"",12,C.accent,UDim2.fromOffset(8,22),UDim2.new(1,-16,0,26),false);value.TextWrapped=true
+        view.active[i]={title=title,value=value}
+    end
+    for i,entry in ipairs(runtime.gameInfoLists)do view.lists[i]=runtime.gameInfoSection(view.details,entry[1]);view.lists[i].box.LayoutOrder=i+2 end
+    runtime.refreshGameInfoView(view)
+    return view
+end
+function runtime.refreshGamePlayerInfo()
+    if not runtime.currentGame()then return end
+    if opened and page=="Spieler"and runtime.selectedPlayer then runtime.refreshGameInfoView(runtime.gameInfoMain)end
+    if runtime.inspectorPanel and runtime.inspectorPanel.Visible then runtime.refreshGameInfoView(runtime.gameInfoInspector)end
+end
+
 function runtime.drawPlayerDetails(other)
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,30)},content)
     rowButton(back,"\226\134\144 Spieler",UDim2.new(),UDim2.fromOffset(120,28),function() runtime.selectedPlayer=nil; render() end)
@@ -4834,6 +5062,7 @@ function runtime.drawPlayerDetails(other)
     runtime.playerDetailField(detailsGrid,"Gesundheit",h and string.format("%g / %g",h.Health,h.MaxHealth or 100) or "Nicht verf\195\188gbar",UDim2.new(.5,5,0,76))
     runtime.playerDetailField(detailsGrid,"Beziehung",session.friends[other.UserId] and "Freund" or "Spieler",UDim2.fromOffset(0,152))
     runtime.playerDetailField(detailsGrid,"Gruppenrolle",runtime.groupRoles[other] or "Nicht verf\195\188gbar",UDim2.new(.5,5,0,152))
+    runtime.gameInfoMain=runtime.drawGamePlayerInfo(content,other,rowButton)
     local controls=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     rowButton(controls,session.friends[other.UserId] and "Bereits befreundet" or "Freund anfragen",UDim2.new(),UDim2.fromOffset(154,28),function()
         if session.friends[other.UserId] then return end
@@ -5031,6 +5260,21 @@ function runtime.showInspector(other)
         label(cell,title,11,C.muted,UDim2.fromOffset(10,5),UDim2.new(1,-20,0,14))
         local value=label(cell,"",13,C.text,UDim2.fromOffset(10,21),UDim2.new(1,-20,0,18)); value.Font=Enum.Font.BuilderSansBold; value.TextWrapped=false; value.TextTruncate=Enum.TextTruncate.AtEnd
         value.Name="InspectorValue"..i; runtime.inspectorFields[i]=value
+    end
+    runtime.gameInfoInspector=runtime.drawGamePlayerInfo(info,other,runtime.inspectorButton)
+    if runtime.gameInfoInspector then
+        runtime.gameInfoInspector.card.Position=UDim2.fromOffset(16,272)
+        runtime.gameInfoInspector.card.Size=UDim2.new(1,-32,0,0)
+        info.AutomaticCanvasSize=Enum.AutomaticSize.None
+        local function resizeGameInfoCanvas()
+            if not panel.Parent or not runtime.gameInfoInspector then return end
+            local scale=panel.AbsoluteSize.Y/math.max(1,panel.Size.Y.Offset)
+            local height=runtime.gameInfoInspector.card.AbsoluteSize.Y/math.max(.1,scale)
+            info.CanvasSize=UDim2.fromOffset(0,272+height+24)
+        end
+        runtime.inspectorConnect(runtime.gameInfoInspector.card:GetPropertyChangedSignal("AbsoluteSize"),resizeGameInfoCanvas)
+        runtime.inspectorConnect(panel:GetPropertyChangedSignal("AbsoluteSize"),resizeGameInfoCanvas)
+        task.defer(resizeGameInfoCanvas)
     end
     local actionRow=make("Frame",{Name="InspectorActions",BackgroundTransparency=1,Position=UDim2.fromOffset(16,412),Size=UDim2.new(1,-32,0,30)},panel)
     make("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,10)},actionRow)
@@ -9035,7 +9279,7 @@ connect(Run.RenderStepped,function(dt)
         if runtime.media.volumeTick>=.08 then runtime.media.volumeTick=0; runtime.commitMediaVolume() end
     else runtime.media.volumeTick=0 end
     runtime.detailTick=(runtime.detailTick or 0)+dt
-    if runtime.detailTick>=.25 then runtime.detailTick=0; runtime.adminHop.tick(); runtime.refreshInspector(); if opened and page=="Spieler" and runtime.selectedPlayer then runtime.refreshDetails() end end
+    if runtime.detailTick>=.25 then runtime.detailTick=0; runtime.adminHop.tick(); runtime.refreshInspector(); runtime.refreshGamePlayerInfo(); if opened and page=="Spieler" and runtime.selectedPlayer then runtime.refreshDetails() end end
     runtime.media.pollTime=runtime.media.pollTime+dt
     if opened and page=="Musik" and runtime.media.pollTime>=1 then runtime.media.pollTime=0; runtime.mediaPoll() end
 
@@ -9285,6 +9529,8 @@ api.Destroy = function()
     alive=false
     runtime.recovery.cancel(false)
     runtime.piano.dispose()
+    runtime.gamePlayerInfo.dispose()
+    runtime.gamePassCatalog.dispose()
     runtime.slot.dispose()
     runtime.elevatorPrompts.dispose()
     runtime.connect4Roster.clear()

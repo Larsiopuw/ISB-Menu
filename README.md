@@ -1,4 +1,8 @@
-# ISB Menu 2.6.89 · by Larsiopuw
+# ISB Menu 2.6.90 · by Larsiopuw
+
+## Spielinformationen je Spieler
+
+Im registrierten Spiel erscheint in der Spieler-Detailansicht und im scrollbaren Bereich des Spielerinfo-Items eine kompakte Karte. Sie zeigt Credits, Reputation, Spielzeit in Minuten, Streak, gespendete/erhaltene Werte sowie Spielraenge. Der aufklappbare Bereich enthaelt Beschreibung, aktiven Titel, Aura, Farbverlauf, ausgeruestete Items/Emojis sowie Gamepasses, freigeschaltete Titel und Items. Zahlen erhalten Tausenderpunkte. Ausruestung und Sammlung erscheinen in getrennten Gruppen mit Anzahl und einzelnen Titel-/Item-Eintraegen. Gamepass-Namen und Bilder werden asynchron ueber Roblox MarketplaceService ermittelt und zwischengespeichert; maximal zwei Abfragen laufen gleichzeitig, fehlgeschlagene Abfragen haben eine Wiederholungspause. Noch nicht verfuegbare Namen zeigen einen Lade-/Fehlerstatus statt roher IDs. Fehlende oder noch nicht geladene Werte erscheinen als Gedankenstrich statt erfundener Nullwerte. Der Inspector-Scrollbereich folgt der tatsaechlichen Kartenhoehe inklusive 24 Pixel Unterkante und UI-Skalierung, auch nach Aufklappen oder Metadatenupdates. Die ausgewaehlten Profile aktualisieren sich sekundenweise ohne kompletten Neuaufbau der Ansicht. Ausserhalb von Universe 7447878628 / Place 136162036182779 wird dieser Bereich nicht erstellt und kein Spielprofil gelesen. Es werden nur die aufgefuehrten Profilfelder und Session.Ranks gelesen, keine vollstaendigen Echo-Zustaende.
 
 ## VIP-Aufzug mit lokalem E-Knopf
 
@@ -125,6 +129,10 @@ Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden ab
 ## Änderungshistorie
 
 Zusammengehörige Zwischenstände sind als abgeschlossene Funktionen zusammengefasst. Technische Versuche und Prüfergebnisse stehen separat im Prüfbericht.
+
+### 2.6.90
+
+- Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, Ränge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausrüstung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Einträgen; live aktualisiert und nur im unterstützten Spiel sichtbar.
 
 ### 2.6.89
 
