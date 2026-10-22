@@ -99,7 +99,7 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish",chessHumanize=false,chessDelayMin=1.2,chessDelayMax=3.2, favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, adminAutoHop=false, lowEffects=false, fpsCap=60}
+local settings = {halloweenAutomatic=true,halloweenNotifications=true,halloweenEsp=true,flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish",chessHumanize=false,chessDelayMin=1.2,chessDelayMax=3.2, favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, adminAutoHop=false, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -134,6 +134,9 @@ if type(readfile) == "function" then
             local low,high=tonumber(data.chessDelayMin),tonumber(data.chessDelayMax)
             if low and high and low==low and high==high and low>=0 and high<=60 and low<=high then settings.chessDelayMin=low;settings.chessDelayMax=high end
         end
+        settings.halloweenAutomatic=data.halloweenAutomatic~=false
+        settings.halloweenNotifications=data.halloweenNotifications~=false
+        settings.halloweenEsp=data.halloweenEsp~=false
         settings.adminAutoHop=data.adminAutoHop==true
         settings.lowEffects=data.lowEffects==true
         if data.provider=="RoScripts" then settings.provider=data.provider end
@@ -695,7 +698,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
-    ["2.6.91"]="Halloween-Event under Scripts > This Game: automatically ring the doorbell and return, with optional spawn notifications and house highlights. Dedicated event page with Start, Stop and separate options; disabled by default.",
+    ["2.6.91"]="Halloween-Event under Scripts > This Game: automatically ring the doorbell and return, with optional spawn notifications and house highlights. Dedicated event page with Start, Stop and separate options; disabled by default. All three options are saved and default to on until customized.",
     ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game.",
     ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
     ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely to the button and spin as soon as it becomes available. Optionally stop when the title is unlocked; idle protection runs only while auto-spin is active. Lifetime 777 win count shown in the main card. Automatically returns to the button while auto-spin is active.",
@@ -3000,7 +3003,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: automatisches Klingeln mit R\195\188ckkehr zur Ausgangsposition, optionale Spawn-Benachrichtigung und Haus-Highlight. Eigene Event-Seite mit Start, Stop und getrennten Schaltern; standardm\195\164\195\159ig ausgeschaltet."},
+    {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: automatisches Klingeln mit R\195\188ckkehr zur Ausgangsposition, optionale Spawn-Benachrichtigung und Haus-Highlight. Eigene Event-Seite mit Start, Stop und getrennten Schaltern; standardm\195\164\195\159ig ausgeschaltet. Die drei Optionen werden gespeichert und sind ohne eigene Auswahl alle eingeschaltet."},
     {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar."},
     {version="2.6.89",text="VIP-Aufzug mit eigenen lokalen E-Kn\195\182pfen: direkt hinein und zur\195\188ck teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterst\195\188tzten Spiel."},
     {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz l\195\164uft nur w\195\164hrend Auto-Spin. Gesamtzahl der 777-Gewinne direkt in der Hauptkarte. Automatische R\195\188ckkehr zum Knopf w\195\164hrend Auto-Spin."},
@@ -8922,7 +8925,9 @@ function runtime.drawHalloween()
 end
 
 runtime.halloween=(function(deps)
-    local p:any={active=false,alive=true,status='ready',automatic=true,notifications=true,esp=false,seen={},attempted={},houses={},visits=0,epoch=0,busy=false}
+    local p:any={active=false,alive=true,status='ready',automatic=true,notifications=true,esp=true,seen={},attempted={},houses={},visits=0,epoch=0,busy=false}
+    local options=deps.options or {}
+    for _,name in ipairs({'automatic','notifications','esp'})do if type(options[name])=='boolean'then p[name]=options[name]end end
     local function changed()if p.alive and deps.changed then deps.changed()end end
     local function status(s)if p.status~=s then p.status=s;changed()end end
     local function restore(trip)
@@ -8945,6 +8950,7 @@ runtime.halloween=(function(deps)
     function p.setOption(name,value)
         if name~='automatic'and name~='notifications'and name~='esp'then return false end
         p[name]=value==true
+        if deps.preference then deps.preference(name,p[name])end
         if name=='automatic'and not p.automatic and p.busy then p.stop()end
         if name=='esp'and not p.esp then
             for _,entry in pairs(p.houses)do if entry.highlight then pcall(entry.highlight);entry.highlight=nil end end
@@ -9008,6 +9014,11 @@ runtime.halloween=(function(deps)
     function p.dispose()p.stop();p.alive=false end
     return p
 end)({supported=function()return alive and runtime.currentGame()~=nil end,clock=os.clock,spawn=task.spawn,wait=task.wait,
+    options={automatic=settings.halloweenAutomatic,notifications=settings.halloweenNotifications,esp=settings.halloweenEsp},
+    preference=function(name,value)
+        local keys={automatic="halloweenAutomatic",notifications="halloweenNotifications",esp="halloweenEsp"}
+        if keys[name]then settings[keys[name]]=value;save(true)end
+    end,
     scan=runtime.scanHalloween,capture=runtime.halloweenCapture,valid=runtime.halloweenValid,
     prepare=function()runtime.piano.stop()end,move=runtime.halloweenMove,restore=runtime.halloweenRestore,
     press=function(item)assert(type(fireproximityprompt)=="function","prompt_input_unavailable");fireproximityprompt(item.prompt)end,
@@ -9918,3 +9929,4 @@ end
 runtime.startWelcomeIntro()
 return api
 -- by Larsiopuw
+
