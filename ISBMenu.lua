@@ -700,7 +700,7 @@ runtime.english={
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
     ["2.6.92"]="Central idle protection across ISB Menu: enabled automatically on load, with periodic Roblox input pulses during inactivity and an additional idle-event response. One shared instance for all features, automatic retries after input failures and complete cleanup on unload.",
-    ["2.6.91"]="Halloween-Event under Scripts > This Game: native doorbell input with confirmed candy credit and return to the previous position. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually.",
+    ["2.6.91"]="Halloween-Event under Scripts > This Game: Doorbell input from inside the house with the camera aimed at the bell, confirmed candy credit and return to the previous position and camera view. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually.",
     ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game.",
     ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
     ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely and claim button availability immediately. Native taps every frame until server acknowledgement, without artificial hold or retry delays for tap prompts. Confirmed spins receive no further input. Optional title-stop policy, lifetime 777 wins, automatic return to the button and shared ISB Menu idle protection. Actual priority depends on server ordering and ping.",
@@ -3006,7 +3006,7 @@ end
 runtime.validateWaypoints()
 runtime.changelog={
     {version="2.6.92",text="Zentraler AFK-Schutz f\195\188r das gesamte ISB-Men\195\188: beim Laden automatisch aktiv, mit regelm\195\164\195\159igen Roblox-Eingabeimpulsen bei Inaktivit\195\164t und zus\195\164tzlicher Reaktion auf das Idle-Ereignis. Gemeinsame Instanz f\195\188r alle Funktionen, automatische Wiederholung bei Eingabefehlern und vollst\195\164ndige Bereinigung beim Entladen."},
-    {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: native Klingeleingabe mit best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur Ausgangsposition. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet."},
+    {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet."},
     {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar."},
     {version="2.6.89",text="VIP-Aufzug mit eigenen lokalen E-Kn\195\182pfen: direkt hinein und zur\195\188ck teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterst\195\188tzten Spiel."},
     {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und die Freigabe sofort beanspruchen. Native Tap-Eingabe in jedem Frame bis zur Serverbest\195\164tigung, ohne k\195\188nstliche Tastendauer oder Wiederholungspause bei Tap-Prompts. Best\195\164tigte Drehungen erhalten keine weiteren Eingaben. Optional beim freigeschalteten Titel stoppen. Gesamtzahl der 777-Gewinne, automatische R\195\188ckkehr zum Knopf und gemeinsamer AFK-Schutz des ISB-Men\195\188s. Serverreihenfolge und Ping bestimmen den tats\195\164chlichen Vorrang."},
@@ -8981,14 +8981,14 @@ runtime.halloweenTarget=(function(c,bell,inside,range,raycast,blocked)
     local axis=Vector3.new(inside.X-bell.X,0,inside.Z-bell.Z)
     if axis.Magnitude<.1 then axis=Vector3.new(0,0,1)else axis=axis.Unit end
     local candidates={}
-    -- Prefer the interior behind the bell, then fall back to nearby free ground.
-    for _,distance in ipairs({3,5,7})do table.insert(candidates,bell+axis*distance)end
-    for _,distance in ipairs({4,6,8,10})do
-        for i=0,15 do local angle=i*math.pi/8;table.insert(candidates,bell+Vector3.new(math.cos(angle)*distance,0,math.sin(angle)*distance))end
+    -- Search only behind the bell, never in the crowd outside.
+    local side=Vector3.new(-axis.Z,0,axis.X)
+    for _,distance in ipairs({3,4,5,6,7,8})do
+        for _,offset in ipairs({0,2,-2,4,-4})do table.insert(candidates,bell+axis*distance+side*offset)end
     end
     for _,point in ipairs(candidates)do
-        local hit=raycast(point+Vector3.new(0,8,0),Vector3.new(0,-32,0))
-        if hit and hit.Normal.Y>.85 and math.abs(hit.Position.Y-bell.Y)<12 then
+        local hit=raycast(point+Vector3.new(0,.5,0),Vector3.new(0,-12,0))
+        if hit and hit.Normal.Y>.85 and hit.Position.Y<=bell.Y+.5 and bell.Y-hit.Position.Y<8 then
             local target=Vector3.new(point.X,hit.Position.Y+clearance,point.Z)
             if(target-bell).Magnitude<=math.max(1,range-1)then
                 local frame=CFrame.lookAt(target,Vector3.new(bell.X,target.Y,bell.Z))
@@ -8998,6 +8998,44 @@ runtime.halloweenTarget=(function(c,bell,inside,range,raycast,blocked)
     end
     error('no_safe_doorbell_position')
 end)
+runtime.halloweenCamera=(function(deps)
+    local owner
+    local function release(saved)
+        if not saved or owner~=saved then return end
+        owner=nil;deps.unbind()
+        local old=saved.cameraState;saved.cameraState=nil
+        if old and deps.camera()==old.camera then
+            old.camera.CFrame=old.frame;old.camera.Focus=old.focus
+            if not old.subject or old.subject.Parent then old.camera.CameraSubject=old.subject end
+            old.camera.CameraType=old.kind
+        end
+    end
+    local function aim(saved,position)
+        saved.bellPosition=position
+        if owner~=saved then
+            if owner then release(owner)end
+            local camera=deps.camera();assert(camera,'camera_unavailable')
+            saved.cameraState={camera=camera,frame=camera.CFrame,focus=camera.Focus,subject=camera.CameraSubject,kind=camera.CameraType}
+            owner=saved
+            deps.bind(function()
+                if owner~=saved then return end
+                if not deps.valid(saved)or deps.camera()~=saved.cameraState.camera then release(saved);return end
+                local cam=saved.cameraState.camera
+                cam.CameraType=Enum.CameraType.Scriptable
+                cam.CFrame=CFrame.lookAt(saved.root.Position+Vector3.new(0,1.5,0),saved.bellPosition)
+                cam.Focus=CFrame.new(saved.bellPosition)
+            end)
+        end
+        local cam=saved.cameraState.camera
+        cam.CameraType=Enum.CameraType.Scriptable
+        cam.CFrame=CFrame.lookAt(saved.root.Position+Vector3.new(0,1.5,0),position)
+        cam.Focus=CFrame.new(position)
+    end
+    return {aim=aim,release=release}
+end)({camera=function()return workspace.CurrentCamera end,
+    valid=function(saved)return runtime.halloweenValid(nil,saved)end,
+    bind=function(fn)Run:BindToRenderStep("ISBHalloweenCamera",Enum.RenderPriority.Camera.Value+2,fn)end,
+    unbind=function()Run:UnbindFromRenderStep("ISBHalloweenCamera")end})
 function runtime.halloweenMove(item,saved)
     local parent=item.prompt.Parent
     local position=parent:IsA("Attachment")and parent.WorldPosition or(parent:IsA("BasePart")and parent.Position)
@@ -9008,13 +9046,24 @@ function runtime.halloweenMove(item,saved)
     local overlap=OverlapParams.new();overlap.FilterType=Enum.RaycastFilterType.Exclude
     overlap.FilterDescendantsInstances=ignore;overlap.RespectCanCollide=true
     local center=item.model:GetBoundingBox()
-    local target=runtime.halloweenTarget(saved,position,center.Position,item.prompt.MaxActivationDistance,
+    -- Exact collision geometry avoids treating a hollow house mesh as a solid box.
+    local probe=Instance.new("Part");probe.Name="ISBHalloweenLandingProbe";probe.Anchored=true
+    probe.Transparency=1;probe.CanCollide=false;probe.CanTouch=false;probe.CanQuery=false;probe.Parent=workspace
+    table.insert(ignore,probe);params.FilterDescendantsInstances=ignore;overlap.FilterDescendantsInstances=ignore
+    local ok,target=pcall(runtime.halloweenTarget,saved,position,center.Position,item.prompt.MaxActivationDistance,
         function(origin,direction)return workspace:Raycast(origin,direction,params)end,
-        function(frame,size)for _,part in ipairs(workspace:GetPartBoundsInBox(frame,size,overlap))do if part.CanCollide then return true end end;return false end)
+        function(frame,size)
+            probe.CFrame=frame;probe.Size=size
+            for _,part in ipairs(workspace:GetPartsInPart(probe,overlap))do if part.CanCollide then return true end end
+            return false
+        end)
+    probe:Destroy();if not ok then error(target)end
     saved.root.CFrame=target;saved.root.AssemblyLinearVelocity=Vector3.zero;saved.root.AssemblyAngularVelocity=Vector3.zero
+    runtime.halloweenCamera.aim(saved,position)
     saved.bellFrame=target;if runtime.voidGround then runtime.voidGround.reset()end
 end
 function runtime.halloweenRestore(saved)
+    runtime.halloweenCamera.release(saved)
     if not saved or player.Character~=saved.character or not saved.root.Parent or saved.humanoid.Health<=0 then return end
     saved.root.CFrame=saved.frame;saved.root.AssemblyLinearVelocity=Vector3.zero;saved.root.AssemblyAngularVelocity=Vector3.zero
     if runtime.voidGround then runtime.voidGround.reset()end
@@ -9128,6 +9177,7 @@ function runtime.halloweenMaintain(item,saved)
     if not item.model:IsDescendantOf(workspace)or not item.promptReady()then return end
     local parent=item.prompt.Parent
     local bell=parent:IsA("Attachment")and parent.WorldPosition or(parent:IsA("BasePart")and parent.Position)
+    if bell then runtime.halloweenCamera.aim(saved,bell)end
     if bell and(saved.root.Position-bell).Magnitude>math.max(2,item.prompt.MaxActivationDistance-2)then
         -- A transient blocked landing must not discard a reward that is still arriving.
         pcall(runtime.halloweenMove,item,saved)
