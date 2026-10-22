@@ -8903,7 +8903,8 @@ function runtime.drawHalloween()
     local f=plainCard("Halloween-Event",runtime.pianoText(message[1],message[2]),334,false);f.Name="HalloweenEvent"
     for _,child in ipairs(f:GetChildren())do if child:IsA("TextLabel")and child.Text~= "Halloween-Event"then child.Size=UDim2.new(1,-32,0,36)end end
     local transport=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,82),Size=UDim2.new(1,-32,0,36)},f)
-    local start=rowButton(transport,runtime.pianoText("Starten","Start"),UDim2.new(),UDim2.new(.65,-4,1,0),function()p.start()end)
+    local start=rowButton(transport,"",UDim2.new(),UDim2.new(.65,-4,1,0),function()p.start()end)
+    runtime.preserveText(start);start.Text="Start"
     start.Name="HalloweenStart";start.TextColor3=p.active and C.panel or C.accent;start.BackgroundColor3=p.active and C.accent or C.panel
     rowButton(transport,runtime.pianoText("Stoppen","Stop"),UDim2.new(.65,4,0,0),UDim2.new(.35,-4,1,0),function()p.stop()end).Name="HalloweenStop"
     for i,option in ipairs({{"automatic","Automatisch klingeln","Ring automatically","Zur Klingel und danach wieder zur\195\188ck","Visit the doorbell, then return"},
