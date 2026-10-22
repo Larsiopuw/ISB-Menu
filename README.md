@@ -1,4 +1,10 @@
-# ISB Menu 2.6.91 · by Larsiopuw
+# ISB Menu 2.6.92 · by Larsiopuw
+
+## Zentraler AFK-Schutz
+
+Der AFK-Schutz startet automatisch mit dem ISB-Menü, unabhängig von geöffnetem Tab, gestarteter Automatik, Respawn oder minimiertem Menü. Ein erster Roblox-interner Eingabeimpuls erfolgt beim Laden: ein balanciertes rechtes Maus-Down/Up über VirtualInputManager an einem festen Randpunkt; bei nicht verfügbarem Backend dient VirtualUser als Rückfall. Es wird keine Taste gehalten. Bei mindestens 60 Sekunden ohne Client-Eingabe folgt alle 60 Sekunden ein weiterer Impuls. Player.Idled dient als zusätzliche Absicherung; eine 15-Sekunden-Entprellung verhindert Mehrfachaufrufe. Eingabefehler werden angezeigt und nach 15 Sekunden erneut versucht. Es werden keine PC-weiten Tastendrücke und keine fremden Idled-Verbindungen deaktiviert.
+
+777 Auto-Spin verwendet dieselbe zentrale Instanz und erzeugt keinen eigenen Idle-Listener mehr. Stoppen einzelner Funktionen lässt den zentralen Schutz bestehen. Entladen beendet die eigenen Input-/Heartbeat-/Idle-Verbindungen; erneutes Inject ersetzt die alte Instanz. Diagnose zeigt Backend-Status und gesendete Impulse. Ein erfolgreicher API-Aufruf ist vom vollständigen 20-Minuten-Dauertest zu unterscheiden.
 
 ## Halloween-Event
 
@@ -24,7 +30,7 @@ Unter **Scripts → Dieses Spiel → 777 Auto-Spin** öffnen. **Auto-Spin starte
 
 **Bei freigeschaltetem Titel stoppen** ist standardmäßig an. Wer 777 bereits besitzt, wird deshalb beim Start weder teleportiert noch dreht er weiter. Für weitere Drehungen kann diese Option bewusst ausgeschaltet werden. Ein bestätigtes eigenes 777 oder der entsprechende Profilfortschritt beendet die Automatik bei aktiver Option. Drehungen und letztes eigenes Ergebnis stehen kompakt in der Hauptkarte. **777-Gewinne** zeigt zusätzlich den gespeicherten Gesamtzähler aus dem Spielprofil, auch aus früheren Sitzungen. Er aktualisiert sich bei geöffneter Karte automatisch; noch nicht geladene Profildaten erscheinen als Gedankenstrich.
 
-Der lokale AFK-Schutz ist ausschließlich während Auto-Spin aktiv und verwendet Roblox VirtualUser; es werden keine PC-weiten Tasten und keine dauerhaft deaktivierten fremden Idle-Verbindungen verwendet. Stop, Respawn, entfernte/ersetzte Automaten und Fehler entfernen die eigene Idle-Verbindung. Backend-Fehler stoppen die Funktion. Der Backend-Aufruf und die Bereinigung sind live geprüft; ein kompletter 20-Minuten-Idle-Test ist nicht durchgeführt. Spiel- oder Verbindungsabbrüche können dadurch nicht ausgeschlossen werden.
+Der AFK-Schutz wird zentral für das gesamte geladene ISB-Menü betrieben, auch während Halloween auf ein Haus wartet oder Auto-Spin gestoppt ist. Auto-Spin verwendet diese gemeinsame Instanz. Ein 20-Minuten-Dauertest ist gesondert zu bewerten.
 
 Start beendet aktive Flug-/Freecam-/Quick-Action-/Piano-Steuerung, damit sich diese nicht mit der Platzierung überlagert. Solange Auto-Spin aktiv ist, bringt es den Charakter nach Weglaufen oder Wegschubsen automatisch auf einen sicheren Platz am Knopf zurück. Auch innerhalb der Prompt-Reichweite wird eine Abweichung von mehr als zwei Studs korrigiert. Stop beendet diese Rückkehr sofort. Die Funktion startet nicht automatisch nach Laden oder Respawn und wird nicht als aktiv gespeichert. Sie ist an dasselbe registrierte Spiel/Place wie die drei Brettspiele gebunden und steht nach Schach, Vier gewinnt und Tic Tac Toe.
 

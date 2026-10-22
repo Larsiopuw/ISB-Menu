@@ -1,7 +1,7 @@
 -- ISB Menu 2.6.90 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.91",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.92",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -699,6 +699,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.92"]="Central idle protection across ISB Menu: enabled automatically on load, with periodic Roblox input pulses during inactivity and an additional idle-event response. One shared instance for all features, automatic retries after input failures and complete cleanup on unload.",
     ["2.6.91"]="Halloween-Event under Scripts > This Game: native doorbell input with confirmed candy credit and return to the previous position. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually.",
     ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game.",
     ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
@@ -3004,6 +3005,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.92",text="Zentraler AFK-Schutz f\195\188r das gesamte ISB-Men\195\188: beim Laden automatisch aktiv, mit regelm\195\164\195\159igen Roblox-Eingabeimpulsen bei Inaktivit\195\164t und zus\195\164tzlicher Reaktion auf das Idle-Ereignis. Gemeinsame Instanz f\195\188r alle Funktionen, automatische Wiederholung bei Eingabefehlern und vollst\195\164ndige Bereinigung beim Entladen."},
     {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: native Klingeleingabe mit best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur Ausgangsposition. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet."},
     {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar."},
     {version="2.6.89",text="VIP-Aufzug mit eigenen lokalen E-Kn\195\182pfen: direkt hinein und zur\195\188ck teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterst\195\188tzten Spiel."},
@@ -3216,7 +3218,7 @@ function features.drawProfile()
     rowButton(tools,"Export",UDim2.fromOffset(282,72),UDim2.fromOffset(84,28),function() copyText(Http:JSONEncode(settings)) end)
     if runtime.role=="Owner" or runtime.role=="Admin" then
         local admin=plainCard("ISB Verwaltung","Lokale Diagnose, Testhinweise und Konfigurationskontrolle.",112)
-        rowButton(admin,"Diagnose",UDim2.fromOffset(16,72),UDim2.fromOffset(108,28),function() copyText("ISB "..CONFIG.Version.." / "..session.executor.." / FPS "..session.fps.." / Ping "..tostring(session.ping).." / Dateien "..tostring(capabilities.files)) end)
+        rowButton(admin,"Diagnose",UDim2.fromOffset(16,72),UDim2.fromOffset(108,28),function() copyText("ISB "..CONFIG.Version.." / "..session.executor.." / FPS "..session.fps.." / Ping "..tostring(session.ping).." / Dateien "..tostring(capabilities.files).." / Anti-AFK "..tostring(runtime.antiAfk.healthy).." / Impulse "..tostring(runtime.antiAfk.pulses)) end)
         rowButton(admin,"Testhinweis",UDim2.fromOffset(134,72),UDim2.fromOffset(112,28),function() notify("Oberfl\195\164che und Benachrichtigungen sind bereit.","ISB / Systemtest","shield-check") end)
         rowButton(admin,"Erkennung pr\195\188fen",UDim2.fromOffset(256,72),UDim2.fromOffset(140,28),function() for _,other in ipairs(Players:GetPlayers()) do features.detectGameStaff(other) end; notify("Gruppenrollen werden erneut gepr\195\188ft.","ISB") end)
     end
@@ -8655,16 +8657,78 @@ function runtime.positionAtSlot(c)
     if runtime.voidGround then runtime.voidGround.reset()end
     return target.Position
 end
-function runtime.slotIdleGuard(failed)
-    local virtual=game:GetService("VirtualUser");local closed=false;local connection
-    local function pulse()
-        if closed then return end
-        virtual:CaptureController();virtual:ClickButton2(Vector2.zero,workspace.CurrentCamera and workspace.CurrentCamera.CFrame or CFrame.new())
+runtime.idleInput=(function(deps)
+    return function()
+        local found,input=pcall(deps.virtualInput)
+        if found and input then
+            local down=false
+            local ok,err=pcall(function()
+                input:SendMouseButtonEvent(1,1,1,true,deps.host,0);down=true
+                input:SendMouseButtonEvent(1,1,1,false,deps.host,0);down=false
+            end)
+            if ok then return 'VirtualInputManager' end
+            if down then
+                pcall(function()input:SendMouseButtonEvent(1,1,1,false,deps.host,0)end)
+                error(err)
+            end
+        end
+        local camera=deps.camera();assert(camera,'camera_unavailable')
+        local virtual=deps.virtualUser()
+        virtual:CaptureController();virtual:ClickButton2(deps.point,camera.CFrame)
+        return 'VirtualUser'
     end
-    local function cleanup()closed=true;if connection then connection:Disconnect();connection=nil end end
-    connection=player.Idled:Connect(function()if not closed then local ok=pcall(pulse);if not ok then cleanup();failed()end end end)
-    local ok,err=pcall(pulse);if not ok then cleanup();error(err)end
-    return cleanup
+end)({virtualInput=function()return optionalService("VirtualInputManager")end,
+    virtualUser=function()return game:GetService("VirtualUser")end,camera=function()return workspace.CurrentCamera end,
+    point=Vector2.zero,host=game})
+runtime.antiAfk=(function(deps)
+    local p:any={alive=true,healthy=false,busy=false,pulses=0,failures=0,lastInput=deps.clock(),lastPulse=-math.huge,owned={},watchers={}}
+    function p.noteInput()if p.alive and not p.busy then p.lastInput=deps.clock()end end
+    function p.pulse(force)
+        if not p.alive or p.busy then return false end
+        local now=deps.clock()
+        if now-p.lastPulse<15 then return p.healthy end
+        if not force and(now-p.lastInput<60 or now-p.lastPulse<60)then return p.healthy end
+        p.lastPulse=now;p.busy=true
+        local ok,err=pcall(deps.perform)
+        p.busy=false;p.healthy=ok
+        if ok then p.pulses+=1;p.backend=err;p.lastError=nil;p.warned=false
+        else
+            p.failures+=1;p.lastError=tostring(err)
+            for _,fn in pairs(table.clone(p.watchers))do pcall(fn)end
+            if not p.warned then p.warned=true;if deps.failed then pcall(deps.failed,p.lastError)end end
+        end
+        return ok
+    end
+    function p.tick()
+        if not p.alive then return end
+        local now=deps.clock()
+        if not p.healthy and now-p.lastPulse>=15 then p.pulse(true)
+        elseif now-p.lastInput>=60 and now-p.lastPulse>=60 then p.pulse(false)end
+    end
+    function p.watchFailure(fn)
+        local key={};p.watchers[key]=fn
+        return function()p.watchers[key]=nil end
+    end
+    function p.dispose()
+        if not p.alive then return end;p.alive=false
+        for _,connection in ipairs(p.owned)do pcall(function()connection:Disconnect()end)end
+        p.owned={};p.watchers={}
+    end
+    local function own(signal,fn)if signal then table.insert(p.owned,signal:Connect(fn))end end
+    own(deps.inputBegan,p.noteInput);own(deps.inputChanged,p.noteInput)
+    own(deps.idled,function()p.pulse(true)end)
+    own(deps.heartbeat,p.tick)
+    p.pulse(true)
+    return p
+end)({clock=os.clock,inputBegan=UIS.InputBegan,inputChanged=UIS.InputChanged,idled=player.Idled,heartbeat=Run.Heartbeat,
+    perform=runtime.idleInput,
+    failed=function(err)
+        warn("ISB Menu anti-idle: "..tostring(err))
+        notify(runtime.pianoText("AFK-Schutz konnte keine Eingabe senden. Ein neuer Versuch folgt automatisch.","Idle protection could not send input. It will retry automatically."),"ISB / AFK")
+    end})
+function runtime.slotIdleGuard(failed)
+    assert(runtime.antiAfk.pulse(true),"idle_backend_unavailable")
+    return runtime.antiAfk.watchFailure(failed)
 end
 function runtime.refreshSlot()
     if not alive or not opened or page~="777 Auto-Spin"or runtime.slotRefresh then return end
@@ -8836,7 +8900,7 @@ function runtime.drawSlot()
         local value=label(chip,item[2],11,C.accent,UDim2.new(.75,0,0,0),UDim2.new(.25,-10,1,0),false);value.TextXAlignment=Enum.TextXAlignment.Right
         if i==3 then value.Name="SlotTotalWins"end
     end
-    label(f,runtime.pianoText(p.antiAfk and "AFK-Schutz aktiv"or "AFK-Schutz nur w\195\164hrend Auto-Spin",p.antiAfk and "Idle protection active"or "Idle protection only during auto-spin"),10,C.muted,UDim2.fromOffset(16,210),UDim2.new(1,-32,0,20),false)
+    label(f,runtime.pianoText(runtime.antiAfk.healthy and "AFK-Schutz im gesamten ISB-Men\195\188 aktiv"or "AFK-Schutz wird erneut verbunden\226\128\166",runtime.antiAfk.healthy and "Idle protection active across ISB Menu"or "Idle protection is retrying\226\128\166"),10,C.muted,UDim2.fromOffset(16,210),UDim2.new(1,-32,0,20),false)
 end
 
 function runtime.refreshHalloween()
@@ -9921,6 +9985,7 @@ api.Destroy = function()
     runtime.gamePassCatalog.dispose()
     runtime.halloween.dispose()
     runtime.slot.dispose()
+    runtime.antiAfk.dispose()
     runtime.elevatorPrompts.dispose()
     runtime.connect4Roster.clear()
     runtime.connect4.dispose()
