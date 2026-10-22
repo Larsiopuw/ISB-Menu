@@ -286,3 +286,5 @@ Erweiterungen: ISBMenu.AddAction, ISBMenu.Notify und ISBMenu.Destroy.
 Designreferenz: [Apple Liquid Glass](https://developer.apple.com/videos/play/wwdc2025/219/). Anbieter: [ScriptBlox](https://docs.scriptblox.com/docs/scripts/fetch), [RoScripts Trending](https://roscripts.io/trending).
 
 <!-- -- by Larsiopuw -->
+
+Die Spielinformationen verwenden eine feste abgerundete Rahmenfläche statt einer beim Vergrößern verzögert gezeichneten Konturlinie. Der Rahmen bleibt beim Auf-/Zuklappen ohne Scrollbewegung sichtbar, sowohl im Spieler-Tab als auch im Spielerinfo-Item.

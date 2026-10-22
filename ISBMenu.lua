@@ -701,7 +701,7 @@ runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="R
 runtime.englishHistory={
     ["2.6.92"]="Central idle protection across ISB Menu: enabled automatically on load, with periodic Roblox input pulses during inactivity and an additional idle-event response. One shared instance for all features, automatic retries after input failures and complete cleanup on unload.",
     ["2.6.91"]="Halloween-Event under Scripts > This Game: Doorbell input from inside the house with the camera aimed at the bell, confirmed candy credit and return to the previous position and camera view. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually.",
-    ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game.",
+    ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game. Rounded frame stays visible when expanding or collapsing the collection.",
     ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
     ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely and claim button availability immediately. Native taps every frame until server acknowledgement, without artificial hold or retry delays for tap prompts. Confirmed spins receive no further input. Optional title-stop policy, lifetime 777 wins, automatic return to the button and shared ISB Menu idle protection. Actual priority depends on server ordering and ping.",
     ["2.6.81"]="Connect Four Auto-Player under Scripts > This Game with local move calculation, a board view, winning lines and search depth. Automatic play continues across rounds, with pause and single-move controls.",
@@ -3007,7 +3007,7 @@ runtime.validateWaypoints()
 runtime.changelog={
     {version="2.6.92",text="Zentraler AFK-Schutz f\195\188r das gesamte ISB-Men\195\188: beim Laden automatisch aktiv, mit regelm\195\164\195\159igen Roblox-Eingabeimpulsen bei Inaktivit\195\164t und zus\195\164tzlicher Reaktion auf das Idle-Ereignis. Gemeinsame Instanz f\195\188r alle Funktionen, automatische Wiederholung bei Eingabefehlern und vollst\195\164ndige Bereinigung beim Entladen."},
     {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet."},
-    {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar."},
+    {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar. Stabiler abgerundeter Rahmen beim Auf- und Zuklappen der Sammlung."},
     {version="2.6.89",text="VIP-Aufzug mit eigenen lokalen E-Kn\195\182pfen: direkt hinein und zur\195\188ck teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterst\195\188tzten Spiel."},
     {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und die Freigabe sofort beanspruchen. Native Tap-Eingabe in jedem Frame bis zur Serverbest\195\164tigung, ohne k\195\188nstliche Tastendauer oder Wiederholungspause bei Tap-Prompts. Best\195\164tigte Drehungen erhalten keine weiteren Eingaben. Optional beim freigeschalteten Titel stoppen. Gesamtzahl der 777-Gewinne, automatische R\195\188ckkehr zum Knopf und gemeinsamer AFK-Schutz des ISB-Men\195\188s. Serverreihenfolge und Ping bestimmen den tats\195\164chlichen Vorrang."},
     {version="2.6.81",text="Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen \195\188ber weitere Runden sowie Pause und einzelne Z\195\188ge."},
@@ -5002,10 +5002,49 @@ function runtime.refreshGameInfoView(view)
     end
     for i,entry in ipairs(runtime.gameInfoLists)do runtime.renderGameInfoList(view,view.lists[i],entry,data.values[entry[1]],data.values.EquippedTitle)end
 end
+function runtime.gameInfoBorder(card)
+    -- Paint only the visible portion, avoiding stale oversized-frame clipping in Roblox.
+    local viewport=card.Parent
+    while viewport and not viewport:IsA("ScrollingFrame")do viewport=viewport.Parent end
+    if not viewport then card.BackgroundTransparency=0;round(card,16);stroke(card);return end
+    local decoration=make("Frame",{Name="GameInfoBorder",BackgroundTransparency=1,ClipsDescendants=true,ZIndex=0},viewport.Parent)
+    local edge=C.line:Lerp(C.card,.45)
+    local function cap(name)
+        local outer=make("Frame",{Name=name,BackgroundColor3=edge,Size=UDim2.new(0,0,0,32),ZIndex=0},decoration);round(outer,16)
+        local inner=make("Frame",{BackgroundColor3=C.card,Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,1,-2),ZIndex=0},outer);round(inner,15)
+        return outer
+    end
+    local top,bottom=cap("Top"),cap("Bottom")
+    local middle=make("Frame",{Name="Middle",BackgroundColor3=edge,ZIndex=0},decoration)
+    make("Frame",{BackgroundColor3=C.card,Position=UDim2.fromOffset(1,0),Size=UDim2.new(1,-2,1,0),ZIndex=0},middle)
+    local owned={}
+    local function update()
+        if not card.Parent or not decoration.Parent then return end
+        local unit=top.AbsoluteSize.Y/32;if unit<=0 then return end
+        local origin=viewport.AbsolutePosition-viewport.Parent.AbsolutePosition
+        decoration.Position=UDim2.fromOffset(origin.X/unit,origin.Y/unit)
+        decoration.Size=UDim2.fromOffset(viewport.AbsoluteSize.X/unit,viewport.AbsoluteSize.Y/unit)
+        decoration.Visible=card.Visible and viewport.Visible
+        local offset=card.AbsolutePosition-viewport.AbsolutePosition
+        local x,y,width,height=offset.X/unit,offset.Y/unit,card.AbsoluteSize.X/unit,card.AbsoluteSize.Y/unit
+        top.Position=UDim2.fromOffset(x,y);top.Size=UDim2.fromOffset(width,32)
+        bottom.Position=UDim2.fromOffset(x,y+height-32);bottom.Size=UDim2.fromOffset(width,32)
+        local first,last=math.max(0,y+16),math.min(viewport.AbsoluteSize.Y/unit,y+height-16)
+        middle.Position=UDim2.fromOffset(x,first);middle.Size=UDim2.fromOffset(width,math.max(0,last-first));middle.Visible=last>first
+    end
+    local function watch(object,name)table.insert(owned,object:GetPropertyChangedSignal(name):Connect(update))end
+    for _,name in ipairs({"AbsoluteSize","AbsolutePosition","Visible"})do watch(card,name);watch(viewport,name)end
+    watch(viewport,"CanvasPosition");watch(top,"AbsoluteSize")
+    table.insert(owned,card.Destroying:Connect(function()
+        for _,connection in ipairs(owned)do connection:Disconnect()end
+        decoration:Destroy()
+    end))
+    update()
+end
 function runtime.drawGamePlayerInfo(parent,other,binder)
     if not runtime.currentGame()then return nil end
     local card=make("Frame",{Name="PlayerGameInformation",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y},parent)
-    round(card,16);stroke(card)
+    card.BackgroundTransparency=1;runtime.gameInfoBorder(card)
     make("UIPadding",{PaddingLeft=UDim.new(0,14),PaddingRight=UDim.new(0,14),PaddingTop=UDim.new(0,12),PaddingBottom=UDim.new(0,12)},card)
     make("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,7)},card)
     local view={card=card,player=other,metrics={},active={},lists={},narrow=binder==runtime.inspectorButton}
