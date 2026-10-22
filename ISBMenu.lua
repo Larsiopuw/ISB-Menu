@@ -3400,9 +3400,9 @@ local function drawVoice()
 end
 runtime.gameCatalog={
     [7447878628]={places={[136162036182779]=true},features={
-        {id="tictactoe",name={"Tic Tac Toe","Tic Tac Toe"},description={"Vollst\195\164ndige lokale Suche f\195\188r den besten Zug.","Complete local search for the best move."}},
-        {id="connect4",name={"Vier gewinnt","Connect Four"},description={"Lokale Zugberechnung und automatisches Spielen.","Local move analysis and automatic play."}},
         {id="chess",name={"Schach","Chess"},description={"Automatisch spielen oder einen einzelnen Zug berechnen.","Play automatically or calculate a single move."}},
+        {id="connect4",name={"Vier gewinnt","Connect Four"},description={"Lokale Zugberechnung und automatisches Spielen.","Local move analysis and automatic play."}},
+        {id="tictactoe",name={"Tic Tac Toe","Tic Tac Toe"},description={"Vollst\195\164ndige lokale Suche f\195\188r den besten Zug.","Complete local search for the best move."}},
     }},
 }
 function runtime.currentGame()
