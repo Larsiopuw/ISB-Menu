@@ -1,7 +1,7 @@
 -- ISB Menu 2.6.90 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.92",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.93",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -698,7 +698,9 @@ runtime.english={
     [" \195\182ffnet das Men\195\188"]=" opens the menu",
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
+runtime.english["Auto-Angeln"]="Auto Fishing"
 runtime.englishHistory={
+    ["2.6.93"]="Auto Fishing under Scripts > This Game: automatically equip an available standard or golden rod, cast into the pond and control the blue catching region by holding and releasing. Automatic casts after the game cooldown, confirmed catches and credits, background operation and shared idle protection; starts and stops manually.",
     ["2.6.92"]="Central idle protection across ISB Menu: enabled automatically on load, with periodic Roblox input pulses during inactivity and an additional idle-event response. One shared instance for all features, automatic retries after input failures and complete cleanup on unload.",
     ["2.6.91"]="Halloween-Event under Scripts > This Game: Doorbell input from inside the house with the camera aimed at the bell, confirmed candy credit and return to the previous position and camera view. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually.",
     ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game. Rounded frame stays visible when expanding or collapsing the collection; frame and content share the same native scrolling clip.",
@@ -3005,6 +3007,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.93",text="Auto-Angeln unter Scripts > Dieses Spiel: verf\195\188gbare Standard- oder goldene Angel automatisch ausr\195\188sten, in den Teich auswerfen und den blauen Fangbereich durch Halten und Loslassen steuern. Automatische Folgew\195\188rfe nach dem Spiel-Cooldown, best\195\164tigte F\195\164nge und Credits, Hintergrundbetrieb und zentrale AFK-Sicherung; Start und Stop bleiben manuell."},
     {version="2.6.92",text="Zentraler AFK-Schutz f\195\188r das gesamte ISB-Men\195\188: beim Laden automatisch aktiv, mit regelm\195\164\195\159igen Roblox-Eingabeimpulsen bei Inaktivit\195\164t und zus\195\164tzlicher Reaktion auf das Idle-Ereignis. Gemeinsame Instanz f\195\188r alle Funktionen, automatische Wiederholung bei Eingabefehlern und vollst\195\164ndige Bereinigung beim Entladen."},
     {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet."},
     {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar. Stabiler abgerundeter Rahmen beim Auf- und Zuklappen der Sammlung, mit gemeinsamem sauberem Scroll-Ausschnitt f\195\188r Rahmen und Inhalt."},
@@ -3419,6 +3422,7 @@ runtime.gameCatalog={
         {id="tictactoe",name={"Tic Tac Toe","Tic Tac Toe"},description={"Vollst\195\164ndige lokale Suche f\195\188r den besten Zug.","Complete local search for the best move."}},
         {id="slot777",name={"777 Auto-Spin","777 Auto-Spin"},description={"Zum Knopf reisen und automatisch drehen.","Travel to the button and spin automatically."}},
         {id="halloween",name={"Halloween-Event","Halloween-Event"},description={"Event-H\195\164user finden, klingeln und zur\195\188ckkehren.","Find event houses, ring the bell and return."}},
+        {id="fishing",name={"Auto-Angeln","Auto Fishing"},description={"Angel erkennen, auswerfen und den Fisch automatisch einholen.","Detect your rod, cast and automatically reel in fish."}},
     }},
 }
 function runtime.currentGame()
@@ -3516,7 +3520,7 @@ function runtime.drawThisGame()
         f.Name="GameFeature_"..feature.id
         for _,child in ipairs(f:GetChildren())do if child:IsA("TextLabel")then child.Size=UDim2.new(1,-156,child.Size.Y.Scale,child.Size.Y.Offset)end end
         local button=rowButton(f,runtime.pianoText("\195\150ffnen","Open"),UDim2.new(1,-124,0,26),UDim2.fromOffset(108,32),function()
-            if feature.id=="chess"then runtime.openChess()elseif feature.id=="tictactoe"then runtime.openTicTacToe()elseif feature.id=="connect4"then runtime.openConnect4()elseif feature.id=="slot777"then runtime.openSlot()elseif feature.id=="halloween"then runtime.openHalloween()end
+            if feature.id=="chess"then runtime.openChess()elseif feature.id=="tictactoe"then runtime.openTicTacToe()elseif feature.id=="connect4"then runtime.openConnect4()elseif feature.id=="slot777"then runtime.openSlot()elseif feature.id=="halloween"then runtime.openHalloween()elseif feature.id=="fishing"then runtime.openFishing()end
         end)
         button.Name=feature.id=="chess" and "ChessOpen"or "GameFeatureOpen_"..feature.id
     end
@@ -9132,6 +9136,214 @@ function runtime.halloweenHighlight(model)
         FillColor=Color3.fromRGB(255,140,40),OutlineColor=Color3.fromRGB(255,205,125),FillTransparency=.8,OutlineTransparency=.05},model)
     return function()visual:Destroy()end
 end
+runtime.createFishing=(function(deps)
+    local p={active=false,alive=true,status='ready',caught=0,credits=0,progress=0,nextCast=0,epoch=0}
+    local function changed()if deps.changed then deps.changed()end end
+    local function status(s)if p.status~=s then p.status=s;changed()end end
+    function p.stop(reason)
+        p.epoch+=1;p.active=false
+        if p.close then pcall(p.close);p.close=nil end
+        pcall(deps.release)
+        if p.owns then pcall(deps.cancel)end
+        p.owns=false;p.canCredit=false;p.castPending=false;p.progress=0
+        status(reason or 'stopped');changed()
+    end
+    function p.start()
+        if not p.alive or p.active then return false end
+        if not deps.supported()then status('unavailable');return false end
+        p.active=true;p.epoch+=1;p.lastError=nil;p.nextCast=math.max(p.nextCast,deps.clock());p.owns=false;p.character=nil
+        local epoch=p.epoch
+        local ok,close=pcall(deps.listen,function(event,value)
+            if not p.active or p.epoch~=epoch then return end
+            if event=='SessionStarted'then p.canCredit=true;p.owns=true;p.castPending=false
+            elseif event=='Caught'and p.canCredit and type(value)=='number'and value>=0 then
+                p.canCredit=false;p.owns=false;p.castPending=false;p.caught+=1;p.credits+=value;p.progress=0
+                p.nextCast=deps.clock()+8.15;status('cooldown');changed()
+            elseif event=='Cooldown'then p.nextCast=deps.clock()+math.max(1,tonumber(value)or 8)+.15;p.castPending=false;status('cooldown')
+            elseif event=='CastFailed'or event=='SessionCancelled'or event=='CancelFishing'or event=='LeaveArea'then
+                p.owns=false;p.canCredit=false;p.castPending=false;p.nextCast=deps.clock()+1.25;status('retry')
+            end
+        end)
+        if not ok then p.lastError=tostring(close);p.stop('error');return false end
+        p.close=close;status('waiting');return true
+    end
+    function p.tick()
+        if not p.active or not p.alive or p.busy then return end
+        p.busy=true
+        local ok,err=pcall(function()
+            if not deps.supported()then p.stop('unavailable');return end
+            local s=deps.snapshot();p.rod=s.rodName
+            if p.character and s.character~=p.character then p.stop('character');return end
+            p.character=s.character
+            if not s.healthy then p.stop('character');return end
+            if s.suspended then
+                if p.owns then deps.release();deps.cancel();p.owns=false;p.castPending=false end
+                status('paused');return
+            end
+            if not s.rod then status('pond');return end
+            if s.session then
+                p.owns=true;p.canCredit=true;p.castPending=false;p.progress=s.progress or 0
+                local t=s.session;local duration=math.max(.01,t.FishTweenDuration or 1)
+                local phase=math.clamp((deps.serverTime()-(t.FishTweenStartTime or 0))/duration,0,1)
+                local velocity=((t.FishTargetCenterY or t.FishCenterY)-(t.FishFromCenterY or t.FishCenterY))*6*phase*(1-phase)/duration
+                local acceleration=25*(t.FishCenterY-t.RegionCenterY)+6*(velocity-t.RegionVelocityY)
+                deps.reel(acceleration<0);if deps.advance then deps.advance()end
+                status('reeling');return
+            end
+            if s.fishing then p.owns=true;status('bite');return end
+            if deps.clock()<p.nextCast then status('cooldown');return end
+            if p.castPending then
+                if deps.clock()-p.castTime<6 then status('casting');return end
+                p.castPending=false;p.nextCast=deps.clock()+1.25;status('retry');return
+            end
+            if not s.equipped then deps.equip(s.rod);status('equipping');return end
+            p.owns=true;p.castPending=true;p.castTime=deps.clock();p.nextCast=deps.clock()+1.25
+            local epoch=p.epoch
+            deps.spawn(function()
+                if not p.active or p.epoch~=epoch then return end
+                local success,message=pcall(deps.cast,s.rod)
+                if not success and p.active and p.epoch==epoch then p.lastError=tostring(message);p.castPending=false;p.nextCast=deps.clock()+2;status('retry')end
+            end)
+            status('casting')
+        end)
+        p.busy=false
+        if not ok then p.lastError=tostring(err);p.stop('error')end
+    end
+    function p.dispose()p.stop();p.alive=false end
+    return p
+end)
+runtime.fishingAdapter=(function(deps)
+    assert(type(getconnections)=='function'and type(getupvalues)=='function'and type(setupvalue)=='function','fishing_api_unavailable')
+    local player=deps.player
+    local module=game:GetService('ReplicatedFirst').Controllers.Gameplay.FishingController
+    local controller=require(module)
+    local util=require(game:GetService('ReplicatedStorage').Shared.FishingUtil)
+    local bridge=require(game:GetService('ReplicatedStorage').Shared.BridgeNet).CreateBridge('Fishing')
+    local function values(fn)return getupvalues(fn)end
+    -- The game's native input connections are foreign to this executor and expose no callback.
+    -- Use the verified shared input flag, never the fish/region position or progress.
+    local stateFn=getupvalue(controller.StopFishing,1)
+    assert(type(stateFn)=='function'and getupvalue(stateFn,1)==controller and type(getupvalue(stateFn,7))=='boolean','fishing_controller_changed')
+    local function session()
+        if not controller.IsActive then return nil end
+        local value=getupvalue(stateFn,6)
+        if type(value)=='table'and type(value.RegionVelocityY)=='number'and type(value.FishCenterY)=='number'then return value end
+    end
+    local function reel(hold)
+        if not controller.IsActive then return end
+        if getupvalue(stateFn,7)~=hold then setupvalue(stateFn,7,hold)end
+        local value=session();if value then value.IsReeling=hold end
+    end
+    local function rod()
+        local character,bag=player.Character,player:FindFirstChildOfClass('Backpack')
+        for _,name in ipairs({'GoldFishingRod','FishingRod'})do
+            for _,parent in ipairs({character,bag})do
+                local tool=parent and parent:FindFirstChild(name)
+                if tool and tool:IsA('Tool')then return tool end
+            end
+        end
+    end
+    local function cast(tool)
+        assert(tool.Parent==player.Character,'rod_not_equipped')
+        local point=util.getFishingPoint();assert(point,'pond_unavailable')
+        local root=player.Character:FindFirstChild('HumanoidRootPart');assert(root,'character_not_ready')
+        local direction=point.Position-root.Position
+        local hit=util.getCastHitPosition(root.Position,direction.Unit,75);assert(hit,'pond_out_of_range')
+        local handler,client
+        for _,connection in ipairs(getconnections(tool.Activated))do
+            if type(connection.Function)=='function'then
+                for _,value in pairs(values(connection.Function))do
+                    if type(value)=='table'and value.Instance==tool and type(value.OnActivated)=='function'then handler=connection.Function;client=value;break end
+                end
+            end
+            if client then break end
+        end
+        assert(client and handler,'rod_controller_loading')
+        -- Supply a valid pond aim only for this native activation; restore even on failure.
+        local original=rawget(client,'GetCastHitPosition')
+        client.GetCastHitPosition=function()return hit end
+        local ok,err=pcall(handler)
+        client.GetCastHitPosition=original
+        if not ok then error(err)end
+    end
+    return {
+        supported=deps.supported,clock=os.clock,serverTime=function()return workspace:GetServerTimeNow()end,
+        spawn=task.spawn,changed=deps.changed,
+        snapshot=function()
+            local character=player.Character;local h=character and character:FindFirstChildOfClass('Humanoid')
+            local tool=rod()
+            return {character=character,healthy=h~=nil and h.Health>0,rod=tool,rodName=tool and tool.Name,equipped=tool and tool.Parent==character,
+                fishing=controller:IsFishing(),session=session(),progress=controller.Progress,
+                suspended=(h and h.SeatPart~=nil)or(deps.suspended and deps.suspended())}
+        end,
+        equip=function(tool)local h=player.Character and player.Character:FindFirstChildOfClass('Humanoid');if h then h:EquipTool(tool)end end,
+        cast=cast,reel=reel,release=function()reel(false)end,cancel=function()controller:StopFishing(true)end,
+        listen=function(fn)local connection=bridge:Connect(fn);return function()connection:Disconnect()end end,
+    }
+end)
+function runtime.ensureFishing()
+    if runtime.fishing then return runtime.fishing end
+    assert(runtime.currentGame(),"unsupported_game")
+    runtime.fishing=runtime.createFishing(runtime.fishingAdapter({player=player,
+        supported=function()return alive and runtime.currentGame()~=nil end,
+        suspended=function()return state.fly or runtime.freecam~=nil or runtime.roleplay~=nil
+            or(runtime.recovery and runtime.recovery.active)or(runtime.halloween and runtime.halloween.busy)
+            or(runtime.slot and runtime.slot.active)end,
+        changed=function()task.defer(function()if alive then runtime.refreshFishing()end end)end,
+    }))
+    return runtime.fishing
+end
+function runtime.openFishing()
+    if not runtime.currentGame()then return false end
+    page="Auto-Angeln";query="";render();return true
+end
+function runtime.refreshFishing()
+    local view=runtime.fishingView;if not view or not view.card.Parent then return end
+    local p=runtime.fishing or {active=false,status="ready",caught=0,credits=0,progress=0}
+    local text={ready={"Gehe zum Teich und starte Auto-Angeln.","Go to the pond and start automatic fishing."},
+        waiting={"Angel wird gesucht...","Looking for your fishing rod..."},pond={"Gehe zum Teich. Warte auf eine Angel im Inventar.","Go to the pond. Waiting for a rod in your inventory."},
+        equipping={"Angel wird ausger\195\188stet...","Equipping fishing rod..."},casting={"Angel wird ausgeworfen...","Casting into the pond..."},
+        bite={"Ausgeworfen. Warte auf einen Fisch...","Cast confirmed. Waiting for a fish..."},
+        reeling={"Fisch wird eingeholt...","Reeling in the fish..."},cooldown={"Abklingzeit. Warte auf den n\195\164chsten Wurf.","Cooldown. Waiting for the next cast."},
+        retry={"Wurf wird erneut versucht...","Preparing another cast..."},paused={"Pausiert: Sitzplatz oder andere Bewegungsfunktion aktiv.","Paused: seated or another movement feature is active."},
+        stopped={"Auto-Angeln gestoppt.","Automatic fishing stopped."},character={"Charakter gewechselt. Zum Fortsetzen neu starten.","Character changed. Start again to continue."},
+        unavailable={"Angelsystem hier nicht verf\195\188gbar.","Fishing is unavailable here."},error={"Angeln nicht m\195\182glich. Bitte neu starten.","Fishing unavailable. Please restart."}}
+    local message=text[p.status]or text.ready
+    view.status.Text=runtime.pianoText(message[1],message[2])
+    view.start.TextColor3=p.active and C.panel or C.accent;view.start.BackgroundColor3=p.active and C.accent or C.panel
+    view.rod.Text=p.rod=="GoldFishingRod"and runtime.pianoText("Goldene Angel","Golden rod")or p.rod=="FishingRod"and runtime.pianoText("Standardangel","Standard rod")or runtime.pianoText("Automatische Angelwahl","Automatic rod selection")
+    view.values[1].Text=runtime.gamePlayerInfo.number(p.caught)
+    view.values[2].Text=runtime.gamePlayerInfo.number(p.credits)
+    view.values[3].Text=tostring(math.floor(math.clamp(p.progress or 0,0,1)*100)).."%"
+end
+function runtime.drawFishing()
+    local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+    rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    local f=plainCard(runtime.pianoText("Auto-Angeln","Auto Fishing"),"",238,false);f.Name="FishingAutomation"
+    local view={card=f,values={}};runtime.fishingView=view
+    view.status=label(f,"",12,C.muted,UDim2.fromOffset(16,43),UDim2.new(1,-32,0,32),false);view.status.TextWrapped=true
+    local transport=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,84),Size=UDim2.new(1,-32,0,36)},f)
+    view.start=rowButton(transport,"",UDim2.new(),UDim2.new(.65,-4,1,0),function()
+        local ok,err=pcall(function()runtime.ensureFishing().start()end)
+        if not ok then logEvent("Angeln",tostring(err));notify(runtime.pianoText("Angelsystem nicht verf\195\188gbar.","Fishing is unavailable."),"ISB Menu")end
+        runtime.refreshFishing()
+    end);runtime.preserveText(view.start);view.start.Text="Start";view.start.Name="FishingStart"
+    rowButton(transport,runtime.pianoText("Stoppen","Stop"),UDim2.new(.65,4,0,0),UDim2.new(.35,-4,1,0),function()if runtime.fishing then runtime.fishing.stop()end;runtime.refreshFishing()end).Name="FishingStop"
+    view.rod=label(f,"",12,C.accent,UDim2.fromOffset(16,130),UDim2.new(1,-32,0,22),false)
+    for i,title in ipairs({runtime.pianoText("Fische","Fish"),"Credits",runtime.pianoText("Fortschritt","Progress")})do
+        local box=make("Frame",{BackgroundColor3=C.panel,Position=UDim2.new((i-1)/3,i==1 and 16 or 6,0,164),Size=UDim2.new(1/3,-22,0,54)},f);round(box,10)
+        label(box,title,11,C.muted,UDim2.fromOffset(10,6),UDim2.new(1,-20,0,16),false)
+        view.values[i]=label(box,"",15,C.accent,UDim2.fromOffset(10,25),UDim2.new(1,-20,0,22),false)
+    end
+    runtime.refreshFishing()
+end
+connect(Run.Heartbeat,function(dt)
+    if runtime.fishing then runtime.fishing.tick()end
+    if opened and page=="Auto-Angeln"then
+        runtime.fishingUIClock=(runtime.fishingUIClock or 0)+(dt or 0)
+        if runtime.fishingUIClock>=.2 then runtime.fishingUIClock=0;runtime.refreshFishing()end
+    end
+end)
 function runtime.openHalloween()if not runtime.currentGame()then return false end;page="Halloween-Event";query="";render();return true end
 function runtime.drawHalloween()
     local p=runtime.halloween
@@ -9496,7 +9708,7 @@ end
 
 render = function()
     if not alive then return end
-    if (page=="Dieses Spiel"or page=="Schach"or page=="Tic Tac Toe"or page=="Vier gewinnt"or page=="777 Auto-Spin"or page=="Halloween-Event")and not runtime.currentGame()then page="Skripte"end
+    if (page=="Dieses Spiel"or page=="Schach"or page=="Tic Tac Toe"or page=="Vier gewinnt"or page=="777 Auto-Spin"or page=="Halloween-Event"or page=="Auto-Angeln")and not runtime.currentGame()then page="Skripte"end
     local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
     local scroll=context==runtime.renderContext and content.CanvasPosition or Vector2.zero
     if runtime.renderContext~=context or page~="Musik" or runtime.musicMode~="piano" then runtime.cancelPianoScroll()end
@@ -9530,7 +9742,7 @@ render = function()
         b.BackgroundColor3=name == page and C.card or C.panel
         for _,part in ipairs(navIcons[name]) do part.obj[part.property]=name==page and C.accent or C.muted end
     end
-    indicator.Visible=page~="Halloween-Event" and page~="777 Auto-Spin" and page~="Vier gewinnt" and page~="Tic Tac Toe" and page~="Dieses Spiel" and page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
+    indicator.Visible=page~="Auto-Angeln" and page~="Halloween-Event" and page~="777 Auto-Spin" and page~="Vier gewinnt" and page~="Tic Tac Toe" and page~="Dieses Spiel" and page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
     if runtime.statusIcon then runtime.statusIcon.ImageColor3=C.accent end
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
@@ -9549,6 +9761,8 @@ render = function()
         drawVoice()
     elseif page=="Dieses Spiel"then
         runtime.drawThisGame()
+    elseif page=="Auto-Angeln"then
+        runtime.drawFishing()
     elseif page=="Halloween-Event"then
         runtime.drawHalloween()
     elseif page=="777 Auto-Spin"then
@@ -10127,6 +10341,7 @@ api.Destroy = function()
     runtime.piano.dispose()
     runtime.gamePlayerInfo.dispose()
     runtime.gamePassCatalog.dispose()
+    if runtime.fishing then runtime.fishing.dispose()end
     runtime.halloween.dispose()
     runtime.slot.dispose()
     runtime.antiAfk.dispose()
