@@ -1,7 +1,7 @@
--- ISB Menu 2.6.73 | Own-game universal client toolkit
+-- ISB Menu 2.6.74 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.73",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.74",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -99,7 +99,7 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular", favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
+local settings = {flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish", favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -121,6 +121,7 @@ if type(readfile) == "function" then
                 if count<10000 and type(file)=="string" and #file<=250 and value==true then settings.pianoFavorites[file]=true;count+=1 end
             end
         end
+        if data.chessEngine=="local"then settings.chessEngine="local"end
         if data.pianoSort=="title" or data.pianoSort=="newest" then settings.pianoSort=data.pianoSort end
         if data.theme == "Neutral" or data.theme == "Mint" or data.theme == "Amber" or data.theme == "Blue" then settings.theme = data.theme end
         if not ({Fly=true,Mysterious=true,["Villain Fly"]=true,Superman=true,["Halloween Fly"]=true})[data.flightStyle] then data.flightStyle="Fly" end
@@ -613,6 +614,8 @@ runtime.english={
     ["Verwendet \195\182ffentlich sichtbare Gruppenrollen und den Spielbesitzer. Rollenbezeichnungen sind Hinweise, keine verifizierten Berechtigungen."]="Uses public group roles and the game owner. Role titles are hints, not verified permissions.",
     ["F\195\164higkeiten"]="Capabilities",
     ["Dateien: %s  \194\183  Clipboard: %s  \194\183  Asset-Icons: %s"]="Files: %s  \194\183  Clipboard: %s  \194\183  Asset icons: %s",
+    ["Dieses Spiel"]="This Game",
+    ["Funktionen speziell fuer dieses Spiel."]="Features specifically for this game.",
     ["Schach"]="Chess",
     ["Schach direkt aus den Spieldaten steuern."]="Play chess using direct game data.",
     ["Effekte reduzieren"]="Reduce effects",
@@ -677,6 +680,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.74"]="Game-specific features are grouped under Scripts > This Game and appear only in their registered game. Chess is available as its own entry there.\nStockfish online analysis for stronger chess moves; offline search remains selectable. The display shows the depth actually reached.",
     ["2.6.73"]="New Chess Auto-Player under Scripts > Chess: direct board and turn data in the supported game, without image recognition or an additional EXE.\nAuto play, Pause and One move with local Lua search, position validation and server acknowledgement before the next move.",
     ["2.6.72"]="Piano playback speed changes immediately while playing, without pausing or restarting.\nThe Roblox hotbar is temporarily disabled during playback and restored afterwards; newly equipped tools are returned to the backpack.",
     ["2.6.71"]="Selecting a piano song smoothly scrolls back to the playback controls.\nChanging song pages smoothly aligns the start of the list; manual scrolling interrupts the animation.",
@@ -2788,6 +2792,7 @@ end
 
 
 local descriptions = {
+    ["Dieses Spiel"]="Funktionen speziell fuer dieses Spiel.",
     Schach="Schach direkt aus den Spieldaten steuern.",
     Start="Dein Spiel. Dein Werkzeug.", Bewegung="Kontrolle \195\188ber deinen Charakter.",
     Spieler="Spieler finden, beobachten und erreichen.", Darstellung="Deine pers\195\182nliche Ansicht.",
@@ -2999,6 +3004,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.74",text="Spielbezogene Funktionen liegen unter Scripts > Dieses Spiel und erscheinen nur in dem dafuer registrierten Spiel. Schach ist dort als eigener Eintrag erreichbar.\nStockfish-Onlineanalyse fuer staerkere Schachzuege; Offline-Suche bleibt waehlbar. Die Anzeige zeigt die tatsaechlich erreichte Suchtiefe."},
     {version="2.6.73",text="Neuer Schach Auto-Player unter Scripts > Schach: direkte Brett- und Zugdaten im unterstuetzten Spiel, ohne Bilderkennung oder zusaetzliche EXE.\nAuto spielen, Pause und Ein Zug mit lokaler Lua-Suche, Stellungspruefung und Serverbestaetigung vor dem naechsten Zug."},
     {version="2.6.72",text="Das Piano-Tempo laesst sich waehrend der Wiedergabe direkt aendern, ohne Pause oder Neustart.\nDie Roblox-Hotbar wird waehrend des Spielens voruebergehend deaktiviert und danach wiederhergestellt; neu ausgeruestete Tools werden im Rucksack verstaut."},
     {version="2.6.71",text="Nach der Piano-Songauswahl scrollt die Ansicht sanft zur Wiedergabe-Steuerung.\nBeim Wechsel einer Liedseite gleitet die Liste genau zu ihrem Anfang; eigenes Scrollen unterbricht die Animation."},
@@ -3376,10 +3382,37 @@ local function drawVoice()
     drawAction({id="antivc",name="Anti-VC Ban",desc=antiVC.loading and "Voice-Verbindung wird erneuert \226\128\166" or "Lokaler Voice-Modus mit Reconnect",kind="toggle",get=function() return antiVC.active end,fn=toggleAntiVC})
     plainCard("Voice-Verbindung", "Dieser Modus steuert ausschlie\195\159lich den lokalen Voice-Client. Ein Schutz vor serverseitigen Voice-Sperren ist nicht nachgewiesen.",98)
 end
+runtime.gameCatalog={
+    [7447878628]={places={[136162036182779]=true},features={
+        {id="chess",name={"Schach","Chess"},description={"Automatisch spielen oder einen einzelnen Zug berechnen.","Play automatically or calculate a single move."}},
+    }},
+}
+function runtime.currentGame()
+    local entry=runtime.gameCatalog[game.GameId]
+    return entry and entry.places[game.PlaceId] and entry or nil
+end
+function runtime.openThisGame()
+    if not runtime.currentGame()then return false end
+    page="Dieses Spiel";query="";render();return true
+end
+function runtime.drawThisGame()
+    local entry=runtime.currentGame();if not entry then return end
+    local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+    rowButton(back,runtime.pianoText("Zur\195\188ck zu Scripts","Back to Scripts"),UDim2.new(),UDim2.fromOffset(170,30),function()page="Skripte";query="";render()end)
+    for _,feature in ipairs(entry.features)do
+        local f=card(runtime.pianoText(feature.name[1],feature.name[2]),runtime.pianoText(feature.description[1],feature.description[2]),86,false)
+        f.Name="GameFeature_"..feature.id
+        local button=rowButton(f,runtime.pianoText("\195\150ffnen","Open"),UDim2.new(1,-124,0,26),UDim2.fromOffset(108,32),function()
+            if feature.id=="chess"then runtime.openChess()end
+        end)
+        button.Name=feature.id=="chess" and "ChessOpen"or "GameFeatureOpen_"..feature.id
+    end
+end
+
 local function drawScripts()
     local mode=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
     rowButton(mode,"Zur Online-Suche",UDim2.new(),UDim2.fromOffset(150,30),function() scriptSearch.localMode=false; render() end)
-    rowButton(mode,"Schach",UDim2.new(1,-110,0,0),UDim2.fromOffset(106,30),runtime.openChess).Name="ChessOpen"
+    if runtime.currentGame()then rowButton(mode,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(1,-114,0,0),UDim2.fromOffset(110,30),runtime.openThisGame).Name="ThisGameOpen"end
     local f=plainCard("Eigene Scripts","Lokale Lua-Dateien aus deinem Executor-Workspace. Ausf\195\188hrung nur nach deinem Klick.",126)
     local input=make("TextBox",{Text="",PlaceholderText="Dateiname.lua",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,
         TextSize=13,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,78),Size=UDim2.new(1,-160,0,32)},f)
@@ -3469,7 +3502,7 @@ local function drawScriptSearch()
     end
     rowButton(controls,"Suchen",UDim2.fromOffset(210,0),UDim2.fromOffset(82,30),function() searchRemoteScripts(1) end)
     rowButton(controls,"Lokal",UDim2.fromOffset(302,0),UDim2.fromOffset(74,30),function() scriptSearch.localMode=true; query=""; render() end)
-    rowButton(controls,"Schach",UDim2.fromOffset(386,0),UDim2.fromOffset(100,30),runtime.openChess).Name="ChessOpen"
+    if runtime.currentGame()then rowButton(controls,runtime.pianoText("Dieses Spiel","This Game"),UDim2.fromOffset(386,0),UDim2.fromOffset(110,30),runtime.openThisGame).Name="ThisGameOpen"end
     if not scriptSearch.selected then
         local filters=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
         for i,name in ipairs({"Beliebt","Neu","Favoriten"}) do
@@ -5860,9 +5893,21 @@ connect(Run.Heartbeat,function()
     runtime.pianoPaint()
 end)
 
+function runtime.requestStockfish(fen)
+    assert(type(fen)=="string" and #fen<=200,"engine_fen_invalid")
+    local transport=type(request)=="function" and request or (type(http_request)=="function" and http_request)
+    if not transport and type(syn)=="table"then transport=syn.request end
+    assert(type(transport)=="function","online_engine_transport_unavailable")
+    local response=transport({Url="https://chess-api.com/v1",Method="POST",Timeout=8,
+        Headers={["Content-Type"]="application/json",Accept="application/json"},
+        Body=Http:JSONEncode({fen=fen,depth=18,variants=1,maxThinkingTime=100})})
+    assert(type(response)=="table" and tonumber(response.StatusCode)==200 and type(response.Body)=="string" and #response.Body<=100000,"online_engine_response_failed")
+    return Http:JSONDecode(response.Body)
+end
+
 function runtime.prepareChess()
     if runtime.chessRules and runtime.chessController then return runtime.chessRules end
-    assert(game.PlaceId==136162036182779,'unsupported_chess_place')
+    assert(runtime.currentGame(),'unsupported_chess_place')
     local shared=game:GetService("ReplicatedStorage"):FindFirstChild("Shared")
     local chess=shared and shared:FindFirstChild("Chess")
     local first=game:GetService("ReplicatedFirst"):FindFirstChild("Controllers")
@@ -5893,7 +5938,8 @@ function runtime.readChess()
     return found
 end
 runtime.chess=(function(deps)
-    local p:any={alive=true,auto=false,once=false,epoch=0,status='ready',nodes=0,depth=0}
+    local p:any={alive=true,auto=false,once=false,epoch=0,status='ready',nodes=0,depth=0,
+        engine=deps.engine=='local' and 'local'or deps.online and 'stockfish'or 'local'}
     local values={P=100,N=320,B=335,R=500,Q=900,K=0}
     local function changed()if deps.changed and p.alive then deps.changed()end end
     local function status(code)if p.status~=code then p.status=code;changed()end end
@@ -5989,6 +6035,33 @@ runtime.chess=(function(deps)
         return best,{nodes=nodes,depth=completed}
     end
     function p.pause()stop('paused')end
+    function p.setEngine(value)
+        if value~='stockfish' and value~='local'then return end
+        if value==p.engine then return end
+        stop('paused');p.engine=value;p.depth=0;p.nodes=0
+        if deps.preference then deps.preference(value)end
+        changed()
+    end
+    function p.chooseMove(rules,fen,cancel)
+        if p.engine=='local'then return p.search(rules,fen,cancel)end
+        assert(type(deps.online)=='function','online_engine_unavailable')
+        local state=rules.fromFEN(fen)
+        local info=rules.evaluate(state)
+        if info.result or #info.moves==0 then return nil,{depth=0,nodes=0}end
+        local data=deps.online(fen)
+        if cancel and cancel()then return nil,{depth=0,nodes=0}end
+        assert(type(data)=='table' and data.type=='bestmove' and data.fen==fen,'engine_position_mismatch')
+        local depth=tonumber(data.depth)
+        assert(depth and depth==math.floor(depth) and depth>=1 and depth<=128,'engine_depth_invalid')
+        local uci=data.move
+        assert(type(uci)=='string' and uci:match('^[a-h][1-8][a-h][1-8][qrbn]?$'),'engine_move_invalid')
+        local from=rules.parseSquare(uci:sub(1,2));local to=rules.parseSquare(uci:sub(3,4))
+        local promotion=#uci==5 and uci:sub(5,5):upper()or nil
+        local move=rules.findMove(info.moves,from,to,promotion)
+        assert(move,'engine_move_illegal')
+        local nodes=type(data.debug)=='string' and tonumber(data.debug:match('nodes%s+(%d+)'))or 0
+        return move,{depth=depth,nodes=nodes or 0}
+    end
     function p.start(automatic)
         if not p.alive then return end
         local ok,rules=pcall(deps.rules)
@@ -5997,6 +6070,10 @@ runtime.chess=(function(deps)
         p.match=nil;p.roster=nil;p.lastPly=nil;p.lastVersion=nil;status('ready');p.tick()
     end
     function p.tick()
+        if not p.alive then return end
+        if p.thinking and p.searchStarted and deps.clock()-p.searchStarted>12 then
+            p.thinking=false;p.activeJob=nil;stop('engine_timeout')
+        end
         if not p.alive or (not p.auto and not p.once and not p.pending)then return end
         local ok,c=pcall(deps.snapshot)
         if not ok or not owned(c)then stop('no_seat');p.pending=nil;return end
@@ -6004,7 +6081,8 @@ runtime.chess=(function(deps)
         if p.match and p.match~=c.id then stop('changed');p.pending=nil;return end
         local roster=tostring(c.white)..':'..tostring(c.black)
         local turn,full=c.fen:match('^%S+%s+([wb])%s+%S+%s+%S+%s+%d+%s+(%d+)')
-        local ply=full and (tonumber(full)-1)*2+(turn=='b' and 1 or 0)or nil
+        local fullNumber=tonumber(full)
+        local ply=fullNumber and (fullNumber-1)*2+(turn=='b' and 1 or 0)or nil
         if (p.roster and p.roster~=roster)or (p.lastVersion and c.version<p.lastVersion)or (p.lastPly and ply and ply<p.lastPly)then stop('changed');p.pending=nil;return end
         if c.phase=='Playing'then p.roster=roster;p.lastPly=ply;p.lastVersion=c.version end
         if p.pending then
@@ -6024,11 +6102,12 @@ runtime.chess=(function(deps)
         if c.fen:match('^%S+%s+([wb])')~=color then p.once=false;status('opponent');return end
         if (c.animatingUntil or 0)>deps.clock()then return end
         if p.thinking then return end
-        p.match=c.id;p.thinking=true;local epoch=p.epoch
+        p.match=c.id;p.thinking=true;p.searchStarted=deps.clock();local epoch=p.epoch
+        local job={};p.activeJob=job
         status('thinking')
         deps.spawn(function()
             local success,err=pcall(function()
-                local move,stats=p.search(p.rules,c.fen,function()return not p.alive or epoch~=p.epoch end)
+                local move,stats=p.chooseMove(p.rules,c.fen,function()return not p.alive or epoch~=p.epoch end)
                 if not p.alive or epoch~=p.epoch then return end
                 p.nodes=stats.nodes;p.depth=stats.depth
                 local fresh=deps.snapshot()
@@ -6045,13 +6124,14 @@ runtime.chess=(function(deps)
                 deps.send(c.id,move.from,move.to,move.promotion and move.promotion:upper()or nil)
                 status('confirming')
             end)
-            p.thinking=false
-            if not success and p.alive and epoch==p.epoch then p.pending=nil;p.error=tostring(err);stop('error')end
+            if p.activeJob==job then p.thinking=false;p.activeJob=nil end
+            if not success and p.alive and epoch==p.epoch then p.pending=nil;p.error=tostring(err);stop(p.engine=='stockfish' and 'engine_error'or 'error')end
         end)
     end
     function p.dispose()p.epoch+=1;p.alive=false;p.auto=false;p.once=false;p.pending=nil end
     return p
 end)({
+    engine=settings.chessEngine,online=runtime.requestStockfish,preference=function(value)settings.chessEngine=value;save()end,
     userId=player.UserId,clock=os.clock,spawn=task.spawn,yield=task.wait,rules=runtime.prepareChess,snapshot=runtime.readChess,
     send=function(id,from,to,promotion)runtime.chessController:SendAction("ChessMinigame",id,"Move",from,to,promotion)end,
     changed=function()
@@ -6064,11 +6144,11 @@ connect(Run.Heartbeat,function(dt)
     runtime.chessClock=(runtime.chessClock or 0)+(dt or 0)
     if runtime.chessClock>=.15 then runtime.chessClock=0;runtime.chess.tick()end
 end)
-function runtime.openChess()page="Schach";query="";render()end
+function runtime.openChess()if not runtime.currentGame()then return false end;page="Schach";query="";render();return true end
 function runtime.drawChess()
     local p=runtime.chess
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-    rowButton(back,runtime.pianoText("Zur\195\188ck zu Scripts","Back to Scripts"),UDim2.new(),UDim2.fromOffset(170,30),function()page="Skripte";query="";render()end)
+    rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
     local ok,c=pcall(runtime.readChess)
     local states={
         ready={"Bereit. Auto spielen oder Ein Zug w\195\164hlen.","Ready. Choose Auto play or One move."},
@@ -6080,23 +6160,32 @@ function runtime.drawChess()
         finished={"Partie beendet. Automatik gestoppt.","Game ended. Automatic play stopped."},
         no_seat={"Setze dich an einen eigenen Schachtisch.","Sit at your own chess table."},
         error={"Schachsteuerung gestoppt. Bitte neu starten.","Chess control stopped. Please restart."},
+        engine_error={"Online-Engine nicht erreichbar oder Antwort ung\195\188ltig. Bitte erneut starten oder Offline w\195\164hlen.","Online engine unavailable or invalid response. Retry or select Offline."},
+        engine_timeout={"Online-Berechnung dauert zu lange. Automatik gestoppt.","Online calculation timed out. Automatic play stopped."},
         unsupported={"Dieses Schachspiel wird noch nicht unterst\195\188tzt.","This chess game is not supported yet."},
     }
     local message=states[not ok and 'unsupported' or p.status]or states.ready
     local text=runtime.pianoText(message[1],message[2])
     if ok and c then text=c.tableName.."  |  "..runtime.pianoText(c.white==player.UserId and "Wei\195\159"or "Schwarz",c.white==player.UserId and "White"or "Black").."\n"..text end
-    local f=plainCard(runtime.pianoText("Schach Auto-Player","Chess Auto-Player"),text,160,false);f.Name="ChessPlayback"
+    local f=plainCard(runtime.pianoText("Schach Auto-Player","Chess Auto-Player"),text,204,false);f.Name="ChessPlayback"
     local auto=rowButton(f,runtime.pianoText("Auto spielen","Auto play"),UDim2.fromOffset(16,82),UDim2.fromOffset(140,32),function()p.start(true)end)
     auto.Name="ChessAuto";if p.auto then auto.TextColor3=C.accent end
     local pause=rowButton(f,"Pause",UDim2.fromOffset(166,82),UDim2.fromOffset(90,32),p.pause);pause.Name="ChessPause"
     local once=rowButton(f,runtime.pianoText("Ein Zug","One move"),UDim2.fromOffset(266,82),UDim2.fromOffset(106,32),function()p.start(false)end);once.Name="ChessOnce"
-    label(f,(p.lastMove and runtime.pianoText("Letzter Zug: ","Last move: ")..p.lastMove.."  |  "or "")..runtime.pianoText("Suchtiefe ","Depth ")..p.depth.."  |  "..p.nodes..runtime.pianoText(" Knoten"," nodes"),11,C.muted,UDim2.fromOffset(16,127),UDim2.new(1,-32,0,18))
+    label(f,"Engine",11,C.muted,UDim2.fromOffset(16,126),UDim2.fromOffset(94,30))
+    for i,item in ipairs({{"stockfish","Stockfish"},{"local","Offline"}})do
+        local mode=item[1]
+        local button=rowButton(f,item[2],UDim2.fromOffset(126+(i-1)*132,126),UDim2.fromOffset(122,30),function()p.setEngine(mode)end)
+        button.Name="ChessEngine_"..mode;if p.engine==mode then button.TextColor3=C.accent end
+    end
+    label(f,(p.lastMove and runtime.pianoText("Letzter Zug: ","Last move: ")..p.lastMove.."  |  "or "")..runtime.pianoText("Suchtiefe ","Depth ")..p.depth..(p.engine=="local" and "  |  "..runtime.formatCount(p.nodes)..runtime.pianoText(" Knoten"," nodes")or ""),11,C.muted,UDim2.fromOffset(16,172),UDim2.new(1,-32,0,18))
     local hint=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-    label(hint,runtime.pianoText("Direkte Spieldaten. Lokale Lua-Suche; keine zus\195\164tzliche EXE.","Direct game data. Local Lua search; no additional EXE."),11,C.muted,UDim2.fromOffset(4,0),UDim2.new(1,-8,1,0))
+    label(hint,(p.engine=="stockfish" and runtime.pianoText("Stockfish ben\195\182tigt Internet. Nur die Brettstellung wird an chess-api.com gesendet.","Stockfish needs internet. Only the board position is sent to chess-api.com.")or runtime.pianoText("Lokale Lua-Suche. Keine zus\195\164tzliche EXE.","Local Lua search. No additional EXE.")),11,C.muted,UDim2.fromOffset(4,0),UDim2.new(1,-8,1,0))
 end
 
 render = function()
     if not alive then return end
+    if (page=="Dieses Spiel"or page=="Schach")and not runtime.currentGame()then page="Skripte"end
     local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
     local scroll=context==runtime.renderContext and content.CanvasPosition or Vector2.zero
     if runtime.renderContext~=context or page~="Musik" or runtime.musicMode~="piano" then runtime.cancelPianoScroll()end
@@ -6119,18 +6208,18 @@ render = function()
     if search.Text ~= desired then
         updatingSearch=true; search.Text=desired; updatingSearch=false
     end
-    local heights={Start=398,Bewegung=390,Spieler=400,Server=420,Darstellung=400,Skripte=420,Musik=420,Favoriten=400,Einstellungen=400,Voice=390}
+    local heights={["Dieses Spiel"]=270,Start=398,Bewegung=390,Spieler=400,Server=420,Darstellung=400,Skripte=420,Musik=420,Favoriten=400,Einstellungen=400,Voice=390}
     animate(window,{Size=UDim2.fromOffset(600,heights[page] or 400)})
     for _,child in ipairs(headerIcon:GetChildren()) do child:Destroy() end
     local pageIndex=table.find(navNames,page) or 9
-    imageIcon(headerIcon,page=="Schach" and navAssetNames[6] or (page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex])),20,UDim2.new(),C.accent)
+    imageIcon(headerIcon,(page=="Schach"or page=="Dieses Spiel") and navAssetNames[6] or (page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex])),20,UDim2.new(),C.accent)
     for name,b in pairs(navButtons) do
         b.TextColor3=name == page and C.accent or C.muted
         b.BackgroundTransparency=name==page and .15 or 1
         b.BackgroundColor3=name == page and C.card or C.panel
         for _,part in ipairs(navIcons[name]) do part.obj[part.property]=name==page and C.accent or C.muted end
     end
-    indicator.Visible=page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
+    indicator.Visible=page~="Dieses Spiel" and page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
     if runtime.statusIcon then runtime.statusIcon.ImageColor3=C.accent end
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
@@ -6147,6 +6236,8 @@ render = function()
         if not servers.loaded and not servers.loading and not servers.error then fetchServers(nil) end
     elseif page=="Voice" then
         drawVoice()
+    elseif page=="Dieses Spiel"then
+        runtime.drawThisGame()
     elseif page=="Schach" then
         runtime.drawChess()
     elseif page=="Skripte" then
@@ -6739,7 +6830,7 @@ api.AddAction = function(id, category, name, description, callback)
     render()
 end
 api.Language=runtime.language
-api.OpenChess=function()setOpen(true);runtime.openChess()end
+api.OpenChess=function()if not runtime.currentGame()then return false end;setOpen(true);return runtime.openChess()end
 api.Notify=notify
 env.ISBMenu=api
 runtime.ensureInspectorTool()

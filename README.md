@@ -1,4 +1,4 @@
-# ISB Menu 2.6.73 · by Larsiopuw
+# ISB Menu 2.6.74 · by Larsiopuw
 
 ## Piano automatisch spielen
 
@@ -36,11 +36,18 @@ Die Online-Liste stammt wie beim VP-Player von nanoMIDI. Die eigenständige Wind
 
 ## Schach im Spiel
 
-Unter **Scripts > Schach** stehen **Auto spielen**, **Pause** und **Ein Zug** bereit. Setze dich zuerst an einen Schachtisch im unterstuetzten Spiel. Die Stellung, eigene Farbe und das Zugrecht kommen direkt aus den vorhandenen Spieldaten; Bildschirmaufnahme, Mauskalibrierung und die bisherige ChessPilot-EXE werden nicht benoetigt.
+Unter **Scripts > Dieses Spiel > Schach** stehen **Auto spielen**, **Pause** und **Ein Zug** bereit. Bei englischer Menuesprache heisst der Pfad **Scripts > This Game > Chess**. Der Bereich erscheint nur im registrierten Spiel und Place; **Local / Lokal** bleibt der separate Lua-Dateilader. Setze dich zuerst an einen Schachtisch. Die Stellung, eigene Farbe und das Zugrecht kommen direkt aus den vorhandenen Spieldaten; Bildschirmaufnahme, Mauskalibrierung und eine zusaetzliche EXE werden nicht benoetigt.
 
-Die eingebaute Lua-Suche ist eine eigenstaendige, zeitlich begrenzte Zugberechnung und erreicht nicht die Spielstaerke von Stockfish. Der Server prueft die Zuege weiterhin. Vor jedem Zug werden Stellung und Version erneut verglichen; nach dem Senden wartet das Menue auf die erwartete bestaetigte Stellung. Bei Aussteigen, Gegner-/Tischwechsel, Neustart, Fehler oder ausbleibender Bestaetigung stoppt die Automatik. Auto spielen ist beim Laden ausgeschaltet.
+Standardmaessig berechnet **Stockfish** die Zuege online ueber https://chess-api.com/v1. Gesendet wird nur die Brettstellung als FEN mit den Analyseparametern, keine Roblox-Spieler-ID. Angefragt wird Tiefe 18; die Anzeige zeigt die tatsaechlich vom Dienst erreichte Tiefe. Internet und eine HTTP-Funktion des Executors sind erforderlich. Bei Fehlern oder Zeitueberschreitung stoppt die Automatik, ohne still auf eine schwaechere Engine umzuschalten. **Offline** waehlt ausdruecklich die bisherige begrenzte Lua-Suche (Tiefe 4, maximal 7000 Knoten und 0,8 Sekunden). Die Auswahl wird gespeichert. Eine Sieg-Garantie gibt es nicht.
 
-Live geprueft: ein eigener Zug an Tisch 4, b1c3, mit exakt passender Serverstellung und Versionswechsel 73 auf 74. Ein kompletter Partie-Durchlauf ist noch nicht verifiziert. Die bisherige ChessPilot-App wurde nicht veraendert.
+Der Server prueft die Zuege weiterhin. Vor jedem Zug werden Stellung und Version erneut verglichen; nach dem Senden wartet das Menue auf die erwartete bestaetigte Stellung. Bei Aussteigen, Gegner-/Tischwechsel, Neustart, Fehler oder ausbleibender Bestaetigung stoppt die Automatik. Auto spielen ist beim Laden ausgeschaltet. Ein Engine-Wechsel pausiert die Automatik.
+
+Live geprueft: der Stockfish-Aufruf aus dem verbundenen Executor lieferte fuer die Startstellung einen lokal geprueften legalen Zug d2d4 mit Tiefe 16 in rund 0,32 Sekunden; dabei wurde kein Zug gesendet. Der neue Menueaufbau startete ohne gemeldete Fehler und zeigt beide Engine-Schalter. Bereits zuvor wurde ein eigener Zug an Tisch 4, b1c3, mit exakt passender Serverstellung und Versionswechsel 73 auf 74 bestaetigt. Ein kompletter Partie-Durchlauf mit Stockfish ist noch nicht verifiziert. Die bisherige ChessPilot-App wurde nicht veraendert.
+
+## Änderungen in 2.6.74
+
+- Spielbezogene Funktionen liegen unter Scripts > Dieses Spiel und erscheinen nur in dem dafuer registrierten Spiel. Schach ist dort als eigener Eintrag erreichbar.
+- Stockfish-Onlineanalyse fuer staerkere Schachzuege; Offline-Suche bleibt waehlbar. Die Anzeige zeigt die tatsaechlich erreichte Suchtiefe.
 
 ## Änderungen in 2.6.73
 
