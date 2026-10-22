@@ -700,7 +700,7 @@ runtime.english={
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.english["Auto-Angeln"]="Auto Fishing"
 runtime.englishHistory={
-    ["2.6.93"]="Auto Fishing under Scripts > This Game: automatically equip an available standard or golden rod, cast into the pond and control the blue catching region by holding and releasing. Automatic casts after the game cooldown, confirmed catches and credits, background operation and shared idle protection; starts and stops manually.",
+    ["2.6.93"]="Auto Fishing under Scripts > This Game: automatically equip an available standard or golden rod, cast into the pond and control the blue catching region by holding and releasing. Automatic casts after the game cooldown, confirmed catches and credits, background operation and shared idle protection; starts and stops manually. Varied valid casting targets, checks of the rod\226\128\153s actual cooldown and bounded retries of rejected casts prevent repeated failed-cast sounds.",
     ["2.6.92"]="Central idle protection across ISB Menu: enabled automatically on load, with periodic Roblox input pulses during inactivity and an additional idle-event response. One shared instance for all features, automatic retries after input failures and complete cleanup on unload.",
     ["2.6.91"]="Halloween-Event under Scripts > This Game: Doorbell input from inside the house with the camera aimed at the bell, confirmed candy credit and return to the previous position and camera view. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually.",
     ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game. Rounded frame stays visible when expanding or collapsing the collection; frame and content share the same native scrolling clip.",
@@ -3007,7 +3007,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.93",text="Auto-Angeln unter Scripts > Dieses Spiel: verf\195\188gbare Standard- oder goldene Angel automatisch ausr\195\188sten, in den Teich auswerfen und den blauen Fangbereich durch Halten und Loslassen steuern. Automatische Folgew\195\188rfe nach dem Spiel-Cooldown, best\195\164tigte F\195\164nge und Credits, Hintergrundbetrieb und zentrale AFK-Sicherung; Start und Stop bleiben manuell."},
+    {version="2.6.93",text="Auto-Angeln unter Scripts > Dieses Spiel: verf\195\188gbare Standard- oder goldene Angel automatisch ausr\195\188sten, in den Teich auswerfen und den blauen Fangbereich durch Halten und Loslassen steuern. Automatische Folgew\195\188rfe nach dem Spiel-Cooldown, best\195\164tigte F\195\164nge und Credits, Hintergrundbetrieb und zentrale AFK-Sicherung; Start und Stop bleiben manuell. Wechselnde g\195\188ltige Wurfziele, Pr\195\188fung des tats\195\164chlichen Angel-Cooldowns und begrenzte Wiederholung abgelehnter W\195\188rfe verhindern dauernde Fehlwurf-Ger\195\164usche."},
     {version="2.6.92",text="Zentraler AFK-Schutz f\195\188r das gesamte ISB-Men\195\188: beim Laden automatisch aktiv, mit regelm\195\164\195\159igen Roblox-Eingabeimpulsen bei Inaktivit\195\164t und zus\195\164tzlicher Reaktion auf das Idle-Ereignis. Gemeinsame Instanz f\195\188r alle Funktionen, automatische Wiederholung bei Eingabefehlern und vollst\195\164ndige Bereinigung beim Entladen."},
     {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet."},
     {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar. Stabiler abgerundeter Rahmen beim Auf- und Zuklappen der Sammlung, mit gemeinsamem sauberem Scroll-Ausschnitt f\195\188r Rahmen und Inhalt."},
@@ -9137,7 +9137,7 @@ function runtime.halloweenHighlight(model)
     return function()visual:Destroy()end
 end
 runtime.createFishing=(function(deps)
-    local p={active=false,alive=true,status='ready',caught=0,credits=0,progress=0,nextCast=0,epoch=0}
+    local p={active=false,alive=true,status='ready',caught=0,credits=0,progress=0,nextCast=0,epoch=0,failures=0}
     local function changed()if deps.changed then deps.changed()end end
     local function status(s)if p.status~=s then p.status=s;changed()end end
     function p.stop(reason)
@@ -9151,17 +9151,20 @@ runtime.createFishing=(function(deps)
     function p.start()
         if not p.alive or p.active then return false end
         if not deps.supported()then status('unavailable');return false end
-        p.active=true;p.epoch+=1;p.lastError=nil;p.nextCast=math.max(p.nextCast,deps.clock());p.owns=false;p.character=nil
+        p.active=true;p.epoch+=1;p.lastError=nil;p.nextCast=math.max(p.nextCast,deps.clock());p.owns=false;p.character=nil;p.failures=0
         local epoch=p.epoch
         local ok,close=pcall(deps.listen,function(event,value)
             if not p.active or p.epoch~=epoch then return end
-            if event=='SessionStarted'then p.canCredit=true;p.owns=true;p.castPending=false
+            if event=='SessionStarted'then p.canCredit=true;p.owns=true;p.castPending=false;p.failures=0
             elseif event=='Caught'and p.canCredit and type(value)=='number'and value>=0 then
                 p.canCredit=false;p.owns=false;p.castPending=false;p.caught+=1;p.credits+=value;p.progress=0
-                p.nextCast=deps.clock()+8.15;status('cooldown');changed()
-            elseif event=='Cooldown'then p.nextCast=deps.clock()+math.max(1,tonumber(value)or 8)+.15;p.castPending=false;status('cooldown')
+                p.waitKind='cooldown';p.nextCast=deps.clock()+8.15;status('cooldown');changed()
+            elseif event=='Cooldown'then p.waitKind='cooldown';p.nextCast=deps.clock()+math.max(1,tonumber(value)or 8)+.15;p.castPending=false;status('cooldown')
             elseif event=='CastFailed'or event=='SessionCancelled'or event=='CancelFishing'or event=='LeaveArea'then
-                p.owns=false;p.canCredit=false;p.castPending=false;p.nextCast=deps.clock()+1.25;status('retry')
+                p.owns=false;p.canCredit=false;p.castPending=false;p.waitKind='retry'
+                p.failures=event=='CastFailed'and(p.failures+1)or 0
+                if p.failures>=6 then p.stop('cast_blocked');return end
+                p.nextCast=deps.clock()+math.min(10,math.max(1.25,2^p.failures));status('retry')
             end
         end)
         if not ok then p.lastError=tostring(close);p.stop('error');return false end
@@ -9191,20 +9194,27 @@ runtime.createFishing=(function(deps)
                 status('reeling');return
             end
             if s.fishing then p.owns=true;status('bite');return end
-            if deps.clock()<p.nextCast then status('cooldown');return end
             if p.castPending then
                 if deps.clock()-p.castTime<6 then status('casting');return end
-                p.castPending=false;p.nextCast=deps.clock()+1.25;status('retry');return
+                p.castPending=false;p.waitKind='retry';p.nextCast=deps.clock()+2;status('retry');return
             end
+            if deps.clock()<p.nextCast then status(p.waitKind or 'cooldown');return end
             if not s.equipped then deps.equip(s.rod);status('equipping');return end
             p.owns=true;p.castPending=true;p.castTime=deps.clock();p.nextCast=deps.clock()+1.25
             local epoch=p.epoch
             deps.spawn(function()
                 if not p.active or p.epoch~=epoch then return end
                 local success,message=pcall(deps.cast,s.rod)
-                if not success and p.active and p.epoch==epoch then p.lastError=tostring(message);p.castPending=false;p.nextCast=deps.clock()+2;status('retry')end
+                if success and type(message)=='table'and p.active and p.epoch==epoch then
+                    if message.kind=='cooldown'then
+                        p.castPending=false;p.owns=false;p.waitKind='cooldown';p.nextCast=deps.clock()+math.max(.1,tonumber(message.remaining)or 1)+.15;status('cooldown')
+                    elseif message.kind=='not_sent'then
+                        p.castPending=false;p.owns=false;p.waitKind='retry';p.nextCast=deps.clock()+3;status('retry')
+                    end
+                end
+                if not success and p.active and p.epoch==epoch then p.lastError=tostring(message);p.castPending=false;p.waitKind='retry';p.nextCast=deps.clock()+2;status('retry')end
             end)
-            status('casting')
+            if p.castPending then status('casting')end
         end)
         p.busy=false
         if not ok then p.lastError=tostring(err);p.stop('error')end
@@ -9243,12 +9253,26 @@ runtime.fishingAdapter=(function(deps)
             end
         end
     end
+    local pickTarget=(function(origin,pond,sequence,last)
+    local localOrigin=pond.CFrame:PointToObjectSpace(origin)
+    local angle=math.atan2(localOrigin.Z,localOrigin.X)
+    local radius=math.min(pond.Size.X,pond.Size.Z)*.36
+    local offsets={0,.35,-.35,.7,-.7}
+    local rings={1,.73,.46}
+    for step=0,14 do
+        local index=(sequence+step)%15
+        local theta=angle+offsets[index%5+1]
+        local distance=radius*rings[math.floor(index/5)+1]
+        local target=pond.CFrame:PointToWorldSpace(Vector3.new(math.cos(theta)*distance,pond.Size.Y*.5,math.sin(theta)*distance))
+        if (target-origin).Magnitude<=70 and(not last or(target-last).Magnitude>=4)then return target,index+1 end
+    end
+    error('no_cast_target_in_range')
+end)
+    local sequence,lastTarget=0,nil
     local function cast(tool)
         assert(tool.Parent==player.Character,'rod_not_equipped')
         local point=util.getFishingPoint();assert(point,'pond_unavailable')
         local root=player.Character:FindFirstChild('HumanoidRootPart');assert(root,'character_not_ready')
-        local direction=point.Position-root.Position
-        local hit=util.getCastHitPosition(root.Position,direction.Unit,75);assert(hit,'pond_out_of_range')
         local handler,client
         for _,connection in ipairs(getconnections(tool.Activated))do
             if type(connection.Function)=='function'then
@@ -9259,12 +9283,23 @@ runtime.fishingAdapter=(function(deps)
             if client then break end
         end
         assert(client and handler,'rod_controller_loading')
+        -- Respect the rod's actual local cooldown before playing cast feedback.
+        for _,value in pairs(values(client.OnActivated))do
+            if type(value)=='table'and type(value.IsOnCooldown)=='function'and type(value.GetRemainingTime)=='function'then
+                if value:IsOnCooldown(player)then return {kind='cooldown',remaining=value:GetRemainingTime(player)}end
+            end
+        end
+        local target,nextSequence=pickTarget(root.Position,point,sequence,lastTarget)
+        sequence=nextSequence;lastTarget=target
+        local direction=target-root.Position
+        local hit=util.getCastHitPosition(root.Position,direction.Unit,75);assert(hit,'pond_out_of_range')
         -- Supply a valid pond aim only for this native activation; restore even on failure.
         local original=rawget(client,'GetCastHitPosition')
         client.GetCastHitPosition=function()return hit end
         local ok,err=pcall(handler)
         client.GetCastHitPosition=original
         if not ok then error(err)end
+        return {kind=controller:IsFishing()and 'sent'or 'not_sent',target=hit}
     end
     return {
         supported=deps.supported,clock=os.clock,serverTime=function()return workspace:GetServerTimeNow()end,
@@ -9305,7 +9340,8 @@ function runtime.refreshFishing()
         equipping={"Angel wird ausger\195\188stet...","Equipping fishing rod..."},casting={"Angel wird ausgeworfen...","Casting into the pond..."},
         bite={"Ausgeworfen. Warte auf einen Fisch...","Cast confirmed. Waiting for a fish..."},
         reeling={"Fisch wird eingeholt...","Reeling in the fish..."},cooldown={"Abklingzeit. Warte auf den n\195\164chsten Wurf.","Cooldown. Waiting for the next cast."},
-        retry={"Wurf wird erneut versucht...","Preparing another cast..."},paused={"Pausiert: Sitzplatz oder andere Bewegungsfunktion aktiv.","Paused: seated or another movement feature is active."},
+        retry={"Wurf nicht best\195\164tigt. Andere Wasserstelle wird versucht...","Cast unconfirmed. Trying another spot in the water..."},
+        cast_blocked={"Mehrere W\195\188rfe abgelehnt. Bitte am Teich umstellen und neu starten.","Several casts were rejected. Change position at the pond and restart."},paused={"Pausiert: Sitzplatz oder andere Bewegungsfunktion aktiv.","Paused: seated or another movement feature is active."},
         stopped={"Auto-Angeln gestoppt.","Automatic fishing stopped."},character={"Charakter gewechselt. Zum Fortsetzen neu starten.","Character changed. Start again to continue."},
         unavailable={"Angelsystem hier nicht verf\195\188gbar.","Fishing is unavailable here."},error={"Angeln nicht m\195\182glich. Bitte neu starten.","Fishing unavailable. Please restart."}}
     local message=text[p.status]or text.ready

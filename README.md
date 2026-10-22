@@ -7,6 +7,8 @@ Unter **Scripts > Dieses Spiel > Auto-Angeln > Öffnen** gibt es Start/Stop, erk
 
 Die Steuerung hält/löst ausschließlich den nativen Linksklick-Zustand des Angelsystems. Sie liest Fischposition, Geschwindigkeit und blauen Bereich aus der laufenden Spielrunde und steuert mit Bremsvorlauf; Positionen, Fortschritt und Belohnungen werden nicht gesetzt. Im Executor sind die fremden Input-Verbindungen nicht als aufrufbare Funktionen verfügbar; deshalb wird die verifizierte gemeinsame Eingabevariable verwendet. Die eigentliche Balkenphysik, Darstellung und Serverübertragung bleiben beim Spiel. Dies benötigt getconnections/getupvalue/getupvalues/setupvalue in der Client-Laufzeit und ist an den geprüften FishingController gebunden.
 
+Bei jedem Wurf wird ein anderes gültiges Ziel im inneren Teichbereich gewählt; die Figur bleibt dabei an ihrer Position. Der lokale Cooldown der Angel wird vor der Aktivierung geprüft. CastFailed wird als abgelehnter Wurf mit Wiederholungspause angezeigt und nicht als Fang-Cooldown. Nach sechs Ablehnungen in Folge stoppt die Funktion mit dem Hinweis, sich am Teich umzustellen und neu zu starten.
+
 Nach einer Server-Caught-Bestätigung werden Fänge/Credits gezählt und 8,15 Sekunden bis zum nächsten Wurf gewartet. Stop beendet die eigene laufende Angelrunde, löst die Eingabe und entfernt den eigenen Ereignis-Listener; Respawn, ein Sitzplatz und konkurrierende Bewegungsfunktionen werden berücksichtigt. Weggehen vom Teich wartet auf eine wieder verfügbare Angel. Keine PC-weiten Mausklicks. Der zentrale Menü-AFK-Schutz bleibt aktiv. Hintergrundbetrieb wurde mit tatsächlich unfokussiertem Roblox geprüft; ein vollständiger Test bei minimiertem Roblox und ein 20-Minuten-AFK-Dauertest sind davon getrennt.
 
 ## Zentraler AFK-Schutz
