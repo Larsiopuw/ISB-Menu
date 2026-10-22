@@ -287,4 +287,4 @@ Designreferenz: [Apple Liquid Glass](https://developer.apple.com/videos/play/wwd
 
 <!-- -- by Larsiopuw -->
 
-Die Spielinformationen verwenden eine feste abgerundete Rahmenfläche statt einer beim Vergrößern verzögert gezeichneten Konturlinie. Der Rahmen bleibt beim Auf-/Zuklappen ohne Scrollbewegung sichtbar, sowohl im Spieler-Tab als auch im Spielerinfo-Item.
+Die Spielinformationen verwenden eine feste abgerundete Rahmenfläche statt einer beim Vergrößern verzögert gezeichneten Konturlinie. Der Rahmen bleibt beim Auf-/Zuklappen ohne Scrollbewegung sichtbar, sowohl im Spieler-Tab als auch im Spielerinfo-Item. Rahmen und Inhalt befinden sich in derselben Karte innerhalb der Scrollliste und verwenden deren nativen Ausschnitt; eine getrennte Hintergrundebene außerhalb der Liste entfällt.

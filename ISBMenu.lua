@@ -701,7 +701,7 @@ runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="R
 runtime.englishHistory={
     ["2.6.92"]="Central idle protection across ISB Menu: enabled automatically on load, with periodic Roblox input pulses during inactivity and an additional idle-event response. One shared instance for all features, automatic retries after input failures and complete cleanup on unload.",
     ["2.6.91"]="Halloween-Event under Scripts > This Game: Doorbell input from inside the house with the camera aimed at the bell, confirmed candy credit and return to the previous position and camera view. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually.",
-    ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game. Rounded frame stays visible when expanding or collapsing the collection.",
+    ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game. Rounded frame stays visible when expanding or collapsing the collection; frame and content share the same native scrolling clip.",
     ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
     ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely and claim button availability immediately. Native taps every frame until server acknowledgement, without artificial hold or retry delays for tap prompts. Confirmed spins receive no further input. Optional title-stop policy, lifetime 777 wins, automatic return to the button and shared ISB Menu idle protection. Actual priority depends on server ordering and ping.",
     ["2.6.81"]="Connect Four Auto-Player under Scripts > This Game with local move calculation, a board view, winning lines and search depth. Automatic play continues across rounds, with pause and single-move controls.",
@@ -3007,7 +3007,7 @@ runtime.validateWaypoints()
 runtime.changelog={
     {version="2.6.92",text="Zentraler AFK-Schutz f\195\188r das gesamte ISB-Men\195\188: beim Laden automatisch aktiv, mit regelm\195\164\195\159igen Roblox-Eingabeimpulsen bei Inaktivit\195\164t und zus\195\164tzlicher Reaktion auf das Idle-Ereignis. Gemeinsame Instanz f\195\188r alle Funktionen, automatische Wiederholung bei Eingabefehlern und vollst\195\164ndige Bereinigung beim Entladen."},
     {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet."},
-    {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar. Stabiler abgerundeter Rahmen beim Auf- und Zuklappen der Sammlung."},
+    {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar. Stabiler abgerundeter Rahmen beim Auf- und Zuklappen der Sammlung, mit gemeinsamem sauberem Scroll-Ausschnitt f\195\188r Rahmen und Inhalt."},
     {version="2.6.89",text="VIP-Aufzug mit eigenen lokalen E-Kn\195\182pfen: direkt hinein und zur\195\188ck teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterst\195\188tzten Spiel."},
     {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und die Freigabe sofort beanspruchen. Native Tap-Eingabe in jedem Frame bis zur Serverbest\195\164tigung, ohne k\195\188nstliche Tastendauer oder Wiederholungspause bei Tap-Prompts. Best\195\164tigte Drehungen erhalten keine weiteren Eingaben. Optional beim freigeschalteten Titel stoppen. Gesamtzahl der 777-Gewinne, automatische R\195\188ckkehr zum Knopf und gemeinsamer AFK-Schutz des ISB-Men\195\188s. Serverreihenfolge und Ping bestimmen den tats\195\164chlichen Vorrang."},
     {version="2.6.81",text="Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen \195\188ber weitere Runden sowie Pause und einzelne Z\195\188ge."},
@@ -5002,12 +5002,12 @@ function runtime.refreshGameInfoView(view)
     end
     for i,entry in ipairs(runtime.gameInfoLists)do runtime.renderGameInfoList(view,view.lists[i],entry,data.values[entry[1]],data.values.EquippedTitle)end
 end
-function runtime.gameInfoBorder(card)
+function runtime.gameInfoBorder(card,surface)
     -- Paint only the visible portion, avoiding stale oversized-frame clipping in Roblox.
     local viewport=card.Parent
     while viewport and not viewport:IsA("ScrollingFrame")do viewport=viewport.Parent end
     if not viewport then card.BackgroundTransparency=0;round(card,16);stroke(card);return end
-    local decoration=make("Frame",{Name="GameInfoBorder",BackgroundTransparency=1,ClipsDescendants=true,ZIndex=0},viewport.Parent)
+    local decoration=make("Frame",{Name="GameInfoBorder",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0},card)
     local edge=C.line:Lerp(C.card,.45)
     local function cap(name)
         local outer=make("Frame",{Name=name,BackgroundColor3=edge,Size=UDim2.new(0,0,0,32),ZIndex=0},decoration);round(outer,16)
@@ -5021,20 +5021,17 @@ function runtime.gameInfoBorder(card)
     local function update()
         if not card.Parent or not decoration.Parent then return end
         local unit=top.AbsoluteSize.Y/32;if unit<=0 then return end
-        local origin=viewport.AbsolutePosition-viewport.Parent.AbsolutePosition
-        decoration.Position=UDim2.fromOffset(origin.X/unit,origin.Y/unit)
-        decoration.Size=UDim2.fromOffset(viewport.AbsoluteSize.X/unit,viewport.AbsoluteSize.Y/unit)
-        decoration.Visible=card.Visible and viewport.Visible
-        local offset=card.AbsolutePosition-viewport.AbsolutePosition
-        local x,y,width,height=offset.X/unit,offset.Y/unit,card.AbsoluteSize.X/unit,card.AbsoluteSize.Y/unit
+        local height=surface.AbsoluteSize.Y/unit
+        if card.Size.Y.Offset~=height then card.Size=UDim2.new(1,card.Size.X.Offset,0,height)end
+        local x,y,width=0,0,card.AbsoluteSize.X/unit
         top.Position=UDim2.fromOffset(x,y);top.Size=UDim2.fromOffset(width,32)
         bottom.Position=UDim2.fromOffset(x,y+height-32);bottom.Size=UDim2.fromOffset(width,32)
-        local first,last=math.max(0,y+16),math.min(viewport.AbsoluteSize.Y/unit,y+height-16)
+        local first,last=math.max(16,(viewport.AbsolutePosition.Y-card.AbsolutePosition.Y)/unit),math.min(height-16,(viewport.AbsolutePosition.Y+viewport.AbsoluteSize.Y-card.AbsolutePosition.Y)/unit)
         middle.Position=UDim2.fromOffset(x,first);middle.Size=UDim2.fromOffset(width,math.max(0,last-first));middle.Visible=last>first
     end
     local function watch(object,name)table.insert(owned,object:GetPropertyChangedSignal(name):Connect(update))end
     for _,name in ipairs({"AbsoluteSize","AbsolutePosition","Visible"})do watch(card,name);watch(viewport,name)end
-    watch(viewport,"CanvasPosition");watch(top,"AbsoluteSize")
+    watch(viewport,"CanvasPosition");watch(top,"AbsoluteSize");watch(surface,"AbsoluteSize")
     table.insert(owned,card.Destroying:Connect(function()
         for _,connection in ipairs(owned)do connection:Disconnect()end
         decoration:Destroy()
@@ -5043,16 +5040,17 @@ function runtime.gameInfoBorder(card)
 end
 function runtime.drawGamePlayerInfo(parent,other,binder)
     if not runtime.currentGame()then return nil end
-    local card=make("Frame",{Name="PlayerGameInformation",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y},parent)
-    card.BackgroundTransparency=1;runtime.gameInfoBorder(card)
-    make("UIPadding",{PaddingLeft=UDim.new(0,14),PaddingRight=UDim.new(0,14),PaddingTop=UDim.new(0,12),PaddingBottom=UDim.new(0,12)},card)
-    make("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,7)},card)
+    local card=make("Frame",{Name="PlayerGameInformation",BackgroundColor3=C.card,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.None},parent)
+    card.BackgroundTransparency=1
+    local surface=make("Frame",{Name="GameInfoSurface",BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y},card)
+    make("UIPadding",{PaddingLeft=UDim.new(0,14),PaddingRight=UDim.new(0,14),PaddingTop=UDim.new(0,12),PaddingBottom=UDim.new(0,12)},surface)
+    make("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,7)},surface)
     local view={card=card,player=other,metrics={},active={},lists={},narrow=binder==runtime.inspectorButton}
-    view.header=label(card,"",14,C.text,UDim2.new(),UDim2.new(1,0,0,22),false);view.header.LayoutOrder=1
-    view.state=label(card,"",11,C.muted,UDim2.new(),UDim2.new(1,0,0,18),false);view.state.LayoutOrder=2
-    view.ranks=label(card,"",11,C.accent,UDim2.new(),UDim2.new(1,0,0,18),false);view.ranks.LayoutOrder=3
+    view.header=label(surface,"",14,C.text,UDim2.new(),UDim2.new(1,0,0,22),false);view.header.LayoutOrder=1
+    view.state=label(surface,"",11,C.muted,UDim2.new(),UDim2.new(1,0,0,18),false);view.state.LayoutOrder=2
+    view.ranks=label(surface,"",11,C.accent,UDim2.new(),UDim2.new(1,0,0,18),false);view.ranks.LayoutOrder=3
     view.ranks.TextWrapped=true;view.ranks.AutomaticSize=Enum.AutomaticSize.Y
-    local grid=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,116),LayoutOrder=4},card)
+    local grid=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,116),LayoutOrder=4},surface)
     for i in ipairs(runtime.gameInfoMetrics)do
         local column=(i-1)%3;local row=math.floor((i-1)/3)
         local cell=make("Frame",{BackgroundColor3=C.panel,Position=UDim2.new(column/3,column*2,0,row*61),Size=UDim2.new(1/3,-4,0,55)},grid);round(cell,10)
@@ -5061,10 +5059,10 @@ function runtime.drawGamePlayerInfo(parent,other,binder)
         value.Name="GameInfo_"..runtime.gameInfoMetrics[i][1];value.TextTruncate=Enum.TextTruncate.AtEnd;value.TextWrapped=false
         view.metrics[i]={title=title,value=value}
     end
-    view.toggle=binder(card,"",UDim2.new(),UDim2.new(1,0,0,30),function()
+    view.toggle=binder(surface,"",UDim2.new(),UDim2.new(1,0,0,30),function()
         runtime.gameInfoExpanded[other.UserId]=not runtime.gameInfoExpanded[other.UserId];runtime.refreshGameInfoView(view)
     end);view.toggle.Name="GameInfoExpand";view.toggle.LayoutOrder=5
-    view.details=make("Frame",{Name="GameInfoCollection",BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=6},card)
+    view.details=make("Frame",{Name="GameInfoCollection",BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=6},surface)
     make("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,10)},view.details)
     view.description=runtime.gameInfoSection(view.details,"Description");view.description.box.LayoutOrder=1
     view.description.body.AutomaticSize=Enum.AutomaticSize.Y
@@ -5078,6 +5076,7 @@ function runtime.drawGamePlayerInfo(parent,other,binder)
         view.active[i]={title=title,value=value}
     end
     for i,entry in ipairs(runtime.gameInfoLists)do view.lists[i]=runtime.gameInfoSection(view.details,entry[1]);view.lists[i].box.LayoutOrder=i+2 end
+    runtime.gameInfoBorder(card,surface)
     runtime.refreshGameInfoView(view)
     return view
 end
