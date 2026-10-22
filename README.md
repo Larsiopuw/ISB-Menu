@@ -1,4 +1,4 @@
-# ISB Menu 2.6.72 · by Larsiopuw
+# ISB Menu 2.6.73 · by Larsiopuw
 
 ## Piano automatisch spielen
 
@@ -33,6 +33,19 @@ Klavieraufnahmen: **Salamander Grand Piano (Yamaha C5) von Alexander Holm**, [CC
 Für die Standard-Roblox-Kamera wird während der Piano-Wiedergabe nur die Shift-Lock-Tastenbelegung vorübergehend geleert. Shift-Noten werden weiterhin gesendet. Pause, Stop, Fehler und Beenden stellen die vorherige Belegung wieder her; zwischenzeitliche Änderungen anderer Skripte bleiben erhalten. Eigene Kamera-Systeme ohne diese Belegung können abweichen. Falls die automatische Sperre dort nicht verfügbar ist, erscheint ein Hinweis auf die Roblox-Einstellungen.
 
 Die Online-Liste stammt wie beim VP-Player von nanoMIDI. Die eigenständige Windows-App muss dafür nicht laufen. Verwendet wird die übliche chromatische 61-Tasten-Belegung (C2–C7); Pianos mit anderen Steuerungen sind nicht allgemein abgedeckt. Die verwendete Skriptumgebung muss Roblox-interne Tasteneingaben unterstützen; PC-weite Tastaturfunktionen werden nicht verwendet. Falls der interne Eingabeweg fehlt oder blockiert ist, erscheint ein Hinweis. Beim Wechsel in andere Fenster läuft das Lied weiter, solange Roblox den Player weiter ausführt. Chat, das Roblox-Menü, Aufstehen nach sitzendem Start und Respawn unterbrechen die Wiedergabe und geben gehaltene Tasten frei. Bei einer längeren Unterbrechung durch Roblox pausiert der Player, damit keine verspäteten Noten nachgeholt werden. F8 wird innerhalb von Roblox verarbeitet; zum Stoppen nach dem Raustabben zurück ins Spiel wechseln. MIDI und Oberfläche wurden geprüft; eine Live-Prüfung der Tasteneingabe im Roblox-Spiel steht noch aus.
+
+## Schach im Spiel
+
+Unter **Scripts > Schach** stehen **Auto spielen**, **Pause** und **Ein Zug** bereit. Setze dich zuerst an einen Schachtisch im unterstuetzten Spiel. Die Stellung, eigene Farbe und das Zugrecht kommen direkt aus den vorhandenen Spieldaten; Bildschirmaufnahme, Mauskalibrierung und die bisherige ChessPilot-EXE werden nicht benoetigt.
+
+Die eingebaute Lua-Suche ist eine eigenstaendige, zeitlich begrenzte Zugberechnung und erreicht nicht die Spielstaerke von Stockfish. Der Server prueft die Zuege weiterhin. Vor jedem Zug werden Stellung und Version erneut verglichen; nach dem Senden wartet das Menue auf die erwartete bestaetigte Stellung. Bei Aussteigen, Gegner-/Tischwechsel, Neustart, Fehler oder ausbleibender Bestaetigung stoppt die Automatik. Auto spielen ist beim Laden ausgeschaltet.
+
+Live geprueft: ein eigener Zug an Tisch 4, b1c3, mit exakt passender Serverstellung und Versionswechsel 73 auf 74. Ein kompletter Partie-Durchlauf ist noch nicht verifiziert. Die bisherige ChessPilot-App wurde nicht veraendert.
+
+## Änderungen in 2.6.73
+
+- Neuer Schach Auto-Player unter Scripts > Schach: direkte Brett- und Zugdaten im unterstuetzten Spiel, ohne Bilderkennung oder zusaetzliche EXE.
+- Auto spielen, Pause und Ein Zug mit lokaler Lua-Suche, Stellungspruefung und Serverbestaetigung vor dem naechsten Zug.
 
 ## Änderungen in 2.6.72
 

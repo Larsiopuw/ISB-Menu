@@ -1,7 +1,7 @@
--- ISB Menu 2.6.72 | Own-game universal client toolkit
+-- ISB Menu 2.6.73 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.72",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.73",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -613,6 +613,8 @@ runtime.english={
     ["Verwendet \195\182ffentlich sichtbare Gruppenrollen und den Spielbesitzer. Rollenbezeichnungen sind Hinweise, keine verifizierten Berechtigungen."]="Uses public group roles and the game owner. Role titles are hints, not verified permissions.",
     ["F\195\164higkeiten"]="Capabilities",
     ["Dateien: %s  \194\183  Clipboard: %s  \194\183  Asset-Icons: %s"]="Files: %s  \194\183  Clipboard: %s  \194\183  Asset icons: %s",
+    ["Schach"]="Chess",
+    ["Schach direkt aus den Spieldaten steuern."]="Play chess using direct game data.",
     ["Effekte reduzieren"]="Reduce effects",
     ["Partikel, Trails, Beam und Post-Effekte lokal pausieren"]="Pause particles, trails, beams and post-processing locally",
     ["Das vorherige Limit wird beim Beenden wiederhergestellt."]="Restores the previous limit when the menu closes.",
@@ -675,6 +677,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.73"]="New Chess Auto-Player under Scripts > Chess: direct board and turn data in the supported game, without image recognition or an additional EXE.\nAuto play, Pause and One move with local Lua search, position validation and server acknowledgement before the next move.",
     ["2.6.72"]="Piano playback speed changes immediately while playing, without pausing or restarting.\nThe Roblox hotbar is temporarily disabled during playback and restored afterwards; newly equipped tools are returned to the backpack.",
     ["2.6.71"]="Selecting a piano song smoothly scrolls back to the playback controls.\nChanging song pages smoothly aligns the start of the list; manual scrolling interrupts the animation.",
     ["2.6.70"]="A compact speed control with a prominent playback rate centered inside one unified panel.\nLarger, precisely centered minus and plus symbols with matching button surfaces.",
@@ -2785,6 +2788,7 @@ end
 
 
 local descriptions = {
+    Schach="Schach direkt aus den Spieldaten steuern.",
     Start="Dein Spiel. Dein Werkzeug.", Bewegung="Kontrolle \195\188ber deinen Charakter.",
     Spieler="Spieler finden, beobachten und erreichen.", Darstellung="Deine pers\195\182nliche Ansicht.",
     Musik="Musik und Wiedergabe direkt steuern.", Favoriten="Deine wichtigsten Funktionen an einem Ort.",
@@ -2995,6 +2999,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.73",text="Neuer Schach Auto-Player unter Scripts > Schach: direkte Brett- und Zugdaten im unterstuetzten Spiel, ohne Bilderkennung oder zusaetzliche EXE.\nAuto spielen, Pause und Ein Zug mit lokaler Lua-Suche, Stellungspruefung und Serverbestaetigung vor dem naechsten Zug."},
     {version="2.6.72",text="Das Piano-Tempo laesst sich waehrend der Wiedergabe direkt aendern, ohne Pause oder Neustart.\nDie Roblox-Hotbar wird waehrend des Spielens voruebergehend deaktiviert und danach wiederhergestellt; neu ausgeruestete Tools werden im Rucksack verstaut."},
     {version="2.6.71",text="Nach der Piano-Songauswahl scrollt die Ansicht sanft zur Wiedergabe-Steuerung.\nBeim Wechsel einer Liedseite gleitet die Liste genau zu ihrem Anfang; eigenes Scrollen unterbricht die Animation."},
     {version="2.6.70",text="Neue kompakte Tempo-Steuerung mit hervorgehobener Geschwindigkeitsanzeige in der Mitte.\nGroessere, exakt zentrierte Minus- und Plus-Symbole mit einheitlichen Tastenflaechen."},
@@ -3374,6 +3379,7 @@ end
 local function drawScripts()
     local mode=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
     rowButton(mode,"Zur Online-Suche",UDim2.new(),UDim2.fromOffset(150,30),function() scriptSearch.localMode=false; render() end)
+    rowButton(mode,"Schach",UDim2.new(1,-110,0,0),UDim2.fromOffset(106,30),runtime.openChess).Name="ChessOpen"
     local f=plainCard("Eigene Scripts","Lokale Lua-Dateien aus deinem Executor-Workspace. Ausf\195\188hrung nur nach deinem Klick.",126)
     local input=make("TextBox",{Text="",PlaceholderText="Dateiname.lua",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,
         TextSize=13,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,78),Size=UDim2.new(1,-160,0,32)},f)
@@ -3463,6 +3469,7 @@ local function drawScriptSearch()
     end
     rowButton(controls,"Suchen",UDim2.fromOffset(210,0),UDim2.fromOffset(82,30),function() searchRemoteScripts(1) end)
     rowButton(controls,"Lokal",UDim2.fromOffset(302,0),UDim2.fromOffset(74,30),function() scriptSearch.localMode=true; query=""; render() end)
+    rowButton(controls,"Schach",UDim2.fromOffset(386,0),UDim2.fromOffset(100,30),runtime.openChess).Name="ChessOpen"
     if not scriptSearch.selected then
         local filters=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
         for i,name in ipairs({"Beliebt","Neu","Favoriten"}) do
@@ -5853,6 +5860,241 @@ connect(Run.Heartbeat,function()
     runtime.pianoPaint()
 end)
 
+function runtime.prepareChess()
+    if runtime.chessRules and runtime.chessController then return runtime.chessRules end
+    assert(game.PlaceId==136162036182779,'unsupported_chess_place')
+    local shared=game:GetService("ReplicatedStorage"):FindFirstChild("Shared")
+    local chess=shared and shared:FindFirstChild("Chess")
+    local first=game:GetService("ReplicatedFirst"):FindFirstChild("Controllers")
+    local gameplay=first and first:FindFirstChild("Gameplay")
+    local controller=gameplay and gameplay:FindFirstChild("MinigameController")
+    local rules=chess and chess:FindFirstChild("Rules")
+    assert(rules and controller,'chess_modules_unavailable')
+    local loaded=require(rules);local host=require(controller)
+    assert(type(loaded)=='table' and type(loaded.legalMoves)=='function' and type(loaded.findMove)=='function' and type(host.GetMinigame)=='function' and type(host.SendAction)=='function','chess_api_changed')
+    runtime.chessRules=loaded;runtime.chessController=host
+    return loaded
+end
+function runtime.readChess()
+    runtime.prepareChess()
+    local found
+    local h=humanoid()
+    for index,model in ipairs(game:GetService("CollectionService"):GetTagged("ChessMinigame"))do
+        if index>40 then break end
+        local id=model:GetAttribute("MinigameId")
+        local object=id and runtime.chessController:GetMinigame("ChessMinigame",id)
+        local view=object and object.View;local s=view and view.snapshot
+        if s and (s.white==player.UserId or s.black==player.UserId)then
+            assert(not found,'ambiguous_chess_session')
+            found={id=id,fen=s.fen,version=s.version,phase=s.phase,white=s.white,black=s.black,tableName=model.Name,
+                seated=h~=nil and h.Health>0 and (h.Sit or h.SeatPart~=nil),character=player.Character,animatingUntil=view.animatingUntil}
+        end
+    end
+    return found
+end
+runtime.chess=(function(deps)
+    local p:any={alive=true,auto=false,once=false,epoch=0,status='ready',nodes=0,depth=0}
+    local values={P=100,N=320,B=335,R=500,Q=900,K=0}
+    local function changed()if deps.changed and p.alive then deps.changed()end end
+    local function status(code)if p.status~=code then p.status=code;changed()end end
+    local function stop(code)p.epoch+=1;p.auto=false;p.once=false;status(code or 'paused')end
+    local function owned(c)
+        if not c or type(c.fen)~='string' or type(c.version)~='number' or type(c.id)~='string' then return false end
+        if c.white~=deps.userId and c.black~=deps.userId then return false end
+        if c.seated~=true then return false end
+        return true
+    end
+    local function same(a,b)return owned(b) and a.id==b.id and a.fen==b.fen and a.version==b.version and a.character==b.character and b.phase=='Playing'end
+    local function clone(state)
+        local copy={}
+        for k,v in pairs(state)do copy[k]=type(v)=='table' and table.clone(v)or v end
+        return copy
+    end
+    local function evaluate(state)
+        local score=0
+        for sq=0,63 do
+            local piece=state.board[sq]
+            if piece then
+                local kind=piece:upper();local white=piece==kind
+                local rank=white and sq//8 or 7-sq//8
+                local center=7-math.abs(sq%8-3.5)-math.abs(sq//8-3.5)
+                local positional=kind=='P' and rank*9 or (kind=='N' or kind=='B') and center*8 or kind=='K' and -center*4 or center*2
+                score+=(white and 1 or -1)*((values[kind]or 0)+positional)
+            end
+        end
+        return score*(state.turn=='w' and 1 or -1)
+    end
+    local function order(moves,state,best)
+        local sorted=table.clone(moves)
+        local function value(m)
+            if best and m.from==best.from and m.to==best.to and m.promotion==best.promotion then return 100000 end
+            local victim=state.board[m.to]or m.captured
+            local capture=type(victim)=='string' and (values[victim:upper()]or 0)or 0
+            local attacker=state.board[m.from]
+            return capture*10-(capture>0 and attacker and (values[attacker:upper()]or 0)or 0)+(m.promotion and (values[m.promotion:upper()]or 0)or 0)
+        end
+        table.sort(sorted,function(a,b)
+            local x,y=value(a),value(b)
+            if x~=y then return x>y end
+            if a.from~=b.from then return a.from<b.from end
+            if a.to~=b.to then return a.to<b.to end
+            return tostring(a.promotion or '')<tostring(b.promotion or '')
+        end)
+        return sorted
+    end
+    function p.search(rules,fen,cancel)
+        local root=rules.fromFEN(fen);local rootStatus=rules.evaluate(root)
+        if rootStatus.result then return nil,{nodes=0,depth=0}end
+        local initial=order(rootStatus.moves,root)
+        if #initial==0 then return nil,{nodes=0,depth=0}end
+        local nodes,completed=0,0
+        local best=initial[1];local started=deps.clock()
+        local budget=deps.budget or .8;local limit=deps.nodeLimit or 7000
+        local function check()
+            nodes+=1
+            if nodes%24==0 and deps.yield then deps.yield()end
+            if (cancel and cancel())or nodes>limit or deps.clock()-started>budget then error('search_cancelled',0)end
+        end
+        local visit
+        visit=function(state,info,depth,alpha,beta,ply)
+            check()
+            if info.result then return info.result=='checkmate' and -100000+ply or 0 end
+            if depth<=0 then return evaluate(state)end
+            local score=-math.huge
+            for _,move in ipairs(order(info.moves,state))do
+                local child=clone(state);local result=rules.play(child,table.clone(move))
+                local value=-visit(child,result,depth-1,-beta,-alpha,ply+1)
+                score=math.max(score,value);alpha=math.max(alpha,value)
+                if alpha>=beta then break end
+            end
+            return score
+        end
+        for depth=1,(deps.maxDepth or 4)do
+            local candidate;local high=-math.huge
+            local ok,err=pcall(function()
+                for _,move in ipairs(order(rootStatus.moves,root,best))do
+                    check()
+                    local child=clone(root);local result=rules.play(child,table.clone(move))
+                    local value=-visit(child,result,depth-1,-math.huge,-high,1)
+                    if value>high then high=value;candidate=move end
+                end
+            end)
+            if not ok then
+                if tostring(err)~='search_cancelled'then error(err,0)end
+                break
+            end
+            if candidate then best=candidate;completed=depth end
+            if high>99000 then break end
+        end
+        return best,{nodes=nodes,depth=completed}
+    end
+    function p.pause()stop('paused')end
+    function p.start(automatic)
+        if not p.alive then return end
+        local ok,rules=pcall(deps.rules)
+        if not ok or type(rules)~='table' then stop('unsupported');return end
+        p.rules=rules;p.epoch+=1;p.auto=automatic==true;p.once=not p.auto
+        p.match=nil;p.roster=nil;p.lastPly=nil;p.lastVersion=nil;status('ready');p.tick()
+    end
+    function p.tick()
+        if not p.alive or (not p.auto and not p.once and not p.pending)then return end
+        local ok,c=pcall(deps.snapshot)
+        if not ok or not owned(c)then stop('no_seat');p.pending=nil;return end
+        p.context=c
+        if p.match and p.match~=c.id then stop('changed');p.pending=nil;return end
+        local roster=tostring(c.white)..':'..tostring(c.black)
+        local turn,full=c.fen:match('^%S+%s+([wb])%s+%S+%s+%S+%s+%d+%s+(%d+)')
+        local ply=full and (tonumber(full)-1)*2+(turn=='b' and 1 or 0)or nil
+        if (p.roster and p.roster~=roster)or (p.lastVersion and c.version<p.lastVersion)or (p.lastPly and ply and ply<p.lastPly)then stop('changed');p.pending=nil;return end
+        if c.phase=='Playing'then p.roster=roster;p.lastPly=ply;p.lastVersion=c.version end
+        if p.pending then
+            local pending=p.pending
+            if c.id~=pending.id then p.pending=nil;stop('changed');return end
+            if c.version~=pending.version then
+                p.pending=nil
+                if c.fen~=pending.expected then stop('changed');return end
+                p.lastMove=pending.notation;status(p.status=='paused' and 'paused'or 'ready');changed()
+            elseif deps.clock()-pending.time>4 then p.pending=nil;stop('timeout');return
+            else return end
+        end
+        if not p.auto and not p.once then return end
+        if c.phase=='Ended' then stop('finished');return end
+        if c.phase~='Playing' then status('waiting');return end
+        local color=c.white==deps.userId and 'w'or 'b'
+        if c.fen:match('^%S+%s+([wb])')~=color then p.once=false;status('opponent');return end
+        if (c.animatingUntil or 0)>deps.clock()then return end
+        if p.thinking then return end
+        p.match=c.id;p.thinking=true;local epoch=p.epoch
+        status('thinking')
+        deps.spawn(function()
+            local success,err=pcall(function()
+                local move,stats=p.search(p.rules,c.fen,function()return not p.alive or epoch~=p.epoch end)
+                if not p.alive or epoch~=p.epoch then return end
+                p.nodes=stats.nodes;p.depth=stats.depth
+                local fresh=deps.snapshot()
+                if not same(c,fresh)then status('changed');p.once=false;return end
+                if not move then stop('finished');return end
+                if (fresh.animatingUntil or 0)>deps.clock()then status('ready');return end
+                local state=p.rules.fromFEN(fresh.fen)
+                local legal=p.rules.findMove(p.rules.legalMoves(state),move.from,move.to,move.promotion and move.promotion:upper()or nil)
+                if not legal then stop('changed');return end
+                p.rules.play(state,table.clone(legal))
+                local notation=p.rules.squareName(move.from)..p.rules.squareName(move.to)..(move.promotion and move.promotion:lower()or '')
+                p.pending={id=c.id,version=c.version,expected=p.rules.toFEN(state),time=deps.clock(),notation=notation}
+                p.once=false
+                deps.send(c.id,move.from,move.to,move.promotion and move.promotion:upper()or nil)
+                status('confirming')
+            end)
+            p.thinking=false
+            if not success and p.alive and epoch==p.epoch then p.pending=nil;p.error=tostring(err);stop('error')end
+        end)
+    end
+    function p.dispose()p.epoch+=1;p.alive=false;p.auto=false;p.once=false;p.pending=nil end
+    return p
+end)({
+    userId=player.UserId,clock=os.clock,spawn=task.spawn,yield=task.wait,rules=runtime.prepareChess,snapshot=runtime.readChess,
+    send=function(id,from,to,promotion)runtime.chessController:SendAction("ChessMinigame",id,"Move",from,to,promotion)end,
+    changed=function()
+        if not alive or not opened or page~="Schach" or runtime.chessRefresh then return end
+        runtime.chessRefresh=true
+        task.defer(function()runtime.chessRefresh=false;if alive and opened and page=="Schach"then render()end end)
+    end,
+})
+connect(Run.Heartbeat,function(dt)
+    runtime.chessClock=(runtime.chessClock or 0)+(dt or 0)
+    if runtime.chessClock>=.15 then runtime.chessClock=0;runtime.chess.tick()end
+end)
+function runtime.openChess()page="Schach";query="";render()end
+function runtime.drawChess()
+    local p=runtime.chess
+    local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+    rowButton(back,runtime.pianoText("Zur\195\188ck zu Scripts","Back to Scripts"),UDim2.new(),UDim2.fromOffset(170,30),function()page="Skripte";query="";render()end)
+    local ok,c=pcall(runtime.readChess)
+    local states={
+        ready={"Bereit. Auto spielen oder Ein Zug w\195\164hlen.","Ready. Choose Auto play or One move."},
+        paused={"Pausiert.","Paused."},waiting={"Warte auf den Gegner und den Partiestart.","Waiting for opponent and game start."},
+        opponent={"Der Gegner ist am Zug.","Opponent to move."},thinking={"Berechne einen legalen Zug...","Calculating a legal move..."},
+        confirming={"Warte auf die Serverbest\195\164tigung.","Waiting for server confirmation."},
+        timeout={"Keine Zugbest\195\164tigung. Bitte Stellung pr\195\188fen und neu starten.","No move confirmation. Check the position and restart."},
+        changed={"Partie oder Stellung ge\195\164ndert. Zug verworfen.","Game or position changed. Move discarded."},
+        finished={"Partie beendet. Automatik gestoppt.","Game ended. Automatic play stopped."},
+        no_seat={"Setze dich an einen eigenen Schachtisch.","Sit at your own chess table."},
+        error={"Schachsteuerung gestoppt. Bitte neu starten.","Chess control stopped. Please restart."},
+        unsupported={"Dieses Schachspiel wird noch nicht unterst\195\188tzt.","This chess game is not supported yet."},
+    }
+    local message=states[not ok and 'unsupported' or p.status]or states.ready
+    local text=runtime.pianoText(message[1],message[2])
+    if ok and c then text=c.tableName.."  |  "..runtime.pianoText(c.white==player.UserId and "Wei\195\159"or "Schwarz",c.white==player.UserId and "White"or "Black").."\n"..text end
+    local f=plainCard(runtime.pianoText("Schach Auto-Player","Chess Auto-Player"),text,160,false);f.Name="ChessPlayback"
+    local auto=rowButton(f,runtime.pianoText("Auto spielen","Auto play"),UDim2.fromOffset(16,82),UDim2.fromOffset(140,32),function()p.start(true)end)
+    auto.Name="ChessAuto";if p.auto then auto.TextColor3=C.accent end
+    local pause=rowButton(f,"Pause",UDim2.fromOffset(166,82),UDim2.fromOffset(90,32),p.pause);pause.Name="ChessPause"
+    local once=rowButton(f,runtime.pianoText("Ein Zug","One move"),UDim2.fromOffset(266,82),UDim2.fromOffset(106,32),function()p.start(false)end);once.Name="ChessOnce"
+    label(f,(p.lastMove and runtime.pianoText("Letzter Zug: ","Last move: ")..p.lastMove.."  |  "or "")..runtime.pianoText("Suchtiefe ","Depth ")..p.depth.."  |  "..p.nodes..runtime.pianoText(" Knoten"," nodes"),11,C.muted,UDim2.fromOffset(16,127),UDim2.new(1,-32,0,18))
+    local hint=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+    label(hint,runtime.pianoText("Direkte Spieldaten. Lokale Lua-Suche; keine zus\195\164tzliche EXE.","Direct game data. Local Lua search; no additional EXE."),11,C.muted,UDim2.fromOffset(4,0),UDim2.new(1,-8,1,0))
+end
+
 render = function()
     if not alive then return end
     local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
@@ -5881,14 +6123,14 @@ render = function()
     animate(window,{Size=UDim2.fromOffset(600,heights[page] or 400)})
     for _,child in ipairs(headerIcon:GetChildren()) do child:Destroy() end
     local pageIndex=table.find(navNames,page) or 9
-    imageIcon(headerIcon,page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex]),20,UDim2.new(),C.accent)
+    imageIcon(headerIcon,page=="Schach" and navAssetNames[6] or (page=="Voice" and "microphone" or (page=="Profil" and "shield-check" or navAssetNames[pageIndex])),20,UDim2.new(),C.accent)
     for name,b in pairs(navButtons) do
         b.TextColor3=name == page and C.accent or C.muted
         b.BackgroundTransparency=name==page and .15 or 1
         b.BackgroundColor3=name == page and C.card or C.panel
         for _,part in ipairs(navIcons[name]) do part.obj[part.property]=name==page and C.accent or C.muted end
     end
-    indicator.Visible=page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
+    indicator.Visible=page~="Schach" and page~="Profil" and page~="Voice" and page~="Wegpunkte" and page~="\195\132nderungen"
     if runtime.statusIcon then runtime.statusIcon.ImageColor3=C.accent end
     indicator.BackgroundColor3=C.accent
     animate(indicator,{Position=UDim2.fromOffset(88+((table.find(navNames,page) or 9)-1)*46,47)})
@@ -5905,6 +6147,8 @@ render = function()
         if not servers.loaded and not servers.loading and not servers.error then fetchServers(nil) end
     elseif page=="Voice" then
         drawVoice()
+    elseif page=="Schach" then
+        runtime.drawChess()
     elseif page=="Skripte" then
         if scriptSearch.localMode then drawScripts() else
             drawScriptSearch()
@@ -6458,6 +6702,7 @@ api.Destroy = function()
     if not alive then return end
     alive=false
     runtime.piano.dispose()
+    runtime.chess.dispose()
     runtime.clearOutfit(true)
     runtime.stopFreecam(false)
     runtime.destroyInspectorTool()
@@ -6494,6 +6739,7 @@ api.AddAction = function(id, category, name, description, callback)
     render()
 end
 api.Language=runtime.language
+api.OpenChess=function()setOpen(true);runtime.openChess()end
 api.Notify=notify
 env.ISBMenu=api
 runtime.ensureInspectorTool()
