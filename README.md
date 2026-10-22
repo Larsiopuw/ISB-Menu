@@ -1,4 +1,4 @@
-# ISB Menu 2.6.76 · by Larsiopuw
+# ISB Menu 2.6.77 · by Larsiopuw
 
 ## Piano automatisch spielen
 
@@ -33,6 +33,14 @@ Klavieraufnahmen: **Salamander Grand Piano (Yamaha C5) von Alexander Holm**, [CC
 Für die Standard-Roblox-Kamera wird während der Piano-Wiedergabe nur die Shift-Lock-Tastenbelegung vorübergehend geleert. Shift-Noten werden weiterhin gesendet. Pause, Stop, Fehler und Beenden stellen die vorherige Belegung wieder her; zwischenzeitliche Änderungen anderer Skripte bleiben erhalten. Eigene Kamera-Systeme ohne diese Belegung können abweichen. Falls die automatische Sperre dort nicht verfügbar ist, erscheint ein Hinweis auf die Roblox-Einstellungen.
 
 Die Online-Liste stammt wie beim VP-Player von nanoMIDI. Die eigenständige Windows-App muss dafür nicht laufen. Verwendet wird die übliche chromatische 61-Tasten-Belegung (C2–C7); Pianos mit anderen Steuerungen sind nicht allgemein abgedeckt. Die verwendete Skriptumgebung muss Roblox-interne Tasteneingaben unterstützen; PC-weite Tastaturfunktionen werden nicht verwendet. Falls der interne Eingabeweg fehlt oder blockiert ist, erscheint ein Hinweis. Beim Wechsel in andere Fenster läuft das Lied weiter, solange Roblox den Player weiter ausführt. Chat, das Roblox-Menü, Aufstehen nach sitzendem Start und Respawn unterbrechen die Wiedergabe und geben gehaltene Tasten frei. Bei einer längeren Unterbrechung durch Roblox pausiert der Player, damit keine verspäteten Noten nachgeholt werden. F8 wird innerhalb von Roblox verarbeitet; zum Stoppen nach dem Raustabben zurück ins Spiel wechseln. MIDI und Oberfläche wurden geprüft; eine Live-Prüfung der Tasteneingabe im Roblox-Spiel steht noch aus.
+
+## Anti-Void mit Pixel-Recovery
+
+Anti-Void im Bewegungsbereich kehrt zur letzten gespeicherten Bodenposition zurueck. Dabei loest sich deine lokale Darstellung in Pixel auf; eine cyanfarbene Lichtspur und die Kamera begleiten den Rueckflug. Am Ziel erscheint dein Avatar wieder. Die Darstellung basiert auf den bereitgestellten FallRecovery-Skripten und benoetigt im Menue kein FallRecoveryEvent und kein Serverskript.
+
+Der eigentliche Charakter wird sofort am sicheren Ziel stabilisiert, waehrend der sichtbare Effekt fliegt. Die Erkennung verwendet weiterhin die bisherige Anti-Void-Fallgrenze. Kamera, Sichtbarkeit und Humanoid-Zustaende werden bei Abschluss, Abschalten, Respawn, Beenden oder einem Fehler bereinigt. Fliegen, Freecam, Quick Actions und Wegpunkt-Teleports beenden eine laufende Recovery. Eine bereits aktive serverseitige InFallRecovery verhindert einen zweiten Start.
+
+Die Animation ist lokal sichtbar. Menue-Sounds und reduzierte Effekte beruecksichtigen die vorhandenen Einstellungen. Bei reduzierten Bewegungen erfolgt weiterhin der direkte Ruecksprung ohne Kameraflug. Sound-Assets muessen im Spiel freigegeben sein. Spielseitige Todeszonen oder Teleport-Regeln koennen eine lokale Anti-Void-Rettung verhindern.
 
 ## Spielerinfo-Item am Ende des Inventars
 
@@ -85,6 +93,10 @@ Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden ab
 ## Änderungshistorie
 
 Zusammengehörige Zwischenstände sind als abgeschlossene Funktionen zusammengefasst. Technische Versuche und Prüfergebnisse stehen separat im Prüfbericht.
+
+### 2.6.77
+
+- Anti-Void erhält die Pixel-Recovery mit cyanfarbener Lichtspur, Rückflug-Kamera und Wiedererscheinen am letzten sicheren Bodenpunkt.
 
 ### 2.6.76
 

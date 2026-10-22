@@ -1,7 +1,7 @@
--- ISB Menu 2.6.76 | Own-game universal client toolkit
+-- ISB Menu 2.6.77 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.76",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.77",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -199,6 +199,8 @@ local flyObjects, flyHumanoid, flyAutoRotate = {}, nil, nil
 local runtime={flightVelocity=Vector3.zero,flightAcceleration=Vector3.zero,gameStaff={},groupRoles={},profileData={},antiVoid=false,shader=false,
     role="Member", saveRevision=0,lastSaved=nil,saveError=nil, imageCache={},performanceOwned={},voiceMaintenance=0,tweens={}}
 runtime.english={
+    ["Pixel-R\195\188ckflug zum letzten sicheren Bodenpunkt"]="Pixel flight back to your last safe ground position",
+    ["Zum Bodenpunkt zur\195\188ckgekehrt. Der Effekt konnte nicht vollst\195\164ndig abgespielt werden."]="Returned to safety. The recovery effect could not finish.",
     ["Bitte eine Wartezeit zwischen 0 und 60 Sekunden eingeben."]="Enter a delay between 0 and 60 seconds.",
     ["Bei Admin automatisch Server wechseln"]="Automatically hop when staff is detected",
     ["Wechselt automatisch bei erkannten Spiel-Admins. Standardm\195\164\195\159ig aus."]="Automatically changes servers when game staff is detected. Off by default.",
@@ -603,7 +605,6 @@ runtime.english={
     ["Charakter ist noch nicht verf\195\188gbar."]="Character is not available yet.",
     ["Zum Spieler"]="Go to player",
     ["Position lokal ge\195\164ndert."]="Position changed locally.",
-    ["Zum letzten Bodenpunkt zur\195\188ck, bevor du die Fallgrenze erreichst"]="Return to the last safe ground position before reaching the fall limit",
     ["Realistische Farben, Sonnenstrahlen und Himmel"]="Realistic colors, sun rays and sky",
     ["Eigene Erweiterungen"]="Custom extensions",
     ["Server-ID oder Spieleranzahl suchen \226\128\166"]="Search server ID or player count \226\128\166",
@@ -693,6 +694,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.77"]="Anti-Void gains pixel recovery with a cyan light trail, a guided return camera and reappearance at the last safe ground position.",
     ["2.6.76"]="Chess Auto-Player under Scripts > This Game: Stockfish or offline search, automatic play and single moves with a configurable random move delay.\nOptional server hopping when game staff is detected under Detection, off by default. A compact left-center list shows active functions and their keybinds.\nPlayer Info is placed at the end of the inventory after game items finish loading.",
     ["2.6.72"]="Piano Auto-Player with an online library, search, sorting and favorites, plus imports of personal MIDI and VP text files.\nPlayback includes pause, stop, seeking and live tempo changes. Previews use recorded piano samples.\nRoblox-only input supports background playback and keyboard layouts; the hotbar and standard Shift-Lock binding are temporarily disabled while playing.",
     ["2.6.61"]="Outfit Stealer copies a player\226\128\153s body shape, clothing, accessories and available animations for your local view.\nThe camera, held items and effects account for the copied body. Own outfit, respawn and shutdown restore the original appearance.",
@@ -1631,6 +1633,7 @@ local function stopFly()
     flyHumanoid, flyAutoRotate, runtime.flyRoot = nil, nil,nil; runtime.flightVelocity=Vector3.zero; runtime.flightAcceleration=Vector3.zero
 end
 local function startFly()
+    if runtime.recovery then runtime.recovery.cancel(true)end
     if runtime.stopRoleplay then runtime.stopRoleplay() end
     stopFly()
     local r, h = root(), humanoid()
@@ -2845,6 +2848,7 @@ function runtime.deleteWaypoint(entry)
     for i,other in ipairs(list) do if other==entry then table.remove(list,i); save(true); render(); return end end
 end
 function runtime.visitWaypoint(entry,freecam)
+    if runtime.recovery then runtime.recovery.cancel(true)end
     local position=Vector3.new(table.unpack(entry.position))
     local look=Vector3.new(table.unpack(entry.look)).Unit
     local frame=CFrame.lookAt(position,position+look)
@@ -2989,6 +2993,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.77",text="Anti-Void erh\195\164lt die Pixel-Recovery mit cyanfarbener Lichtspur, R\195\188ckflug-Kamera und Wiedererscheinen am letzten sicheren Bodenpunkt."},
     {version="2.6.76",text="Schach Auto-Player unter Scripts > Dieses Spiel: Stockfish oder Offline-Suche, automatisches Spielen und einzelne Z\195\188ge mit frei einstellbarer zuf\195\164lliger Zugpause.\nOptionaler Serverwechsel bei erkannten Spiel-Admins unter Erkennung, standardm\195\164\195\159ig aus. Links mittig zeigt eine kompakte Liste aktive Funktionen mit ihren Keybinds.\nDas Spielerinfo-Item wird nach dem Laden der Spiel-Items am Ende des Inventars einsortiert."},
     {version="2.6.72",text="Piano Auto-Player mit Online-Bibliothek, Suche, Sortierung und Favoriten sowie Import eigener MIDI- und VP-Textdateien.\nWiedergabe mit Pause, Stop, Zeitleiste und direkt ver\195\164nderbarem Tempo. Vorschauen verwenden echte Piano-Aufnahmen.\nRoblox-interne Eingaben unterst\195\188tzen Hintergrundwiedergabe und Tastaturlayouts; w\195\164hrend des Spielens werden Hotbar und die normale Shift-Lock-Belegung vor\195\188bergehend gesperrt."},
     {version="2.6.61",text="Outfit Stealer kopiert K\195\182rperbau, Kleidung, Accessoires und verf\195\188gbare Animationen eines Spielers f\195\188r deine lokale Ansicht.\nKamera, gehaltene Items und Effekte ber\195\188cksichtigen den kopierten K\195\182rper. Eigenes Outfit, Respawn und Beenden stellen die urspr\195\188ngliche Darstellung wieder her."},
@@ -3786,6 +3791,7 @@ function runtime.syncRoleplay(dt)
     owned.h.PlatformStand=true; owned.h.AutoRotate=false
 end
 function runtime.startRoleplay(mode)
+    if runtime.recovery then runtime.recovery.cancel(true)end
     local target=runtime.quickTarget or runtime.nearestRoleplayTarget(mode)
     local part=runtime.roleplayPart(target,mode)
     local h,r=humanoid(),root()
@@ -5114,7 +5120,1308 @@ local function drawPlayers()
     runtime.fillPlayerRows()
     runtime.fillPlayerRows()
 end
-addAction("antivoid","Bewegung","Anti-Void","Zum letzten Bodenpunkt zur\195\188ck, bevor du die Fallgrenze erreichst","toggle",function() runtime.antiVoid=not runtime.antiVoid; runtime.safeGround=nil end,function() return runtime.antiVoid end)
+runtime.makeVoidVisuals=(function(deps)
+local owned={};local tweens={};local epoch=0;local live=true;local effectFolder
+local function newObject(kind)
+    local object=Instance.new(kind);table.insert(owned,object);return object
+end
+local function newTween(target,info,goals)
+    local tween=game:GetService("TweenService"):Create(target,info,goals);table.insert(tweens,tween);return tween
+end
+local function schedule(delay,callback)
+    local token=epoch
+    task.delay(delay,function()if live and token==epoch then callback()end end)
+end
+local Debris = game:GetService("Debris")
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+
+local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
+
+local localPlayer = Players.LocalPlayer
+
+
+-- Replace these IDs at any time with sounds from your own inventory.
+local DISSOLVE_SOUND_ID = "6439289406"
+local FLIGHT_SOUND_ID = "1847405359"
+local ARRIVAL_SOUND_ID = "5563980633"
+local DISSOLVE_SOUND_VOLUME = 0.65
+local FLIGHT_SOUND_VOLUME = 0.55
+local ARRIVAL_SOUND_VOLUME = 0.7
+
+local DISSOLVE_DELAY = 0.16
+local FLIGHT_TRAVEL_TIME = 2.2
+local COMET_TRAVEL_TIME = 1.65
+local CHARACTER_REVEAL_DELAY = 0.16
+local ARRIVAL_CAMERA_HOLD = 0.4
+local CAMERA_RETURN_TIME = 0.55
+local CAMERA_FOLLOW_HEIGHT = 11
+local CAMERA_FOLLOW_SIDE = 14
+local CAMERA_FOLLOW_BACK = 7
+local CAMERA_FOLLOW_RESPONSE = 16
+local CAMERA_COLLISION_PADDING = 1.5
+
+local WHITE = Color3.fromRGB(255, 255, 255)
+local CYAN = Color3.fromRGB(115, 235, 255)
+local rng = Random.new()
+local activeRecoveries = {}
+
+local function normalizeSoundId(value)
+	local text = tostring(value or "")
+
+	if text == "" then
+		return ""
+	end
+
+	if string.find(text, "rbxassetid://", 1, true) then
+		return text
+	end
+
+	return "rbxassetid://" .. text
+end
+
+local function playSound(soundId, volume, looped)
+    if not deps.sounds() then return nil end
+	soundId = normalizeSoundId(soundId)
+
+	if soundId == "" then
+		return nil
+	end
+
+	local sound = newObject("Sound")
+	sound.SoundId = soundId
+	sound.Volume = volume or 0.8
+	sound.Looped = looped == true
+	sound.Parent = SoundService
+	sound:Play()
+	Debris:AddItem(sound, 8)
+
+	return sound
+end
+
+local function createEffectPart(name, position, size)
+	local part = newObject("Part")
+	part.Name = name
+	part.Shape = Enum.PartType.Block
+	part.Size = size or Vector3.new(0.3, 0.3, 0.3)
+	part.Position = position
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanTouch = false
+	part.CanQuery = false
+	part.CastShadow = false
+	part.Material = Enum.Material.Neon
+	part.Color = WHITE
+	part.Transparency = 1
+	part.Parent = effectFolder
+
+	return part
+end
+
+local function makeNumberSequence(...)
+	local points = { ... }
+	local keypoints = {}
+
+	for index = 1, #points, 2 do
+		table.insert(
+			keypoints,
+			NumberSequenceKeypoint.new(
+				points[index],
+				points[index + 1]
+			)
+		)
+	end
+
+	return NumberSequence.new(keypoints)
+end
+
+local function createParticles(
+	parent,
+	texture,
+	color,
+	lifetime,
+	speed,
+	size,
+	rate
+)
+	local emitter = newObject("ParticleEmitter")
+	emitter.Texture = texture
+	emitter.Color = ColorSequence.new(color)
+	emitter.LightEmission = 0.45
+    emitter.Transparency = NumberSequence.new(0.65)
+	emitter.LightInfluence = 0
+	emitter.Lifetime = lifetime
+	emitter.Speed = speed
+	emitter.Size = size
+	emitter.Rate = rate or 0
+	emitter.Rotation = NumberRange.new(0, 360)
+	emitter.RotSpeed = NumberRange.new(-180, 180)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Drag = 2
+	emitter.Parent = parent
+
+	return emitter
+end
+
+local function emitDissolveBurst(position)
+	local anchor = createEffectPart(
+		"ISBRecoveryDissolve",
+		position,
+		Vector3.new(0.2, 0.2, 0.2)
+	)
+
+	local flare = createParticles(
+		anchor,
+		"rbxasset://textures/particles/flare_main.dds",
+		WHITE,
+		NumberRange.new(0.28, 0.55),
+		NumberRange.new(5, 13),
+		makeNumberSequence(0, 1.5, 0.35, 0.8, 1, 0),
+		0
+	)
+	flare:Emit(18)
+
+	local sparkles = createParticles(
+		anchor,
+		"rbxasset://textures/particles/sparkles_main.dds",
+		CYAN,
+		NumberRange.new(0.45, 0.9),
+		NumberRange.new(5, 16),
+		makeNumberSequence(0, 0.42, 0.65, 0.2, 1, 0),
+		0
+	)
+	sparkles.Acceleration = Vector3.new(0, 4, 0)
+	sparkles:Emit(34)
+
+	local light = newObject("PointLight")
+	light.Color = WHITE
+	light.Brightness = 0.8
+	light.Range = 20
+	light.Shadows = false
+	light.Parent = anchor
+
+	newTween(
+		light,
+		TweenInfo.new(0.45, Enum.EasingStyle.Quad),
+		{ Brightness = 0, Range = 5 }
+	):Play()
+
+	Debris:AddItem(anchor, 2)
+end
+
+local function quadraticBezier(p0, p1, p2, alpha)
+	local inverse = 1 - alpha
+
+	return inverse * inverse * p0
+		+ 2 * inverse * alpha * p1
+		+ alpha * alpha * p2
+end
+
+local function getFlightPath(startPosition, targetPosition)
+	local distance = (targetPosition - startPosition).Magnitude
+	local control = targetPosition
+		+ Vector3.new(
+			0,
+			math.max(24, distance * 0.55),
+			0
+		)
+
+	return startPosition, control, targetPosition
+end
+
+local function createHeroComet(position)
+	local comet = createEffectPart(
+		"ISBRecoveryHeroComet",
+		position,
+		Vector3.new(0.9, 0.9, 0.9)
+	)
+	comet.Color = CYAN
+	comet.Transparency = 0.08
+
+	local front = newObject("Attachment")
+	front.Position = Vector3.new(0, 0.34, 0)
+	front.Parent = comet
+
+	local back = newObject("Attachment")
+	back.Position = Vector3.new(0, -0.34, 0)
+	back.Parent = comet
+
+	local trail = newObject("Trail")
+	trail.Attachment0 = front
+	trail.Attachment1 = back
+	trail.Color = ColorSequence.new(CYAN)
+	trail.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.72, 0.15),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	trail.WidthScale = makeNumberSequence(0, 0.75, 1, 0)
+	trail.Lifetime = 0.22
+	trail.LightEmission = 1
+	trail.LightInfluence = 0
+	trail.FaceCamera = true
+	trail.MinLength = 0.02
+	trail.Parent = comet
+
+	local light = newObject("PointLight")
+	light.Color = CYAN
+	light.Brightness = 0.8
+	light.Range = 14
+	light.Parent = comet
+
+	local glow = createParticles(
+		comet,
+		"rbxasset://textures/particles/flare_main.dds",
+		WHITE,
+		NumberRange.new(0.32, 0.58),
+		NumberRange.new(0.3, 1.4),
+		makeNumberSequence(0, 0.3, 0.65, 0.18, 1, 0),
+		34
+	)
+	glow.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, WHITE),
+		ColorSequenceKeypoint.new(0.5, CYAN),
+		ColorSequenceKeypoint.new(1, CYAN),
+	})
+	glow.Drag = 1
+
+	local motes = createParticles(
+		comet,
+		"rbxasset://textures/particles/sparkles_main.dds",
+		CYAN,
+		NumberRange.new(0.4, 0.75),
+		NumberRange.new(0.4, 2),
+		makeNumberSequence(0, 0.32, 0.7, 0.18, 1, 0),
+		34
+	)
+	motes.Drag = 1.5
+
+	return comet, trail, light
+end
+
+local function launchComet(startPosition, targetPosition, index)
+	schedule((index - 1) * 0.035, function()
+		local startOffset = Vector3.new(
+			rng:NextNumber(-2.5, 2.5),
+			rng:NextNumber(-1, 3),
+			rng:NextNumber(-2.5, 2.5)
+		)
+		local endOffset = Vector3.new(
+			rng:NextNumber(-1.5, 1.5),
+			rng:NextNumber(0, 3),
+			rng:NextNumber(-1.5, 1.5)
+		)
+		local p0 = startPosition + startOffset
+		local p2 = targetPosition + endOffset
+		local distance = (p2 - p0).Magnitude
+		local side = Vector3.new(
+			rng:NextNumber(-1, 1),
+			0,
+			rng:NextNumber(-1, 1)
+		)
+
+		if side.Magnitude < 0.1 then
+			side = Vector3.new(1, 0, 0)
+		else
+			side = side.Unit
+		end
+
+		local p1 = p2
+			+ Vector3.new(
+				0,
+				math.max(
+					18,
+					distance * rng:NextNumber(0.45, 0.6)
+				),
+				0
+			)
+			+ side * rng:NextNumber(4, 12)
+
+		local comet = createEffectPart(
+			"ISBRecoveryComet",
+			p0,
+			Vector3.new(0.38, 0.38, 0.38)
+		)
+		comet.Color = index % 2 == 0 and CYAN or WHITE
+		comet.Transparency = 0
+
+		local front = newObject("Attachment")
+		front.Position = Vector3.new(0, 0.22, 0)
+		front.Parent = comet
+
+		local back = newObject("Attachment")
+		back.Position = Vector3.new(0, -0.22, 0)
+		back.Parent = comet
+
+		local trail = newObject("Trail")
+		trail.Attachment0 = front
+		trail.Attachment1 = back
+		trail.Color = ColorSequence.new(comet.Color)
+		trail.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(0.7, 0.2),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		trail.WidthScale = makeNumberSequence(
+			0, rng:NextNumber(0.35, 0.7),
+			1, 0
+		)
+		trail.Lifetime = rng:NextNumber(0.12, 0.2)
+		trail.LightEmission = 1
+		trail.LightInfluence = 0
+		trail.FaceCamera = true
+		trail.MinLength = 0.03
+		trail.Parent = comet
+
+		local light = newObject("PointLight")
+		light.Color = comet.Color
+		light.Brightness = 0.35
+		light.Range = 9
+		light.Parent = comet
+
+		local duration = COMET_TRAVEL_TIME
+			* rng:NextNumber(0.85, 1.12)
+		local startedAt = os.clock()
+
+		while comet.Parent do
+			local alpha = math.clamp(
+				(os.clock() - startedAt) / duration,
+				0,
+				1
+			)
+			local eased = alpha * alpha * (3 - 2 * alpha)
+			comet.Position = quadraticBezier(p0, p1, p2, eased)
+
+			if alpha >= 1 then
+				break
+			end
+
+			RunService.RenderStepped:Wait()
+		end
+
+		comet.Transparency = 1
+		light.Enabled = false
+		Debris:AddItem(comet, trail.Lifetime + 0.1)
+	end)
+end
+
+local function createExpandingOrb(position, delayTime)
+	schedule(delayTime, function()
+		local orb = createEffectPart(
+			"ISBRecoveryOrb",
+			position + Vector3.new(
+				rng:NextNumber(-2, 2),
+				rng:NextNumber(0, 4),
+				rng:NextNumber(-2, 2)
+			),
+			Vector3.new(0.3, 0.3, 0.3)
+		)
+		orb.Color = rng:NextNumber() > 0.5 and WHITE or CYAN
+		orb.Transparency = 0.18
+
+		local targetSize = rng:NextNumber(2.5, 5)
+
+		newTween(
+			orb,
+			TweenInfo.new(
+				rng:NextNumber(0.35, 0.65),
+				Enum.EasingStyle.Quad,
+				Enum.EasingDirection.Out
+			),
+			{
+				Size = Vector3.one * targetSize,
+				Transparency = 1,
+				Position = orb.Position
+					+ Vector3.new(0, rng:NextNumber(1, 4), 0),
+			}
+		):Play()
+
+		Debris:AddItem(orb, 0.8)
+	end)
+end
+
+local function emitArrivalBurst(position)
+	local anchor = createEffectPart(
+		"ISBRecoveryArrival",
+		position,
+		Vector3.new(0.2, 0.2, 0.2)
+	)
+
+	local flare = createParticles(
+		anchor,
+		"rbxasset://textures/particles/flare_main.dds",
+		WHITE,
+		NumberRange.new(0.35, 0.8),
+		NumberRange.new(7, 20),
+		makeNumberSequence(0, 2.3, 0.28, 1, 1, 0),
+		0
+	)
+	flare:Emit(28)
+
+	local sparkles = createParticles(
+		anchor,
+		"rbxasset://textures/particles/sparkles_main.dds",
+		CYAN,
+		NumberRange.new(0.7, 1.45),
+		NumberRange.new(5, 18),
+		makeNumberSequence(0, 0.5, 0.72, 0.22, 1, 0),
+		0
+	)
+	sparkles.Acceleration = Vector3.new(0, 6, 0)
+	sparkles:Emit(58)
+
+	local light = newObject("PointLight")
+	light.Color = WHITE
+	light.Brightness = 1.5
+	light.Range = 30
+	light.Parent = anchor
+
+	newTween(
+		light,
+		TweenInfo.new(0.6, Enum.EasingStyle.Quad),
+		{ Brightness = 0, Range = 8 }
+	):Play()
+
+	for index = 1, 7 do
+		createExpandingOrb(position, (index - 1) * 0.035)
+	end
+
+	for _ = 1, 16 do
+		local fragment = newObject("Part")
+		fragment.Name = "ISBRecoveryFragment"
+		fragment.Size = Vector3.one * rng:NextNumber(0.08, 0.28)
+		fragment.Position = position
+		fragment.Orientation = Vector3.new(
+			rng:NextNumber(0, 360),
+			rng:NextNumber(0, 360),
+			rng:NextNumber(0, 360)
+		)
+		fragment.Anchored = true
+		fragment.CanCollide = false
+		fragment.CanTouch = false
+		fragment.CanQuery = false
+		fragment.CastShadow = false
+		fragment.Material = Enum.Material.Neon
+		fragment.Color = rng:NextNumber() > 0.35 and WHITE or CYAN
+		fragment.Parent = effectFolder
+
+		newTween(
+			fragment,
+			TweenInfo.new(
+				rng:NextNumber(0.45, 0.9),
+				Enum.EasingStyle.Quad,
+				Enum.EasingDirection.Out
+			),
+			{
+				Position = position + Vector3.new(
+					rng:NextNumber(-6, 6),
+					rng:NextNumber(1, 8),
+					rng:NextNumber(-6, 6)
+				),
+				Orientation = fragment.Orientation
+					+ Vector3.new(
+						rng:NextNumber(-180, 180),
+						rng:NextNumber(-180, 180),
+						rng:NextNumber(-180, 180)
+					),
+				Transparency = 1,
+			}
+		):Play()
+
+		Debris:AddItem(fragment, 1)
+	end
+
+	Debris:AddItem(anchor, 2)
+end
+
+local function hideCharacter(state, character)
+    if state.hidden then return end
+	state.parts = {}
+	state.visuals = {}
+	state.billboards = {}
+
+	local function hideObject(object)
+		if object:IsA("BasePart") then
+			if state.parts[object] == nil then
+				state.parts[object] =
+					object.LocalTransparencyModifier
+			end
+
+			object.LocalTransparencyModifier = 1
+		elseif object:IsA("Decal") or object:IsA("Texture") then
+			if state.visuals[object] == nil then
+				state.visuals[object] = object.Transparency
+			end
+
+			object.Transparency = 1
+		elseif object:IsA("BillboardGui") then
+			if state.billboards[object] == nil then
+				state.billboards[object] = object.Enabled
+			end
+
+			object.Enabled = false
+		end
+	end
+
+    state.hideObject=hideObject
+    state.descendantConnections={}
+    for _,model in ipairs(deps.models())do
+        if model and model.Parent then
+            for _,object in ipairs(model:GetDescendants())do hideObject(object)end
+            table.insert(state.descendantConnections,model.DescendantAdded:Connect(hideObject))
+        end
+    end
+	state.hidden = true
+end
+
+local function showCharacter(state)
+    for _,connection in ipairs(state.descendantConnections or {})do connection:Disconnect()end
+    state.descendantConnections={}
+
+	for part, transparency in pairs(state.parts or {}) do
+		if part.Parent and part.LocalTransparencyModifier==1 then
+			part.LocalTransparencyModifier = transparency
+		end
+	end
+
+	for visual, transparency in pairs(state.visuals or {}) do
+		if visual.Parent and visual.Transparency==1 then
+			visual.Transparency = transparency
+		end
+	end
+
+	for billboard, enabled in pairs(state.billboards or {}) do
+		if billboard.Parent and not billboard.Enabled then
+			billboard.Enabled = enabled
+		end
+	end
+
+	state.hidden = false
+end
+
+local function prepareCamera(state)
+	if state.player ~= localPlayer then
+		return
+	end
+
+	local camera = workspace.CurrentCamera
+
+	if not camera then
+		return
+	end
+
+	state.camera = camera
+	state.cameraType = camera.CameraType
+	state.cameraSubject = camera.CameraSubject
+	state.cameraFieldOfView = camera.FieldOfView
+	state.cameraStartCFrame = camera.CFrame
+
+	camera.CameraType = Enum.CameraType.Scriptable
+
+	local bloom = newObject("BloomEffect")
+	bloom.Name = "ISBRecoveryBloom"
+	bloom.Intensity = 0.18
+	bloom.Size = 28
+	bloom.Threshold = 1.2
+	bloom.Parent = Lighting
+	state.bloom = bloom
+end
+
+local function getCollisionSafeCameraPosition(
+	focusPosition,
+	desiredPosition,
+	character
+)
+	local direction = desiredPosition - focusPosition
+
+	if direction.Magnitude < 0.1 then
+		return desiredPosition
+	end
+
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = character and { character } or {}
+	params.IgnoreWater = false
+
+	local result = workspace:Raycast(
+		focusPosition,
+		direction,
+		params
+	)
+
+	if not result then
+		return desiredPosition
+	end
+
+	local safeDistance = math.max(
+		0.5,
+		result.Distance - CAMERA_COLLISION_PADDING
+	)
+
+	return focusPosition + direction.Unit * safeDistance
+end
+
+local function startGuidedFlight(
+	state,
+	startPosition,
+	targetPosition,
+	targetCFrame
+)
+	if state.player ~= localPlayer then
+		return
+	end
+
+	local camera = state.camera or workspace.CurrentCamera
+
+	if not camera then
+		return
+	end
+
+	if state.cameraConnection then
+		state.cameraConnection:Disconnect()
+	end
+
+	local p0, p1, p2 = getFlightPath(
+		startPosition,
+		targetPosition
+	)
+	local cameraFlash = newObject("ColorCorrectionEffect")
+	cameraFlash.Name = "ISBRecoveryCameraFlash"
+	cameraFlash.Brightness = 0.2
+	cameraFlash.Contrast = -0.2
+	cameraFlash.Saturation = -0.2
+	cameraFlash.Parent = Lighting
+
+	newTween(
+		cameraFlash,
+		TweenInfo.new(
+			0.22,
+			Enum.EasingStyle.Quad,
+			Enum.EasingDirection.Out
+		),
+		{
+			Brightness = 0,
+			Contrast = 0,
+			Saturation = 0,
+		}
+	):Play()
+	Debris:AddItem(cameraFlash, 0.25)
+
+	local heroComet, heroTrail, heroLight =
+		createHeroComet(p0)
+	local flightOrbs = {}
+
+	for index = 1, math.max(16,#(state.pixels or {})) do
+		local size = rng:NextNumber(0.26, 0.74)
+        local orb = state.pixels and state.pixels[index] or createEffectPart("ISBRecoveryFlightPixel",p0,Vector3.one*size)
+		orb.Material = Enum.Material.SmoothPlastic
+        orb.Color = index % 4 == 0 and WHITE or CYAN
+		orb.Transparency = rng:NextNumber(0.04, 0.2)
+
+		table.insert(flightOrbs, {
+			part = orb,
+			lag = rng:NextNumber(0.01, 0.16),
+			angle = rng:NextNumber(0, math.pi * 2),
+			radius = rng:NextNumber(1.4, 3.8),
+			speed = rng:NextNumber(3.5, 6.5),
+			height = rng:NextNumber(-2, 2),
+		})
+	end
+
+	state.flightOrbs = flightOrbs
+	local portalForward = Vector3.new(
+		targetCFrame.LookVector.X,
+		0,
+		targetCFrame.LookVector.Z
+	)
+	local portalSide = Vector3.new(
+		targetCFrame.RightVector.X,
+		0,
+		targetCFrame.RightVector.Z
+	)
+
+	if portalForward.Magnitude < 0.01 then
+		portalForward = Vector3.new(0, 0, -1)
+	else
+		portalForward = portalForward.Unit
+	end
+
+	if portalSide.Magnitude < 0.01 then
+		portalSide = Vector3.new(1, 0, 0)
+	else
+		portalSide = portalSide.Unit
+	end
+
+	local cameraStart = state.cameraStartCFrame or camera.CFrame
+	local cameraHorizontal = Vector3.new(
+		cameraStart.Position.X - p0.X,
+		0,
+		cameraStart.Position.Z - p0.Z
+	)
+
+	if cameraHorizontal.Magnitude > 0.1
+		and portalSide:Dot(cameraHorizontal) < 0 then
+		portalSide = -portalSide
+	end
+
+	local startedAt = os.clock()
+	state.heroComet = heroComet
+	state.cameraFollowPosition = p0
+	state.flightSound = playSound(
+		FLIGHT_SOUND_ID,
+		FLIGHT_SOUND_VOLUME,
+		false
+	)
+
+	state.cameraConnection = RunService.RenderStepped:Connect(
+		function(deltaTime)
+			if activeRecoveries[state.player.UserId] ~= state
+				or not heroComet.Parent then
+				return
+			end
+
+			local alpha = math.clamp(
+				(os.clock() - startedAt) / FLIGHT_TRAVEL_TIME,
+				0,
+				1
+			)
+			local eased = alpha * alpha * (3 - 2 * alpha)
+			local pathPosition =
+				quadraticBezier(p0, p1, p2, eased)
+			heroComet.Position = pathPosition
+
+			for _, orbInfo in ipairs(flightOrbs) do
+				local orb = orbInfo.part
+
+				if orb.Parent then
+					local orbAlpha = math.clamp(
+						eased - orbInfo.lag,
+						0,
+						1
+					)
+					local orbCenter =
+						quadraticBezier(p0, p1, p2, orbAlpha)
+					local angle = orbInfo.angle
+						+ alpha * math.pi * orbInfo.speed
+					local radius = orbInfo.radius
+						* (0.7 + math.sin(alpha * math.pi) * 0.3)
+
+					orb.Position = orbCenter + Vector3.new(
+						math.cos(angle) * radius,
+						orbInfo.height
+							+ math.sin(angle * 1.7) * 0.65,
+						math.sin(angle) * radius
+					)
+				end
+			end
+
+			local followAlpha = 1 - math.exp(
+				-deltaTime * CAMERA_FOLLOW_RESPONSE
+			)
+			state.cameraFollowPosition =
+				state.cameraFollowPosition:Lerp(
+					pathPosition,
+					followAlpha
+				)
+
+			local focusPosition =
+				state.cameraFollowPosition:Lerp(
+					pathPosition,
+					0.62
+				)
+			local desiredPosition =
+				state.cameraFollowPosition
+				+ Vector3.new(0, CAMERA_FOLLOW_HEIGHT, 0)
+				+ portalSide * CAMERA_FOLLOW_SIDE
+			- portalForward * CAMERA_FOLLOW_BACK
+			local safeCameraPosition =
+				getCollisionSafeCameraPosition(
+					focusPosition,
+					desiredPosition,
+					state.character
+				)
+			local desired = CFrame.lookAt(
+				safeCameraPosition,
+				pathPosition + Vector3.new(0, 0.8, 0)
+			)
+
+			camera.CFrame = desired
+			camera.FieldOfView =
+				(state.cameraFieldOfView or 70)
+				+ math.sin(alpha * math.pi) * 1.5
+
+			if alpha >= 1 then
+				state.cameraConnection:Disconnect()
+				state.cameraConnection = nil
+				state.arrivalCameraCFrame = desired
+				camera.CFrame = desired
+				camera.FieldOfView =
+					state.cameraFieldOfView or 70
+
+				heroComet.Transparency = 1
+				heroLight.Enabled = false
+				Debris:AddItem(
+					heroComet,
+					heroTrail.Lifetime + 0.12
+				)
+				state.heroComet = nil
+
+				for _, orbInfo in ipairs(flightOrbs) do
+					local orb = orbInfo.part
+
+					if orb.Parent then
+						newTween(
+							orb,
+							TweenInfo.new(0.14),
+							{ Transparency = 1 }
+						):Play()
+						Debris:AddItem(orb, 0.16)
+					end
+				end
+
+				state.flightOrbs = nil
+			end
+		end
+	)
+end
+
+local function returnCameraToCharacter(
+	state,
+	targetCFrame,
+	onComplete
+)
+	if state.player ~= localPlayer then
+		onComplete()
+		return
+	end
+
+	local camera = state.camera or workspace.CurrentCamera
+
+	if not camera then
+		onComplete()
+		return
+	end
+
+	local destination = targetCFrame.Position
+	local lookVector = Vector3.new(
+		targetCFrame.LookVector.X,
+		0,
+		targetCFrame.LookVector.Z
+	)
+
+	if lookVector.Magnitude < 0.01 then
+		lookVector = Vector3.new(0, 0, -1)
+	else
+		lookVector = lookVector.Unit
+	end
+
+	local cameraPosition = destination
+	- lookVector * 11
+		+ Vector3.new(0, 5, 0)
+	local targetCamera = CFrame.lookAt(
+		cameraPosition,
+		destination + Vector3.new(0, 2, 0)
+	)
+	local tween = newTween(
+		camera,
+		TweenInfo.new(
+			CAMERA_RETURN_TIME,
+			Enum.EasingStyle.Quart,
+			Enum.EasingDirection.InOut
+		),
+		{
+			CFrame = targetCamera,
+			FieldOfView = state.cameraFieldOfView or 70,
+		}
+	)
+
+	tween.Completed:Once(onComplete)
+	tween:Play()
+end
+
+local function restoreCamera(state)
+	if state.player ~= localPlayer then
+		return
+	end
+
+	if state.cameraConnection then
+		state.cameraConnection:Disconnect()
+		state.cameraConnection = nil
+	end
+
+	if state.heroComet then
+		state.heroComet:Destroy()
+		state.heroComet = nil
+	end
+
+	for _, orbInfo in ipairs(state.flightOrbs or {}) do
+		if orbInfo.part and orbInfo.part.Parent then
+			orbInfo.part:Destroy()
+		end
+	end
+	state.flightOrbs = nil
+
+	local camera = state.camera or workspace.CurrentCamera
+	local character = state.player.Character
+	local humanoid = character
+		and character:FindFirstChildOfClass("Humanoid")
+
+    if camera and camera==workspace.CurrentCamera and camera.CameraType==Enum.CameraType.Scriptable then
+		camera.FieldOfView = state.cameraFieldOfView or 70
+		camera.CameraType = state.cameraType
+			or Enum.CameraType.Custom
+        camera.CameraSubject = state.cameraSubject and state.cameraSubject.Parent and state.cameraSubject or humanoid
+	end
+
+	if state.bloom then
+		newTween(
+			state.bloom,
+			TweenInfo.new(0.45),
+			{ Intensity = 0 }
+		):Play()
+		Debris:AddItem(state.bloom, 0.5)
+	end
+end
+
+local function stopFlightSound(state)
+	local sound = state.flightSound
+
+	if not sound or not sound.Parent then
+		return
+	end
+
+	newTween(
+		sound,
+		TweenInfo.new(0.22, Enum.EasingStyle.Quad),
+		{ Volume = 0 }
+	):Play()
+	Debris:AddItem(sound, 0.25)
+	state.flightSound = nil
+end
+
+local function cleanupRecovery(userId, restoreVisuals)
+	local state = activeRecoveries[userId]
+
+	if not state then
+		return
+	end
+
+	if restoreVisuals and state.hidden then
+		showCharacter(state)
+	end
+
+	stopFlightSound(state)
+	restoreCamera(state)
+
+	if state.highlight then
+		state.highlight:Destroy()
+	end
+
+	activeRecoveries[userId] = nil
+end
+
+local function bodyPixels(state)
+    local limit=deps.lowEffects() and 24 or 72
+    local parts={}
+    state.pixelModel=newObject("Model");state.pixelModel.Name="ISBRecoveryPixels";state.pixelModel.Parent=effectFolder
+    for _,model in ipairs(deps.models())do
+        if model and model.Parent then
+            for _,part in ipairs(model:GetDescendants())do
+                if part:IsA("BasePart") and part.Name~="HumanoidRootPart" and part.Transparency<.95 and part.LocalTransparencyModifier<.95 then table.insert(parts,part)end
+            end
+        end
+    end
+    state.pixels={}
+    for _,part in ipairs(parts)do
+        for _=1,math.max(2,math.min(10,math.ceil(part.Size.X*part.Size.Y*part.Size.Z*2)))do
+            if #state.pixels>=limit then break end
+            local offset=Vector3.new(rng:NextNumber(-.45,.45)*part.Size.X,rng:NextNumber(-.45,.45)*part.Size.Y,rng:NextNumber(-.45,.45)*part.Size.Z)
+            local pixel=createEffectPart("ISBRecoveryPixel",part.CFrame:PointToWorldSpace(offset),Vector3.one*rng:NextNumber(.18,.38))
+            pixel.Parent=state.pixelModel;pixel.Material=Enum.Material.SmoothPlastic;pixel.Transparency=0;pixel.Color=part.Color:Lerp(CYAN,.6)
+            table.insert(state.pixels,pixel)
+        end
+        if #state.pixels>=limit then break end
+    end
+end
+
+local function beginRecovery(userId, startCFrame, targetCFrame)
+	cleanupRecovery(userId, true)
+
+	local targetPlayer = Players:GetPlayerByUserId(userId)
+	local character = targetPlayer and targetPlayer.Character
+	local root = character
+		and character:FindFirstChild("HumanoidRootPart")
+
+	if not targetPlayer
+		or not character
+		or not root
+		or not root:IsA("BasePart") then
+		return
+	end
+
+	local state:any = {
+		player = targetPlayer,
+		character = character,
+		hidden = false,
+	}
+	activeRecoveries[userId] = state
+    bodyPixels(state)
+    hideCharacter(state,character)
+
+	local origin = startCFrame.Position + Vector3.new(0, 2, 0)
+	local destination =
+		targetCFrame.Position + Vector3.new(0, 2, 0)
+
+	local highlight = newObject("Highlight")
+	highlight.Name = "ISBRecoveryFlash"
+	highlight.Adornee = state.pixelModel
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.FillColor = WHITE
+	highlight.FillTransparency = 1
+	highlight.OutlineTransparency = 1
+	highlight.Parent = character
+	state.highlight = highlight
+
+	newTween(
+		highlight,
+		TweenInfo.new(
+			DISSOLVE_DELAY,
+			Enum.EasingStyle.Quad,
+			Enum.EasingDirection.In
+		),
+		{ FillTransparency = 0 }
+	):Play()
+
+	prepareCamera(state)
+
+	if targetPlayer == localPlayer then
+		playSound(
+			DISSOLVE_SOUND_ID,
+			DISSOLVE_SOUND_VOLUME,
+			false
+		)
+	end
+
+	schedule(4, function()
+		if activeRecoveries[userId] == state then
+			cleanupRecovery(userId, true)
+		end
+	end)
+
+	schedule(DISSOLVE_DELAY, function()
+		if activeRecoveries[userId] ~= state
+			or state.character ~= targetPlayer.Character then
+			return
+		end
+
+		emitDissolveBurst(origin)
+		hideCharacter(state, character)
+		startGuidedFlight(
+			state,
+			origin,
+			destination,
+			targetCFrame
+		)
+
+		if highlight.Parent then
+			highlight:Destroy()
+			state.highlight = nil
+		end
+
+		for index = 1, (deps.lowEffects() and 3 or 10) do
+			launchComet(origin, destination, index)
+		end
+	end)
+end
+
+local function arriveRecovery(userId, targetCFrame)
+	local state = activeRecoveries[userId]
+	local targetPlayer = Players:GetPlayerByUserId(userId)
+	local character = targetPlayer and targetPlayer.Character
+
+	if not state or not character then
+		return
+	end
+
+	local destination =
+		targetCFrame.Position + Vector3.new(0, 2, 0)
+
+	stopFlightSound(state)
+	emitArrivalBurst(destination)
+
+	if targetPlayer == localPlayer then
+		playSound(
+			ARRIVAL_SOUND_ID,
+			ARRIVAL_SOUND_VOLUME,
+			false
+		)
+	end
+
+	schedule(CHARACTER_REVEAL_DELAY, function()
+		if activeRecoveries[userId] ~= state
+			or targetPlayer.Character ~= character then
+			return
+		end
+
+		showCharacter(state)
+
+		local highlight = newObject("Highlight")
+		highlight.Name = "ISBRecoveryReveal"
+		highlight.Adornee = character
+		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		highlight.FillColor = WHITE
+		highlight.FillTransparency = 0.08
+		highlight.OutlineTransparency = 1
+		highlight.Parent = character
+		state.highlight = highlight
+
+		newTween(
+			highlight,
+			TweenInfo.new(
+				0.45,
+				Enum.EasingStyle.Quad,
+				Enum.EasingDirection.Out
+			),
+			{ FillTransparency = 1 }
+		):Play()
+
+		schedule(ARRIVAL_CAMERA_HOLD, function()
+			if activeRecoveries[userId] == state then
+				returnCameraToCharacter(
+					state,
+					targetCFrame,
+					function()
+						if activeRecoveries[userId] == state then
+							cleanupRecovery(userId, false)
+						end
+					end
+				)
+			end
+		end)
+	end)
+end
+
+
+local visual={}
+function visual.cancel()
+    epoch+=1
+    for _,tween in ipairs(tweens)do pcall(function()tween:Cancel()end)end;table.clear(tweens)
+    cleanupRecovery(localPlayer.UserId,true)
+    for _,object in ipairs(owned)do pcall(function()object:Destroy()end)end
+    table.clear(owned)
+    RunService:UnbindFromRenderStep("ISBAntiVoidMask")
+end
+function visual.begin(startCFrame,targetCFrame)
+    visual.cancel()
+    effectFolder=newObject("Folder");effectFolder.Name="ISBAntiVoidRecovery";effectFolder.Parent=workspace
+    beginRecovery(localPlayer.UserId,startCFrame,targetCFrame)
+    RunService:BindToRenderStep("ISBAntiVoidMask",Enum.RenderPriority.Last.Value+10,function()
+        local state=activeRecoveries[localPlayer.UserId]
+        if state and state.hidden then
+            for part in pairs(state.parts or {})do if part.Parent then part.LocalTransparencyModifier=1 end end
+            for item in pairs(state.visuals or {})do if item.Parent then item.Transparency=1 end end
+            for item in pairs(state.billboards or {})do if item.Parent then item.Enabled=false end end
+        end
+    end)
+end
+function visual.arrive(targetCFrame)arriveRecovery(localPlayer.UserId,targetCFrame)end
+function visual.finished()return activeRecoveries[localPlayer.UserId]==nil end
+function visual.interrupted()
+    local state=activeRecoveries[localPlayer.UserId]
+    return state and state.camera and (workspace.CurrentCamera~=state.camera or state.camera.CameraType~=Enum.CameraType.Scriptable)or false
+end
+return visual
+end)
+runtime.recovery=(function(deps)
+    local p:any={active=false}
+    function p.cancel(finish)
+        if not p.active then return end
+        local context=p.context;p.active=false;p.context=nil
+        if finish and deps.valid(context)then pcall(deps.hold,context,p.target)end
+        if p.visual then pcall(p.visual.cancel);p.visual=nil end
+        pcall(deps.restore,context)
+    end
+    function p.start(target)
+        if p.active then return false end
+        local context=deps.context()
+        if not context or not deps.valid(context)then return false end
+        p.context=context;p.target=target;p.started=deps.clock();p.arrived=false;p.active=true
+        local ok,err=pcall(function()
+            deps.prepare(context)
+            if not deps.reduced()then
+                p.visual=deps.visuals()
+                p.visual.begin(deps.frame(context),target)
+            end
+            deps.hold(context,target)
+        end)
+        if not ok then
+            p.cancel(true)
+            p.lastError=tostring(err);if deps.error then deps.error(p.lastError)end
+            return true
+        end
+        if not p.visual then p.cancel(true)end
+        return true
+    end
+    function p.tick()
+        if not p.active then return end
+        local context=p.context
+        if not deps.valid(context)then p.cancel(false);return end
+        if deps.interrupted and deps.interrupted(context)then p.cancel(false);return end
+        local elapsed=deps.clock()-p.started
+        local ok,err=pcall(function()
+            deps.hold(context,p.target)
+            if elapsed>=2.5 and not p.arrived then p.arrived=true;p.visual.arrive(p.target)end
+            if p.visual.finished()or elapsed>5 then p.cancel(true)end
+        end)
+        if not ok then p.cancel(true);p.lastError=tostring(err);if deps.error then deps.error(p.lastError)end end
+    end
+    return p
+end)({
+    clock=os.clock,reduced=function()return settings.reducedMotion end,
+    context=function()
+        local r,h=root(),humanoid()
+        if not player.Character or not r or not h then return nil end
+        return {character=player.Character,root=r,humanoid=h}
+    end,
+    valid=function(context)
+        return alive and context and player.Character==context.character and context.character.Parent~=nil and context.root.Parent~=nil and context.humanoid.Parent~=nil and context.humanoid.Health>0
+    end,
+    frame=function(context)return context.root.CFrame end,
+    prepare=function(context)
+        context.platformStand=context.humanoid.PlatformStand;context.autoRotate=context.humanoid.AutoRotate
+    end,
+    hold=function(context,frame)
+        context.humanoid.PlatformStand=true;context.humanoid.AutoRotate=false
+        context.root.CFrame=frame;context.root.AssemblyLinearVelocity=Vector3.zero;context.root.AssemblyAngularVelocity=Vector3.zero
+    end,
+    restore=function(context)
+        if not context or not context.humanoid.Parent then return end
+        local h=context.humanoid
+        if h.PlatformStand==true then h.PlatformStand=context.platformStand end
+        if h.AutoRotate==false then h.AutoRotate=context.autoRotate end
+        if player.Character==context.character and h.Health>0 and not context.platformStand then h:ChangeState(Enum.HumanoidStateType.GettingUp)end
+    end,
+    interrupted=function(context)
+        return state.fly or runtime.freecam~=nil or runtime.roleplay~=nil
+            or (context.root.Position-runtime.recovery.target.Position).Magnitude>35
+            or (runtime.recovery.visual and runtime.recovery.visual.interrupted())
+    end,
+    visuals=function()
+        return runtime.makeVoidVisuals({
+            sounds=function()return settings.sounds end,lowEffects=function()return settings.lowEffects end,
+            models=function()
+                local models={player.Character}
+                local body=runtime.outfitBody
+                if body and body.model and body.model.Parent then table.insert(models,body.model)end
+                return models
+            end,
+        })
+    end,
+    error=function(message)logEvent("Anti-Void",message);notify("Zum Bodenpunkt zur\195\188ckgekehrt. Der Effekt konnte nicht vollst\195\164ndig abgespielt werden.","Anti-Void")end,
+})
+addAction("antivoid","Bewegung","Anti-Void","Pixel-R\195\188ckflug zum letzten sicheren Bodenpunkt","toggle",function() runtime.antiVoid=not runtime.antiVoid; if not runtime.antiVoid then runtime.recovery.cancel(true)end; runtime.safeGround=nil end,function() return runtime.antiVoid end)
 addAction("shader","Darstellung","Shader","Realistische Farben, Sonnenstrahlen und Himmel","toggle",function() runtime.setShader(not runtime.shader) end,function() return runtime.shader end)
 function runtime.pianoText(de,en) return runtime.language=="de" and de or en end
 function runtime.pianoLayout()
@@ -6617,12 +7924,13 @@ connect(Run.PreSimulation,function(dt)
             pcall(function() if owned.h:GetState()==Enum.HumanoidStateType.Seated then owned.h:ChangeState(Enum.HumanoidStateType.Physics) end end)
         end
     end
-    if runtime.antiVoid then
+    if runtime.recovery.active then runtime.recovery.tick()end
+    if runtime.antiVoid and not runtime.recovery.active then
         local r,h=root(),humanoid()
-        if r and h and h.Health>0 and not state.fly then
+        if r and h and h.Health>0 and not state.fly and not runtime.freecam and not runtime.roleplay and not player:GetAttribute("InFallRecovery")then
             if h.FloorMaterial and h.FloorMaterial~=Enum.Material.Air and r.Position.Y>(workspace.FallenPartsDestroyHeight or -500)+100 then runtime.safeGround=r.CFrame end
             if runtime.safeGround and r.Position.Y<(workspace.FallenPartsDestroyHeight or -500)+75 and os.clock()>(runtime.voidCooldown or 0) then
-                r.CFrame=runtime.safeGround+Vector3.new(0,5,0); r.AssemblyLinearVelocity=Vector3.zero; runtime.voidCooldown=os.clock()+2
+                runtime.recovery.start(runtime.safeGround+Vector3.new(0,5,0)); runtime.voidCooldown=os.clock()+5
                 notify("Zum letzten Bodenpunkt zur\195\188ckgekehrt.","Anti-Void")
             end
         end
@@ -6775,6 +8083,7 @@ connect(Run.RenderStepped,function(dt)
     end
 end)
 connect(player.CharacterRemoving,function()
+    runtime.recovery.cancel(false)
     runtime.clearOutfit(false)
     runtime.safeGround=nil; runtime.stopEmote(); runtime.stopRoleplay()
     stopFly(); restoreCollisions()
@@ -6898,6 +8207,7 @@ function runtime.updateFreecam(dt)
     owned.camera.Focus=owned.camera.CFrame*CFrame.new(0,0,-16)
 end
 function runtime.toggleFreecam()
+    if runtime.recovery then runtime.recovery.cancel(true)end
     if runtime.freecam then runtime.stopFreecam(); return end
     local camera=workspace.CurrentCamera; if not camera then return end
     restoreCamera(); runtime.stopRoleplay()
@@ -6922,6 +8232,7 @@ local api = {}
 api.Destroy = function()
     if not alive then return end
     alive=false
+    runtime.recovery.cancel(false)
     runtime.piano.dispose()
     runtime.chess.dispose()
     runtime.clearOutfit(true)
