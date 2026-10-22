@@ -1,7 +1,7 @@
--- ISB Menu 2.6.75 | Own-game universal client toolkit
+-- ISB Menu 2.6.76 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.75",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.76",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -99,7 +99,7 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish",chessHumanize=false, favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, adminAutoHop=false, lowEffects=false, fpsCap=60}
+local settings = {flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish",chessHumanize=false,chessDelayMin=1.2,chessDelayMax=3.2, favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, adminAutoHop=false, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -130,6 +130,10 @@ if type(readfile) == "function" then
         if data.designVersion~="2.2" and data.designVersion~="2.3" then settings.theme="Amber" end
         settings.friendHighlights=data.friendHighlights~=false; settings.staffHighlights=data.staffHighlights~=false
         settings.chessHumanize=data.chessHumanize==true
+        do
+            local low,high=tonumber(data.chessDelayMin),tonumber(data.chessDelayMax)
+            if low and high and low==low and high==high and low>=0 and high<=60 and low<=high then settings.chessDelayMin=low;settings.chessDelayMax=high end
+        end
         settings.adminAutoHop=data.adminAutoHop==true
         settings.lowEffects=data.lowEffects==true
         if data.provider=="RoScripts" then settings.provider=data.provider end
@@ -195,6 +199,7 @@ local flyObjects, flyHumanoid, flyAutoRotate = {}, nil, nil
 local runtime={flightVelocity=Vector3.zero,flightAcceleration=Vector3.zero,gameStaff={},groupRoles={},profileData={},antiVoid=false,shader=false,
     role="Member", saveRevision=0,lastSaved=nil,saveError=nil, imageCache={},performanceOwned={},voiceMaintenance=0,tweens={}}
 runtime.english={
+    ["Bitte eine Wartezeit zwischen 0 und 60 Sekunden eingeben."]="Enter a delay between 0 and 60 seconds.",
     ["Bei Admin automatisch Server wechseln"]="Automatically hop when staff is detected",
     ["Wechselt automatisch bei erkannten Spiel-Admins. Standardm\195\164\195\159ig aus."]="Automatically changes servers when game staff is detected. Off by default.",
     ["Admin erkannt. Serverwechsel wird angefordert."]="Staff detected. Requesting a server change.",
@@ -688,84 +693,22 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
-    ["2.6.75"]="Optional staff server hopping under Detection, off by default; the left-center list shows only active functions and their keybinds.\nFixed Stockfish positions after double pawn moves and added Humanize with a random 1.2\226\128\1473.2 second delay. Player Info is placed after newly loaded game items.",
-    ["2.6.74"]="Game-specific features are grouped under Scripts > This Game and appear only in their registered game. Chess is available as its own entry there.\nStockfish online analysis for stronger chess moves; offline search remains selectable. The display shows the depth actually reached.",
-    ["2.6.73"]="New Chess Auto-Player under Scripts > Chess: direct board and turn data in the supported game, without image recognition or an additional EXE.\nAuto play, Pause and One move with local Lua search, position validation and server acknowledgement before the next move.",
-    ["2.6.72"]="Piano playback speed changes immediately while playing, without pausing or restarting.\nThe Roblox hotbar is temporarily disabled during playback and restored afterwards; newly equipped tools are returned to the backpack.",
-    ["2.6.71"]="Selecting a piano song smoothly scrolls back to the playback controls.\nChanging song pages smoothly aligns the start of the list; manual scrolling interrupts the animation.",
-    ["2.6.70"]="A compact speed control with a prominent playback rate centered inside one unified panel.\nLarger, precisely centered minus and plus symbols with matching button surfaces.",
-    ["2.6.69"]="Your local songs now support VP text sheets (.txt or extensionless), including chords, rests and saved tempo/timing data. MIDI files remain supported.\nA more compact main Piano card with smaller gaps and speed controls alongside playback.",
-    ["2.6.68"]="Song title and details appear inside the main Piano card above Play, Pause and Stop.\nA more compact player without a separate song card; duration and position remain next to the timeline.",
-    ["2.6.67"]="Import your own .mid and .midi files from the executor workspace, or scan the ISBMenu-MIDI folder. Your local library is separate from online songs.\nSelect, preview, search and favorite your own songs, with the same playback speed and timeline controls as online songs.",
-    ["2.6.66"]="Piano previews use recorded grand-piano samples instead of simple synthetic tones, preserving the attack and natural decay.\nMIDI note velocity controls preview volume for more expressive dynamics.",
-    ["2.6.65"]="Cleaner Piano view with centered favorite stars and full song details. The timeline no longer briefly jumps to the beginning when seeking.\nListen to a 20-second local piano preview before selecting a song; click again to stop. The standard Shift Lock key binding is temporarily blocked during playback.",
-    ["2.6.64"]="Piano timeline lets you seek forward or backward with live time display and resume at the selected position.\nSort online songs by downloads, newest or title, star favorites and filter your saved songs. The keyboard layout reported by Roblox is displayed.",
-    ["2.6.63"]="Piano songs continue when switching to other windows, provided Roblox keeps running in the background.\nPiano input is sent exclusively inside Roblox. Chat and leaving your seat still interrupt playback.",
-    ["2.6.62"]="New Piano section in Music: browse and select online songs, then play automatically using the standard 61-key layout.\nPlayback includes pause, stop and adjustable speed. F8 stops and opens Piano; chat, switching windows and leaving your seat release held keys.",
-    ["2.6.61"]="Sword effects and trails follow the visible item copy instead of also appearing at the original position.\nTwo-handed items use both arm poses. Items carried overhead account for the copied head height and the full size of the item.",
-    ["2.6.60"]="Held items fit differently sized hands more accurately. Custom item grip offsets and rotations are preserved when copying an outfit.\nThe copied arm adopts the equipped item's holding pose and returns to the copied outfit's movement when the item is unequipped.",
-    ["2.6.59"]="Improved fitting for copied accessories: custom joints and accessories sharing the same name remain correctly matched. Previously omitted outfit parts are now included.\nLayered clothing now uses the copied avatar's body deformation. Headwear and clothing retain existing joints instead of being realigned from attachment names alone.",
-    ["2.6.58"]="Steadier camera with copied outfits: walking and head movement no longer change camera height. Original walking poses no longer appear while outfit animations are missing or loading.\nHeld items visually follow the copied body's hand locally. Unequipping items or restoring your outfit restores their original appearance.",
-    ["2.6.57"]="Camera height now follows the copied avatar's visible head, including differently sized bodies and cameras that ignore the previous height offset.\nRestoring your outfit, respawning or closing the menu removes the camera adjustment. Zoom, viewing direction, freecam and spectating are preserved.",
-    ["2.6.56"]="The body copy now uses the copied avatar's available idle, walk and run animations. Playback follows your own movement; flight poses are preserved.\nHair and other head accessories follow animated head attachments. Accessories without an original joint connection also stay attached to the appropriate body part.",
-    ["2.6.55"]="Outfit Stealer now also copies body parts, body shape and proportions as a local copy of the selected player. Clothing and accessories stay aligned with the copied body.\nThe copy follows your movements and flight poses. The camera adjusts for body height; \"Own outfit\", respawning or closing the menu removes the copy.",
-    ["2.6.54"]="Outfit Stealer in player details and the player inspector: copy a player's outfit for your current session. Use \"Own outfit\" to switch back.\nThe local outfit copy includes clothing, accessories, colors and face. Body shapes are copied when supported by the game.",
-    ["2.6.53"]="Normal walking animations and your footstep sounds pause during flight; landing restores their previous states.\nThe flight number field shows speed in studs/s and accepts custom values from 1 to 10,000. The ruler keeps the four fixed tiers.",
-    ["2.6.52"]="Reverted a Quick Actions change that could make your character disappear or appear at an incorrect position to other players.\nReducing follow delay is still unresolved.",
-    ["2.6.51"]="Quick Actions align network synchronization with the selected player when supported by the executor.\nStopping restores the previous synchronization; a notice appears when advanced synchronization is unavailable.",
-    ["2.6.50"]="Quick Actions use a consistent position update when following another player.\nMovement is stabilized against additional drifting; stopping restores normal controls.",
-    ["2.6.49"]="The dock sits above the open backpack window with more spacing, even when it is empty.\nClosing the backpack restores the usual dock position above the hotbar.",
-    ["2.6.48"]="The dock moves back down when no occupied hotbar slot is visible.\nA single visible item still moves the dock upward.",
-    ["2.6.47"]="The dock reserves space for items even when the Roblox hotbar cannot be read.\nSpacing updates immediately when the Player Info item is added.",
-    ["2.6.46"]="Session duration shows hours, minutes and seconds.\nThe dock also moves above a hotbar containing just one item, including ISB Player Info.",
-    ["2.6.45"]="Waypoints sits beside Rejoin, Serverhop and Respawn in Movement.\nPlayer detail fields and their copy buttons display more reliably.",
-    ["2.6.44"]="Release notes now describe menu features, improvements and fixes in shorter, clearer language.",
-    ["2.6.43"]="The menu automatically follows your Roblox language: German for German settings, English for all other languages.\nNavigation, settings, notices, Player Info and release notes are available in German and English.",
-    ["2.6.42"]="Fixed broken characters in menu text: accented letters and symbols display correctly again.",
-    ["2.6.41"]="Changes appear as individual bullet points with consistent spacing.\nVersion headings, dividers and clear line wrapping make the history easier to read.",
-    ["2.6.40"]="The version button sits closer to the menu title.\nRemoved blank spaces and oversized cards from the release history.",
-    ["2.6.39"]="Save, rename and delete waypoints for each game.\nTeleport to saved waypoints or start Freecam there.\nClick the version button to open the scrollable release history, newest first.",
-    ["2.6.38"]="Player Info closes when you unequip its item or equip another item.\nAfter equipping it again, click a player to select them.",
-    ["2.6.37"]="Freecam stays active through window switching, respawn and camera resets.\nControls pause while the window is unfocused and resume at the same position.\nL exits Freecam; N teleports to the camera position and exits.",
-    ["2.6.36"]="After a Freecam teleport with N, the normal camera faces the direction you were looking.\nYour previous zoom distance is preserved.",
-    ["2.6.35"]="When teleporting from Freecam with N, your character faces the camera direction.\nYour character stays upright even when the camera points up or down.",
-    ["2.6.34"]="Toggle Freecam with L; move with WASD, rise or descend with E/Q and look around with the mouse.\nDefault speed: 120 studs/s; hold Shift for 360 studs/s.\nN teleports your character to the camera and exits Freecam.\nFreecam is also available under Visuals; change its keybind in Settings.",
-    ["2.6.33"]="When the menu is aligned right, notifications appear at the bottom left to avoid covering it.\nExisting notifications move immediately when you change the menu position.",
-    ["2.6.32"]="Player Info groups the avatar, name and friendship status in a single header.\nInformation appears in clear tiles with emphasized values.\nThe top action buttons have consistent widths and spacing.",
-    ["2.6.31"]="Player Info shows Plus/Premium membership, account creation date, friend count and previous names where available.\nFriendship, outfits and name history are directly accessible.\nWhile the Player Info item is equipped, an outline highlights the player under your cursor.",
-    ["2.6.30"]="New ISB Player Info inventory item: equip it and click a player.\nThe player card shows avatar, verification, relationship, user ID, account age, team, health, distance and group role.\nAccess the profile link and full details directly.\nThe item returns after respawn; X or Escape closes the card.",
-    ["2.6.29"]="Friend and admin card borders now look even on all sides.",
-    ["2.6.28"]="Colored borders on friend and admin cards are fully visible without clipped corners.",
-    ["2.6.27"]="The Windows music setup card hides automatically when connected.\nIt reappears if the connection is lost.",
-    ["2.6.26"]="The Music tab includes a button to copy the Windows setup command.\nRun it once in PowerShell; the music connection then starts automatically at Windows sign-in.",
-    ["2.6.25"]="Windows music controls use an optional local setup.\nMissing playback times show a clear notice instead of 00:00 / 00:00.",
-    ["2.6.23"]="Notification icons and text are centered.\nMulti-line messages also have consistent spacing.",
-    ["2.6.22"]="Refreshing the server list too often shows a clear notice with a waiting period.\nLoading failures no longer show internal error codes; rejected clicks keep the current page.",
-    ["2.6.21"]="Scripts and servers share consistent Back, page count and Next navigation.\nA single server page displays 1 / 1.",
-    ["2.6.20"]="Script page navigation has a more compact layout.\nView and page counts use thousands separators.",
-    ["2.6.19"]="The Roblox verification badge also appears beside the name in player details.\nLong names leave room for the badge and avatar.",
-    ["2.6.18"]="Verified players show their Roblox badge beside their name, including friends and admins.\nLong names are shortened to fit.",
-    ["2.6.17"]="Main menu borders follow their rounded cards evenly.\nThe welcome animation adds subtle sounds as dock buttons appear, respecting sound and motion settings.",
-    ["2.6.16"]="Time and date appear without an extra background card or border.",
-    ["2.6.15"]="Roleplay menu borders fit their visible cards.\nClose-button X icons are centered.",
-    ["2.6.14"]="Button borders follow hover animations.\nGame links, join scripts and player actions have clearer spacing.\nSelected music sources are highlighted immediately.\nThe dock shows the date beneath the clock.",
-    ["2.6.13"]="Removed stray strips along card and status borders.",
-    ["2.6.12"]="Cards and borders have matching corners, including friend and admin cards.\nDock icons stay centered during animations.",
-    ["2.6.11"]="Default button labels are centered.\nReset icons and text do not overlap.",
-    ["2.6.10"]="Default button icons and labels have consistent spacing and stay aligned during animations.",
-    ["2.6.9"]="Default buttons sit beside the value field.\nBrightness, volume and menu-size cards are more compact.",
-    ["2.6.8"]="Reset changes only the selected slider.\nFlight tiers are clearly labeled and easier to select precisely.\nMulti-jump works more reliably without continuously pushing the character upward.",
-    ["2.6.7"]="On the head keeps your avatar upright and aligns it with the selected player.",
-    ["2.6.6"]="Inventory, movement and player-detail updates use less background processing.",
-    ["2.6.5"]="Copy buttons in player details have consistent animations.\nMovement and Visuals are cleaner without an extra search bar.\nServer search filters by server ID and player count; Favorites searches saved features.\nScripts offers Popular, New and Favorites filters.",
-    ["2.6.4"]="Fixed a menu startup error affecting some executors.",
-    ["2.6.3"]="Four fixed flight speeds: GLIDE 55, NORMAL 110, FAST 140 and TURBO 250 studs/s.\nQ and the flight bar button cycle tiers; the slider selects tiers 1 to 4.\nReset selects tier 1; acceleration and animation changes stay smooth.",
-    ["2.6.2"]="Flight styles: Fly, Mysterious, Villain Fly, Superman and Halloween Fly.\nYour choice is saved and can be changed during flight.\nFlight poses adapt to speed with smooth transitions.",
-    ["2.6.1"]="Button borders and rounded cards fit together better.\nScroll content and welcome animations are no longer clipped at the edges.",
-    ["2.6.0"]="Friends have blue cards; game admins have red cards and labels.\nESP uses distinct colors for friends and admins.\nRoleplay movement follows the selected player more directly.",
-    ["2.5.8"]="The music player, timer and stopwatch are available in the Music tab.\nTimer and stopwatch support independent pause, resume and reset.\nAdjust brightness under Visuals.\nA brief personal greeting appears at the dock.",
-    ["2.4"]="New ruler sliders for speed, jump, flight, field of view and music volume.\nEnter values directly using decimal commas or points.\nFlight accelerates and brakes more smoothly; your footstep sounds pause during flight.\nChange and save keybinds in Settings.\nClick, touch and keyboard selection are supported.",
-    ["2.3"]="Dark design with a customizable accent color and a clear dock.\nThe profile shows account and session information; settings can be exported.\nSettings, keybinds, slider values and favorites save automatically.\nScripts offers Popular, New and Favorites with titles and thumbnails.",
+    ["2.6.76"]="Chess Auto-Player under Scripts > This Game: Stockfish or offline search, automatic play and single moves with a configurable random move delay.\nOptional server hopping when game staff is detected under Detection, off by default. A compact left-center list shows active functions and their keybinds.\nPlayer Info is placed at the end of the inventory after game items finish loading.",
+    ["2.6.72"]="Piano Auto-Player with an online library, search, sorting and favorites, plus imports of personal MIDI and VP text files.\nPlayback includes pause, stop, seeking and live tempo changes. Previews use recorded piano samples.\nRoblox-only input supports background playback and keyboard layouts; the hotbar and standard Shift-Lock binding are temporarily disabled while playing.",
+    ["2.6.61"]="Outfit Stealer copies a player\226\128\153s body shape, clothing, accessories and available animations for your local view.\nThe camera, held items and effects account for the copied body. Own outfit, respawn and shutdown restore the original appearance.",
+    ["2.6.53"]="Flight offers four speed presets, custom speeds and multiple saved flight styles.\nFlight movements transition smoothly; regular walking animations and your footstep sounds pause during flight.",
+    ["2.6.49"]="The dock adjusts its clearance for visible inventory slots and the open backpack.\nSession duration is shown in hours, minutes and seconds.",
+    ["2.6.45"]="Save, rename and delete waypoints for each game.\nVisit saved positions using teleport or freecam, beside Rejoin and Serverhop.",
+    ["2.6.43"]="The interface automatically uses German for a German Roblox locale and English otherwise. Navigation, settings, Player Info and release notes are translated.",
+    ["2.6.38"]="Player Info inventory item for selecting a player, with a profile card, verification, account details, group role and available public profile data.\nFriendship, name history, outfits and full player details are directly accessible. Unequipping closes the card.",
+    ["2.6.37"]="Freecam provides independent movement, mouse look and teleportation to the camera position.\nL exits freecam; N teleports and exits. View direction and zoom are preserved when returning.",
+    ["2.6.27"]="Optional Windows music connection with playback controls and selection of available media sources.\nThe copyable setup command configures the connection to start automatically at Windows sign-in.",
+    ["2.6.22"]="Script hub with ScriptBlox, RoScripts, search, favorites and a local file library. External scripts only start after explicitly choosing to run them.\nPublic server list with sorting, pagination, joining and a copyable join script.",
+    ["2.6.17"]="Consistent rounded surfaces with accent colors, animated controls and a personal greeting.\nThe dock, status display and notifications adapt to the selected menu position.",
+    ["2.6.7"]="Quick Actions for local interactions such as On the head, Piggyback and Hug, with player selection and stop controls.",
+    ["2.6.0"]="Friends and detected game staff receive distinct colors and labels in the player list and highlights.",
+    ["2.4"]="Ruler sliders and direct numeric input for movement values, field of view, brightness and volume.\nKeybinds can be changed and saved; numeric controls support decimal commas and points.",
+    ["2.3"]="ISB Menu with dock navigation, profile, movement, players, servers, visuals, scripts, music and settings.\nSettings, keybinds, numeric values and favorites are saved locally.",
 }
 -- Local UI translations preserve internal identifiers and user content.
 runtime.language="en"
@@ -3046,84 +2989,22 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.75",text="Optionaler Admin-Serverwechsel unter Erkennung, standardm\195\164\195\159ig aus; links mittig erscheinen nur aktive Funktionen mit ihren Keybinds.\nStockfish-Stellungen nach Bauern-Doppelschritten korrigiert und Humanize mit 1,2\226\128\1473,2 Sekunden Zufallspause erg\195\164nzt. Das Spielerinfo-Item wird nach dem Laden neuer Spiel-Items hinten einsortiert."},
-    {version="2.6.74",text="Spielbezogene Funktionen liegen unter Scripts > Dieses Spiel und erscheinen nur in dem dafuer registrierten Spiel. Schach ist dort als eigener Eintrag erreichbar.\nStockfish-Onlineanalyse fuer staerkere Schachzuege; Offline-Suche bleibt waehlbar. Die Anzeige zeigt die tatsaechlich erreichte Suchtiefe."},
-    {version="2.6.73",text="Neuer Schach Auto-Player unter Scripts > Schach: direkte Brett- und Zugdaten im unterstuetzten Spiel, ohne Bilderkennung oder zusaetzliche EXE.\nAuto spielen, Pause und Ein Zug mit lokaler Lua-Suche, Stellungspruefung und Serverbestaetigung vor dem naechsten Zug."},
-    {version="2.6.72",text="Das Piano-Tempo laesst sich waehrend der Wiedergabe direkt aendern, ohne Pause oder Neustart.\nDie Roblox-Hotbar wird waehrend des Spielens voruebergehend deaktiviert und danach wiederhergestellt; neu ausgeruestete Tools werden im Rucksack verstaut."},
-    {version="2.6.71",text="Nach der Piano-Songauswahl scrollt die Ansicht sanft zur Wiedergabe-Steuerung.\nBeim Wechsel einer Liedseite gleitet die Liste genau zu ihrem Anfang; eigenes Scrollen unterbricht die Animation."},
-    {version="2.6.70",text="Neue kompakte Tempo-Steuerung mit hervorgehobener Geschwindigkeitsanzeige in der Mitte.\nGroessere, exakt zentrierte Minus- und Plus-Symbole mit einheitlichen Tastenflaechen."},
-    {version="2.6.69",text="Eigene Lieder akzeptieren jetzt auch VP-Textdateien (.txt oder ohne Endung), einschlie\195\159lich Akkorden, Pausen und gespeicherten Tempo-/Zeitangaben. MIDI-Dateien bleiben ebenfalls nutzbar.\nKompaktere Piano-Hauptkarte mit deutlich kleineren Abst\195\164nden. Tempo und Wiedergabe sitzen zusammen in einer Karte."},
-    {version="2.6.68",text="Songtitel und Details stehen direkt in der Piano-Hauptkarte \195\188ber Spielen, Pause und Stop.\nKompaktere Wiedergabeansicht ohne zus\195\164tzliche Songkarte; Dauer und Position bleiben direkt an der Zeitleiste sichtbar."},
-    {version="2.6.67",text="Eigene .mid- und .midi-Dateien aus dem Executor-Workspace importieren oder im Ordner ISBMenu-MIDI finden. Die lokale Bibliothek bleibt getrennt von den Online-Liedern.\nEigene Lieder ausw\195\164hlen, vorh\195\182ren, durchsuchen und favorisieren; Tempo und Zeitleiste funktionieren wie bei Online-Liedern."},
-    {version="2.6.66",text="Die Piano-Vorschau verwendet echte Fl\195\188gelaufnahmen statt einfacher k\195\188nstlicher T\195\182ne. Anschlag und nat\195\188rliches Ausklingen bleiben erhalten.\nDie Anschlagst\195\164rke der MIDI-Noten steuert die Lautst\195\164rke der Vorschau f\195\188r mehr Dynamik."},
-    {version="2.6.65",text="Aufger\195\164umter Piano-Bereich mit zentrierten Favoritensternen und vollst\195\164ndigen Songdetails. Die Zeitleiste springt beim Spulen nicht mehr kurz zum Anfang.\nLieder vor dem Ausw\195\164hlen als 20-sek\195\188ndige lokale Piano-Vorschau anh\195\182ren und mit einem zweiten Klick stoppen. Die normale Shift-Lock-Tastenbelegung wird w\195\164hrend der Wiedergabe vor\195\188bergehend gesperrt."},
-    {version="2.6.64",text="Piano-Zeitleiste zum Vor- und Zur\195\188ckspulen mit aktueller Zeit und Fortsetzen an der gew\195\164hlten Stelle.\nOnline-Lieder nach Downloads, Neueste oder Titel sortieren, mit Sternen merken und nach Favoriten filtern. Das von Roblox gemeldete Tastaturlayout wird angezeigt."},
-    {version="2.6.63",text="Piano-Lieder spielen beim Wechsel in andere Fenster weiter, sofern Roblox im Hintergrund weiterl\195\164uft.\nPiano-Eingaben werden ausschlie\195\159lich innerhalb von Roblox gesendet. Chat und das Verlassen des Sitzplatzes unterbrechen die Wiedergabe weiterhin."},
-    {version="2.6.62",text="Neuer Piano-Bereich unter Musik: Online-Lieder durchsuchen, ausw\195\164hlen und mit der \195\188blichen 61-Tasten-Belegung automatisch spielen.\nWiedergabe mit Pause, Stop und einstellbarem Tempo. F8 stoppt und \195\182ffnet den Piano-Bereich; bei Chat, Fensterwechsel und Aufstehen werden gehaltene Tasten freigegeben."},
-    {version="2.6.61",text="Schwert-Effekte und Leuchtspuren folgen der sichtbaren Item-Kopie, statt zus\195\164tzlich an der fr\195\188heren Position zu erscheinen.\nBeidh\195\164ndig getragene Items \195\188bernehmen beide Armposen. \195\156ber dem Kopf getragene Gegenst\195\164nde ber\195\188cksichtigen die neue Kopfh\195\182he und ihre gesamte Gr\195\182\195\159e."},
-    {version="2.6.60",text="Gehaltene Items sitzen besser in unterschiedlich gro\195\159en H\195\164nden. Zus\195\164tzliche Griffabst\195\164nde und Drehungen des Items bleiben beim Outfit-Wechsel erhalten.\nDer kopierte Arm \195\188bernimmt beim Ausr\195\188sten die Haltepose des Items. Beim Ablegen kehrt er zur Bewegung des kopierten Outfits zur\195\188ck."},
-    {version="2.6.59",text="Die Passform kopierter Accessoires wurde verbessert: Angepasste Befestigungen und gleich benannte Kleidungsst\195\188cke bleiben korrekt zugeordnet. Auch zuvor ausgelassene Outfit-Teile werden mitkopiert.\nMehrlagige Kleidung nutzt nun die K\195\182rperverformung des kopierten Avatars. Kopfbedeckungen und Kleidung behalten ihre vorhandenen Befestigungen statt pauschal neu ausgerichtet zu werden."},
-    {version="2.6.58",text="Ruhigere Kamera bei kopierten Outfits: Lauf- und Kopfbewegungen verstellen die Kamerah\195\182he nicht mehr. Die urspr\195\188nglichen Laufposen erscheinen auch beim Laden fehlender Outfit-Animationen nicht mehr.\nGehaltene Items folgen lokal der Hand des kopierten K\195\182rpers. Beim Ablegen und Zur\195\188cksetzen wird ihre urspr\195\188ngliche Darstellung wiederhergestellt."},
-    {version="2.6.57",text="Die Kamerah\195\182he passt sich jetzt an den sichtbaren Kopf des kopierten Avatars an \226\128\147 auch bei unterschiedlich gro\195\159en K\195\182rpern und Kameras, die den bisherigen H\195\182henversatz ignorieren.\nBeim Zur\195\188cksetzen, Respawn oder Beenden des Men\195\188s entf\195\164llt die Kamerakorrektur wieder. Zoom, Blickrichtung, Freecam und Spielerbeobachtung bleiben erhalten."},
-    {version="2.6.56",text="Die K\195\182rperkopie verwendet jetzt die verf\195\188gbaren Stand-, Geh- und Laufanimationen des kopierten Avatars. Das Abspielen richtet sich nach deiner eigenen Bewegung; Flugposen bleiben erhalten.\nHaare und anderes Kopfzubeh\195\182r folgen den animierten Kopf-Attachments. Auch Accessoires ohne urspr\195\188ngliche Gelenkverbindung bleiben am passenden K\195\182rperteil befestigt."},
-    {version="2.6.55",text="Outfit Stealer \195\188bernimmt jetzt auch K\195\182rperteile, K\195\182rperform und Proportionen als lokale Kopie des ausgew\195\164hlten Spielers. Kleidung und Accessoires bleiben am kopierten K\195\182rper ausgerichtet.\nDie Kopie folgt deinen Bewegungen und Flugposen. Die Kamera ber\195\188cksichtigt die K\195\182rperh\195\182he; \226\128\158Eigenes Outfit\226\128\156, Respawn oder das Beenden des Men\195\188s entfernen die Kopie wieder."},
-    {version="2.6.54",text="Outfit Stealer in den Spielerdetails und der Spielerinfo: \195\156bernimm das Outfit eines Spielers f\195\188r deine aktuelle Sitzung. Mit \226\128\158Eigenes Outfit\226\128\156 wechselst du zur\195\188ck.\nDie lokale Outfit-Kopie \195\188bernimmt Kleidung, Accessoires, Farben und Gesicht. K\195\182rperformen werden \195\188bernommen, wenn das Spiel dies unterst\195\188tzt."},
-    {version="2.6.53",text="Beim Fliegen pausieren die normale Laufanimation und eigene Schrittger\195\164usche; beim Landen werden die vorherigen Zust\195\164nde wiederhergestellt.\nDas Zahlenfeld der Flugstufen zeigt die Geschwindigkeit in Studs/s und erlaubt eigene Werte von 1 bis 10.000. Die Skala beh\195\164lt die vier festen Stufen."},
-    {version="2.6.52",text="Eine \195\132nderung an Quick Actions wurde zur\195\188ckgenommen, durch die der eigene Charakter f\195\188r andere verschwinden oder an einer falschen Position erscheinen konnte.\nDie Verbesserung der Verz\195\182gerung beim Folgen ist noch nicht abgeschlossen."},
-    {version="2.6.51",text="Quick Actions passen die Netzwerksynchronisierung an den ausgew\195\164hlten Spieler an, sofern der Executor dies unterst\195\188tzt.\nBeim Beenden wird die vorherige Synchronisierung wiederhergestellt; fehlende Unterst\195\188tzung wird als Hinweis angezeigt."},
-    {version="2.6.50",text="Quick Actions verwenden eine einheitliche Positionsaktualisierung beim Folgen eines Spielers.\nDie Bewegung wird gegen zus\195\164tzliches Nachdriften stabilisiert; beim Beenden wird die normale Steuerung wiederhergestellt."},
-    {version="2.6.49",text="Das Dock steht mit mehr Abstand \195\188ber dem ge\195\182ffneten Rucksackfenster, auch wenn es leer ist.\nBeim Schlie\195\159en des Rucksacks kehrt das Dock zur normalen Position \195\188ber der Inventarleiste zur\195\188ck."},
-    {version="2.6.48",text="Das Dock r\195\188ckt wieder nach unten, wenn kein belegter Inventar-Slot mehr sichtbar ist.\nEin einzelnes sichtbares Item hebt das Dock weiterhin an."},
-    {version="2.6.47",text="Das Dock reserviert auch bei nicht auslesbarer Roblox-Inventarleiste Platz f\195\188r vorhandene Items.\nDer Abstand wird direkt beim Hinzuf\195\188gen des Spielerinfo-Items angepasst."},
-    {version="2.6.46",text="Die Sitzungsdauer wird als Stunden, Minuten und Sekunden angezeigt.\nDas Dock weicht auch einer Inventarleiste mit nur einem Item aus, einschlie\195\159lich ISB Spielerinfo."},
-    {version="2.6.45",text="Wegpunkte stehen im Bewegungsmen\195\188 neben Rejoin, Serverhop und Respawn.\nDie Felder der Spielerdetails und ihre Kopierbuttons werden zuverl\195\164ssiger dargestellt."},
-    {version="2.6.44",text="Die \195\132nderungshistorie beschreibt Funktionen, Verbesserungen und Fehlerbehebungen im Men\195\188 jetzt k\195\188rzer und verst\195\164ndlicher."},
-    {version="2.6.43",text="Das Men\195\188 verwendet automatisch deine Roblox-Sprache: Deutsch bei deutscher Spracheinstellung, sonst Englisch.\nNavigation, Einstellungen, Hinweise, Spielerinfo und \195\132nderungshistorie sind auf Deutsch und Englisch verf\195\188gbar."},
-    {version="2.6.42",text="Fehlerhafte Zeichen in Men\195\188texten behoben: Umlaute und Symbole werden wieder richtig angezeigt."},
-    {version="2.6.41",text="\195\132nderungen werden als einzelne Stichpunkte mit gleichm\195\164\195\159igen Abst\195\164nden angezeigt.\nVersions\195\188berschriften und Trennlinien erleichtern das Lesen; l\195\164ngere Texte umbrechen \195\188bersichtlich."},
-    {version="2.6.40",text="Der Versionsbutton sitzt n\195\164her am Men\195\188titel.\nLeere Fl\195\164chen und \195\188bergro\195\159e Karten in der \195\132nderungshistorie wurden entfernt."},
-    {version="2.6.39",text="Wegpunkte lassen sich pro Spiel speichern, umbenennen und l\195\182schen.\nAn gespeicherten Wegpunkten kannst du teleportieren oder Freecam starten.\nDer Versionsbutton \195\182ffnet die scrollbare \195\132nderungshistorie mit der neuesten Version zuerst."},
-    {version="2.6.38",text="Die Spielerinfo schlie\195\159t sich beim Ablegen des Items oder beim Ausr\195\188sten eines anderen Items.\nNach erneutem Ausr\195\188sten w\195\164hlst du einen Spieler mit einem neuen Klick aus."},
-    {version="2.6.37",text="Freecam bleibt bei Fensterwechsel, Respawn und Kamera-Reset aktiv.\nBeim Verlassen des Fensters pausiert die Steuerung; danach geht es an derselben Position weiter.\nL beendet Freecam; N teleportiert zur Kameraposition und beendet Freecam."},
-    {version="2.6.36",text="Nach einem Freecam-Teleport mit N schaut auch die normale Kamera in die zuletzt gew\195\164hlte Richtung.\nDer vorherige Zoomabstand bleibt erhalten."},
-    {version="2.6.35",text="Beim Freecam-Teleport mit N \195\188bernimmt dein Charakter die Blickrichtung der Kamera.\nDer Charakter bleibt dabei aufrecht, auch beim Blick nach oben oder unten."},
-    {version="2.6.34",text="Freecam mit L ein- und ausschalten; mit WASD bewegen, mit E/Q steigen und sinken und mit der Maus umsehen.\nStandardgeschwindigkeit: 120 Studs/s; mit Shift: 360 Studs/s.\nN teleportiert deinen Charakter zur Kamera und beendet Freecam.\nFreecam ist auch unter Darstellung erreichbar; die Tastenbelegung l\195\164sst sich in den Einstellungen \195\164ndern."},
-    {version="2.6.33",text="Bei Men\195\188position Rechts erscheinen Benachrichtigungen unten links, damit sie das Men\195\188 nicht \195\188berdecken.\nBeim Umstellen der Men\195\188position wechseln laufende Benachrichtigungen sofort mit."},
-    {version="2.6.32",text="Die Spielerinfo zeigt Avatar, Namen und Freundschaftsstatus in einem gemeinsamen Profilkopf.\nInformationen stehen in \195\188bersichtlichen Feldern mit hervorgehobenen Werten.\nDie oberen Aktionsbuttons haben gleichm\195\164\195\159ige Breiten und Abst\195\164nde."},
-    {version="2.6.31",text="Die Spielerinfo zeigt Plus/Premium-Mitgliedschaft, Erstellungsdatum, Freundesanzahl und fr\195\188here Namen, soweit verf\195\188gbar.\nFreundschaft, Outfits und Namenshistorie sind direkt erreichbar.\nMit ausger\195\188stetem Spielerinfo-Item markiert eine Kontur den Spieler unter deiner Maus."},
-    {version="2.6.30",text="Neues Inventar-Item ISB Spielerinfo: ausr\195\188sten und einen Spieler anklicken.\nDie Spielerkarte zeigt Avatar, Verifizierung, Beziehung, Benutzer-ID, Accountalter, Team, Gesundheit, Entfernung und Gruppenrolle.\nProfil-Link und vollst\195\164ndige Details sind direkt erreichbar.\nDas Item ist nach einem Respawn wieder verf\195\188gbar; X oder Escape schlie\195\159t die Karte."},
-    {version="2.6.29",text="Die Rahmen von Freund- und Admin-Karten sind an allen Seiten gleichm\195\164\195\159ig."},
-    {version="2.6.28",text="Die farbigen Rahmen von Freund- und Admin-Karten werden vollst\195\164ndig angezeigt und an den Ecken nicht mehr abgeschnitten."},
-    {version="2.6.27",text="Die Windows-Musikeinrichtung blendet sich bei erfolgreicher Verbindung automatisch aus.\nBei Verbindungsverlust erscheint die Einrichtung wieder."},
-    {version="2.6.26",text="Der Musik-Tab bietet einen Button zum Kopieren des Windows-Einrichtungsbefehls.\nEinmal in PowerShell ausf\195\188hren: Die Musikverbindung startet danach automatisch bei der Windows-Anmeldung."},
-    {version="2.6.25",text="Die Windows-Musiksteuerung verwendet eine optionale lokale Einrichtung.\nFehlende Zeitangaben werden verst\195\164ndlich angezeigt statt als 00:00 / 00:00."},
-    {version="2.6.23",text="Symbole und Text in Benachrichtigungen sind mittig ausgerichtet.\nAuch mehrzeilige Meldungen haben gleichm\195\164\195\159ige Abst\195\164nde."},
-    {version="2.6.22",text="Zu h\195\164ufiges Aktualisieren der Serverliste zeigt einen verst\195\164ndlichen Hinweis mit Wartezeit.\nLadefehler zeigen keine internen Fehlercodes mehr; die aktuelle Seite bleibt bei abgewiesenen Klicks erhalten."},
-    {version="2.6.21",text="Skript-Hub und Serverliste zeigen Zur\195\188ck, Seitenanzeige und Weiter in einer einheitlichen Navigation.\nBei einer einzigen Serverseite steht 1 / 1."},
-    {version="2.6.20",text="Die Seitennavigation im Skript-Hub wurde kompakter gestaltet.\nAufrufzahlen und Seitenzahlen verwenden Tausendertrennzeichen."},
-    {version="2.6.19",text="Der Roblox-Verifizierungshaken erscheint auch neben dem Namen in den Spielerdetails.\nLange Namen lassen weiterhin Platz f\195\188r Haken und Avatar."},
-    {version="2.6.18",text="Verifizierte Spieler zeigen ihren Roblox-Haken direkt neben dem Namen, auch bei Freunden und Admins.\nLange Namen werden passend gek\195\188rzt."},
-    {version="2.6.17",text="Die Rahmen der Hauptmen\195\188s folgen den abgerundeten Karten gleichm\195\164\195\159ig.\nDie Startanimation begleitet erscheinende Dock-Buttons mit dezenten T\195\182nen; Sound- und Bewegungseinstellungen werden ber\195\188cksichtigt."},
-    {version="2.6.16",text="Uhrzeit und Datum erscheinen ohne zus\195\164tzliche Hintergrundkarte und Umrandung."},
-    {version="2.6.15",text="Die Rahmen im Roleplay-Men\195\188 passen zu den sichtbaren Karten.\nDas X in Schlie\195\159en-Buttons ist mittig ausgerichtet."},
-    {version="2.6.14",text="Buttonrahmen bewegen sich passend zur Hover-Animation.\nSpiellink, Join-Skript und Spieleraktionen haben \195\188bersichtlichere Abst\195\164nde.\nAusgew\195\164hlte Musikquellen werden sofort markiert.\nDas Dock zeigt das Datum unter der Uhrzeit."},
-    {version="2.6.13",text="\195\156berstehende Streifen an Karten- und Statusrahmen wurden entfernt."},
-    {version="2.6.12",text="Karten und Rahmen haben passende Rundungen, auch bei Freunden und Admins.\nDock-Symbole bleiben w\195\164hrend Animationen mittig."},
-    {version="2.6.11",text="Beschriftungen der Standardbuttons sind mittig ausgerichtet.\nReset-Symbol und Text \195\188berlappen sich nicht."},
-    {version="2.6.10",text="Symbole und Beschriftungen der Standardbuttons haben gleichm\195\164\195\159ige Abst\195\164nde und bleiben bei Animationen zusammen."},
-    {version="2.6.9",text="Standardbuttons stehen direkt neben dem Zahlenfeld.\nDie Karten f\195\188r Helligkeit, Lautst\195\164rke und Men\195\188gr\195\182\195\159e sind kompakter."},
-    {version="2.6.8",text="Reset setzt nur den ausgew\195\164hlten Regler zur\195\188ck.\nFlugstufen sind klar beschriftet und lassen sich gezielter ausw\195\164hlen.\nMehrfachsprung funktioniert zuverl\195\164ssiger, ohne den Charakter dauerhaft nach oben zu dr\195\188cken."},
-    {version="2.6.7",text="Auf dem Kopf h\195\164lt deinen Avatar aufrecht und richtet ihn nach dem ausgew\195\164hlten Spieler aus."},
-    {version="2.6.6",text="Die Verarbeitung von Inventar, Bewegung und Spielerdetails verursacht weniger Hintergrundlast."},
-    {version="2.6.5",text="Kopierbuttons in den Spielerdetails haben einheitliche Animationen.\nBewegung und Darstellung sind ohne zus\195\164tzliche Suchleiste \195\188bersichtlicher.\nDie Serversuche filtert nach Server-ID und Spielerzahl; Favoriten durchsucht gespeicherte Funktionen.\nDer Skript-Hub bietet die Filter Beliebt, Neu und Favoriten."},
-    {version="2.6.4",text="Ein Fehler beim Starten des Men\195\188s in bestimmten Executoren wurde behoben."},
-    {version="2.6.3",text="Vier feste Fluggeschwindigkeiten: GLIDE 55, NORMAL 110, FAST 140 und TURBO 250 Studs/s.\nQ und der Button in der Flugleiste wechseln die Stufe; der Regler w\195\164hlt Stufe 1 bis 4.\nReset w\195\164hlt Stufe 1; Beschleunigung und Animationswechsel bleiben flie\195\159end."},
-    {version="2.6.2",text="Flugstile: Fly, Mysterious, Villain Fly, Superman und Halloween Fly.\nDeine Auswahl wird gespeichert und l\195\164sst sich w\195\164hrend des Flugs \195\164ndern.\nFlugposen passen sich der Geschwindigkeit an und wechseln mit weichen \195\156berg\195\164ngen."},
-    {version="2.6.1",text="Buttonrahmen und abgerundete Karten passen besser zusammen.\nScrollinhalte und Startanimationen werden an den R\195\164ndern nicht mehr abgeschnitten."},
-    {version="2.6.0",text="Freunde erhalten blaue Karten; Spiel-Admins rote Karten mit Kennzeichnung.\nESP hebt Freunde und Admins mit eigenen Farben hervor.\nDie Roleplay-Bewegung folgt dem ausgew\195\164hlten Spieler direkter."},
-    {version="2.5.8",text="Musikplayer, Timer und Stoppuhr sind im Musik-Tab erreichbar.\nTimer und Stoppuhr unterst\195\188tzen unabh\195\164ngig Pause, Fortsetzen und Zur\195\188cksetzen.\nHelligkeit l\195\164sst sich unter Darstellung einstellen.\nEine kurze pers\195\182nliche Begr\195\188\195\159ung erscheint am Dock."},
-    {version="2.4",text="Neue Rollskalen f\195\188r Geschwindigkeit, Sprung, Flug, Sichtfeld und Musiklautst\195\164rke.\nZahlen lassen sich direkt eingeben; Komma und Dezimalpunkt werden unterst\195\188tzt.\nFlugbewegung beschleunigt und bremst weicher; eigene Schrittger\195\164usche pausieren w\195\164hrend des Flugs.\nTastenbelegungen lassen sich in den Einstellungen \195\164ndern und speichern.\nKlick, Touch und Tastaturauswahl werden unterst\195\188tzt."},
-    {version="2.3",text="Dunkles Design mit anpassbarer Akzentfarbe und \195\188bersichtlichem Dock.\nDas Profil zeigt Konto- und Sitzungsinformationen; Einstellungen lassen sich exportieren.\nEinstellungen, Tasten, Reglerwerte und Favoriten werden automatisch gespeichert.\nDer Skript-Hub bietet Beliebt, Neu und Favoriten mit Titeln und Vorschaubildern."},
+    {version="2.6.76",text="Schach Auto-Player unter Scripts > Dieses Spiel: Stockfish oder Offline-Suche, automatisches Spielen und einzelne Z\195\188ge mit frei einstellbarer zuf\195\164lliger Zugpause.\nOptionaler Serverwechsel bei erkannten Spiel-Admins unter Erkennung, standardm\195\164\195\159ig aus. Links mittig zeigt eine kompakte Liste aktive Funktionen mit ihren Keybinds.\nDas Spielerinfo-Item wird nach dem Laden der Spiel-Items am Ende des Inventars einsortiert."},
+    {version="2.6.72",text="Piano Auto-Player mit Online-Bibliothek, Suche, Sortierung und Favoriten sowie Import eigener MIDI- und VP-Textdateien.\nWiedergabe mit Pause, Stop, Zeitleiste und direkt ver\195\164nderbarem Tempo. Vorschauen verwenden echte Piano-Aufnahmen.\nRoblox-interne Eingaben unterst\195\188tzen Hintergrundwiedergabe und Tastaturlayouts; w\195\164hrend des Spielens werden Hotbar und die normale Shift-Lock-Belegung vor\195\188bergehend gesperrt."},
+    {version="2.6.61",text="Outfit Stealer kopiert K\195\182rperbau, Kleidung, Accessoires und verf\195\188gbare Animationen eines Spielers f\195\188r deine lokale Ansicht.\nKamera, gehaltene Items und Effekte ber\195\188cksichtigen den kopierten K\195\182rper. Eigenes Outfit, Respawn und Beenden stellen die urspr\195\188ngliche Darstellung wieder her."},
+    {version="2.6.53",text="Fliegen mit vier Geschwindigkeitsstufen, eigenen Geschwindigkeiten und mehreren gespeicherten Flugstilen.\nFlugbewegungen wechseln flie\195\159end; normale Laufanimationen und eigene Schrittger\195\164usche pausieren w\195\164hrend des Flugs."},
+    {version="2.6.49",text="Das Dock passt seinen Abstand an sichtbare Inventar-Slots und den ge\195\182ffneten Rucksack an.\nDie Sitzungsdauer wird in Stunden, Minuten und Sekunden angezeigt."},
+    {version="2.6.45",text="Wegpunkte pro Spiel speichern, umbenennen und l\195\182schen.\nGespeicherte Positionen per Teleport oder Freecam aufrufen; erreichbar neben Rejoin und Serverhop."},
+    {version="2.6.43",text="Die Oberfl\195\164che verwendet automatisch Deutsch bei deutscher Roblox-Sprache, ansonsten Englisch. Navigation, Einstellungen, Spielerinfo und \195\132nderungshistorie sind \195\188bersetzt."},
+    {version="2.6.38",text="Spielerinfo-Item zum Ausw\195\164hlen eines Spielers mit Profilkarte, Verifizierung, Kontodaten, Gruppenrolle und verf\195\188gbaren \195\182ffentlichen Profildaten.\nFreundschaft, Namenshistorie, Outfits und vollst\195\164ndige Spielerdetails sind direkt erreichbar. Ablegen des Items schlie\195\159t die Karte."},
+    {version="2.6.37",text="Freecam mit eigener Bewegung, freiem Blick und Teleport zur Kameraposition.\nL beendet Freecam; N teleportiert und beendet sie. Blickrichtung und Zoom bleiben beim Wechsel zur\195\188ck erhalten."},
+    {version="2.6.27",text="Optionale Windows-Musikverbindung mit Wiedergabesteuerung und Auswahl verf\195\188gbarer Medienquellen.\nDer kopierbare Einrichtungsbefehl richtet den automatischen Start der Verbindung bei der Windows-Anmeldung ein."},
+    {version="2.6.22",text="Skript-Hub mit ScriptBlox, RoScripts, Suche, Favoriten und lokaler Dateibibliothek. Fremde Skripte werden erst nach ausdr\195\188cklichem Ausf\195\188hren gestartet.\n\195\150ffentliche Serverliste mit Sortierung, Seitennavigation, Beitreten und kopierbarem Join-Skript."},
+    {version="2.6.17",text="Einheitliche abgerundete Oberfl\195\164chen mit Akzentfarben, animierten Bedienelementen und pers\195\182nlicher Begr\195\188\195\159ung.\nDock, Statusanzeige und Benachrichtigungen passen sich der gew\195\164hlten Men\195\188position an."},
+    {version="2.6.7",text="Quick Actions f\195\188r lokale Interaktionen wie Auf dem Kopf, Huckepack und Umarmen, mit Spielerauswahl und Stoppen."},
+    {version="2.6.0",text="Freunde und erkannte Spiel-Admins erhalten eigene Farben und Kennzeichnungen in Spielerliste und Highlights."},
+    {version="2.4",text="Rollskalen und direkte Zahleneingabe f\195\188r Bewegungswerte, Sichtfeld, Helligkeit und Lautst\195\164rke.\nTastenbelegungen lassen sich \195\164ndern und speichern; Regler unterst\195\188tzen Dezimalkomma und Dezimalpunkt."},
+    {version="2.3",text="ISB Menu mit Dock-Navigation, Profil, Bewegung, Spielern, Servern, Darstellung, Skripten, Musik und Einstellungen.\nEinstellungen, Tasten, Reglerwerte und Favoriten werden lokal gespeichert."},
 }
 function runtime.drawSessionCard(includeJoin)
     local link="https://www.roblox.com/games/"..tostring(game.PlaceId)
@@ -6093,11 +5974,11 @@ function runtime.readChess()
 end
 runtime.chess=(function(deps)
     local p:any={alive=true,auto=false,once=false,epoch=0,status='ready',nodes=0,depth=0,
-        humanize=deps.humanize==true,engine=deps.engine=='local' and 'local'or deps.online and 'stockfish'or 'local'}
+        delayMin=deps.delayMin or 1.2,delayMax=deps.delayMax or 3.2,humanize=deps.humanize==true,engine=deps.engine=='local' and 'local'or deps.online and 'stockfish'or 'local'}
     local values={P=100,N=320,B=335,R=500,Q=900,K=0}
     local function changed()if deps.changed and p.alive then deps.changed()end end
     local function status(code)if p.status~=code then p.status=code;changed()end end
-    local function stop(code)p.epoch+=1;p.auto=false;p.once=false;status(code or 'paused')end
+    local function stop(code)p.waitUntil=nil;p.epoch+=1;p.auto=false;p.once=false;status(code or 'paused')end
     local function owned(c)
         if not c or type(c.fen)~='string' or type(c.version)~='number' or type(c.id)~='string' then return false end
         if c.white~=deps.userId and c.black~=deps.userId then return false end
@@ -6201,6 +6082,12 @@ runtime.chess=(function(deps)
         if deps.humanizePreference then deps.humanizePreference(p.humanize)end
         changed()
     end
+    function p.setDelayRange(low,high)
+        if type(low)~='number' or type(high)~='number' or low~=low or high~=high or low<0 or high>60 or low>high then return false end
+        p.delayMin=low;p.delayMax=high
+        if deps.rangePreference then deps.rangePreference(low,high)end
+        changed();return true
+    end
     function p.analysisFen(rules,fen,state,moves)
         return (fen:gsub('^(%S+%s+[wb]%s+%S+%s+)%S+','%1-'))
     end
@@ -6227,6 +6114,7 @@ runtime.chess=(function(deps)
         local state=rules.fromFEN(fen)
         local info=rules.evaluate(state)
         if info.result or #info.moves==0 then return nil,{depth=0,nodes=0}end
+        if #info.moves==1 and #p.enPassantMoves(rules,fen,state,info.moves)==1 then return info.moves[1],{depth=0,nodes=0}end
         local analysisFen=p.analysisFen(rules,fen,state,info.moves)
         local data=deps.online(analysisFen)
         if cancel and cancel()then return nil,{depth=0,nodes=0}end
@@ -6271,7 +6159,7 @@ runtime.chess=(function(deps)
     end
     function p.tick()
         if not p.alive then return end
-        if p.thinking and p.searchStarted and deps.clock()-p.searchStarted>12 then
+        if p.thinking and p.searchStarted and deps.clock()>(p.waitUntil or p.searchStarted+12) then
             p.thinking=false;p.activeJob=nil;stop('engine_timeout')
         end
         if not p.alive or (not p.auto and not p.once and not p.pending)then return end
@@ -6312,8 +6200,10 @@ runtime.chess=(function(deps)
                 p.nodes=stats.nodes;p.depth=stats.depth
                 if move and p.humanize then
                     assert(type(deps.wait)=='function','humanize_wait_unavailable')
-                    status('delaying')
-                    deps.wait(1.2+math.clamp((deps.random or math.random)(),0,1)*2)
+                    local delay=p.delayMin+math.clamp((deps.random or math.random)(),0,1)*(p.delayMax-p.delayMin)
+                    p.waitUntil=deps.clock()+delay+2;status('delaying')
+                    deps.wait(delay)
+                    if p.activeJob==job then p.waitUntil=nil end
                     if not p.alive or epoch~=p.epoch then return end
                 end
                 local fresh=deps.snapshot()
@@ -6337,6 +6227,7 @@ runtime.chess=(function(deps)
     function p.dispose()p.epoch+=1;p.alive=false;p.auto=false;p.once=false;p.pending=nil end
     return p
 end)({
+    delayMin=settings.chessDelayMin,delayMax=settings.chessDelayMax,rangePreference=function(low,high)settings.chessDelayMin=low;settings.chessDelayMax=high;save()end,
     humanize=settings.chessHumanize,wait=task.wait,humanizePreference=function(value)settings.chessHumanize=value;save()end,
     engine=settings.chessEngine,online=runtime.requestStockfish,preference=function(value)settings.chessEngine=value;save()end,
     userId=player.UserId,clock=os.clock,spawn=task.spawn,yield=task.wait,rules=runtime.prepareChess,snapshot=runtime.readChess,
@@ -6375,21 +6266,47 @@ function runtime.drawChess()
     local message=states[not ok and 'unsupported' or p.status]or states.ready
     local text=runtime.pianoText(message[1],message[2])
     if ok and c then text=c.tableName.."  |  "..runtime.pianoText(c.white==player.UserId and "Wei\195\159"or "Schwarz",c.white==player.UserId and "White"or "Black").."\n"..text end
-    local f=plainCard(runtime.pianoText("Schach Auto-Player","Chess Auto-Player"),text,244,false);f.Name="ChessPlayback"
-    local auto=rowButton(f,runtime.pianoText("Auto spielen","Auto play"),UDim2.fromOffset(16,82),UDim2.fromOffset(140,32),function()p.start(true)end)
-    auto.Name="ChessAuto";if p.auto then auto.TextColor3=C.accent end
-    local pause=rowButton(f,"Pause",UDim2.fromOffset(166,82),UDim2.fromOffset(90,32),p.pause);pause.Name="ChessPause"
-    local once=rowButton(f,runtime.pianoText("Ein Zug","One move"),UDim2.fromOffset(266,82),UDim2.fromOffset(106,32),function()p.start(false)end);once.Name="ChessOnce"
-    label(f,"Engine",11,C.muted,UDim2.fromOffset(16,126),UDim2.fromOffset(94,30))
+    local title=runtime.pianoText("Schach Auto-Player","Chess Auto-Player")
+    local f=plainCard(title,text,286,false);f.Name="ChessPlayback"
+    for _,child in ipairs(f:GetChildren())do
+        if child:IsA("TextLabel")then child.Size=UDim2.new(1,-32,0,child.Text==title and 24 or 32)end
+    end
+    local controls=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,78),Size=UDim2.new(1,-32,0,36)},f)
+    local auto=rowButton(controls,runtime.pianoText("Auto spielen","Auto play"),UDim2.new(),UDim2.new(.46,-6,1,0),function()p.start(true)end)
+    auto.Name="ChessAuto";auto.TextColor3=C.accent;auto.BackgroundColor3=C.panel
+    local pause=rowButton(controls,"Pause",UDim2.new(.46,2,0,0),UDim2.new(.25,-6,1,0),p.pause);pause.Name="ChessPause"
+    local once=rowButton(controls,runtime.pianoText("Ein Zug","One move"),UDim2.new(.71,4,0,0),UDim2.new(.29,-4,1,0),function()p.start(false)end);once.Name="ChessOnce"
+    local engines=make("Frame",{Name="ChessEngineSelector",BackgroundColor3=C.panel,BackgroundTransparency=.25,Position=UDim2.fromOffset(16,124),Size=UDim2.new(1,-32,0,34)},f);round(engines,11)
     for i,item in ipairs({{"stockfish","Stockfish"},{"local","Offline"}})do
         local mode=item[1]
-        local button=rowButton(f,item[2],UDim2.fromOffset(126+(i-1)*132,126),UDim2.fromOffset(122,30),function()p.setEngine(mode)end)
-        button.Name="ChessEngine_"..mode;if p.engine==mode then button.TextColor3=C.accent end
+        local choice=rowButton(engines,item[2],UDim2.new((i-1)*.5,3,0,3),UDim2.new(.5,-6,1,-6),function()p.setEngine(mode)end)
+        choice.Name="ChessEngine_"..mode;choice.BackgroundTransparency=p.engine==mode and .05 or 1
+        choice.BackgroundColor3=C.card;choice.TextColor3=p.engine==mode and C.accent or C.muted
     end
-    label(f,runtime.pianoText("Zuf\195\164llige Pause: 1,2\226\128\1473,2 s","Random delay: 1.2\226\128\1473.2 s"),11,C.muted,UDim2.fromOffset(16,166),UDim2.fromOffset(242,30))
-    local humanize=rowButton(f,"Humanize: "..runtime.pianoText(p.humanize and "An"or "Aus",p.humanize and "On"or "Off"),UDim2.fromOffset(258,166),UDim2.fromOffset(132,30),function()p.setHumanize(not p.humanize)end)
-    humanize.Name="ChessHumanize";if p.humanize then humanize.TextColor3=C.accent end
-    label(f,(p.lastMove and runtime.pianoText("Letzter Zug: ","Last move: ")..p.lastMove.."  |  "or "")..runtime.pianoText("Suchtiefe ","Depth ")..p.depth..(p.engine=="local" and "  |  "..runtime.formatCount(p.nodes)..runtime.pianoText(" Knoten"," nodes")or ""),11,C.muted,UDim2.fromOffset(16,212),UDim2.new(1,-32,0,18))
+    local human=make("Frame",{Name="ChessHumanizeSettings",BackgroundColor3=C.panel,BackgroundTransparency=.3,Position=UDim2.fromOffset(16,168),Size=UDim2.new(1,-32,0,68)},f);round(human,12)
+    label(human,"Humanize",12,C.text,UDim2.fromOffset(12,12),UDim2.fromOffset(92,20))
+    label(human,runtime.pianoText(p.humanize and "An"or "Aus",p.humanize and "On"or "Off"),10,C.muted,UDim2.fromOffset(12,35),UDim2.fromOffset(90,16))
+    local toggle=rowButton(human,"",UDim2.fromOffset(106,23),UDim2.fromOffset(44,24),function()p.setHumanize(not p.humanize)end)
+    toggle.Name="ChessHumanize";toggle.BackgroundColor3=p.humanize and C.accent or C.line;round(toggle,12)
+    local knob=make("Frame",{Name="Knob",BackgroundColor3=p.humanize and C.panel or C.text,Position=UDim2.fromOffset(p.humanize and 24 or 4,4),Size=UDim2.fromOffset(16,16)},toggle);round(knob,8)
+    for _,entry in ipairs({{"Min",runtime.pianoText("Von (s)","From (s)"),p.delayMin,-200},{"Max",runtime.pianoText("Bis (s)","To (s)"),p.delayMax,-104}})do
+        local field=entry[1]
+        local well=make("Frame",{BackgroundColor3=C.card,Position=UDim2.new(1,entry[4],0,10),Size=UDim2.fromOffset(88,48)},human);round(well,9);stroke(well)
+        label(well,entry[2],9,C.muted,UDim2.fromOffset(10,3),UDim2.new(1,-20,0,14),false)
+        local box=make("TextBox",{Name="ChessDelay"..field,Text=string.format("%.2f",entry[3]):gsub("0+$",""):gsub("%.$",""),ClearTextOnFocus=false,BackgroundTransparency=1,Font=Enum.Font.BuilderSansMedium,TextSize=15,TextColor3=C.text,TextXAlignment=Enum.TextXAlignment.Left,Position=UDim2.fromOffset(10,20),Size=UDim2.new(1,-20,0,24)},well)
+        rowConnect(box.FocusLost,function()
+            local value=tonumber((box.Text:gsub(",",".")))
+            if not value or value~=value or value<0 or value>60 then
+                notify("Bitte eine Wartezeit zwischen 0 und 60 Sekunden eingeben.","Humanize");render();return
+            end
+            if field=="Min"then p.setDelayRange(value,math.max(value,p.delayMax))else p.setDelayRange(math.min(value,p.delayMin),value)end
+        end)
+    end
+    for i,item in ipairs({{runtime.pianoText("Suchtiefe","Depth"),p.depth>0 and tostring(p.depth)or "\226\128\148"},{runtime.pianoText("Letzter Zug","Last move"),p.lastMove or "\226\128\148"}})do
+        local chip=make("Frame",{Name=i==1 and "ChessDepth"or "ChessLastMove",BackgroundColor3=C.panel,BackgroundTransparency=.35,Position=UDim2.new((i-1)*.5,i==1 and 16 or 4,0,248),Size=UDim2.new(.5,-20,0,26)},f);round(chip,8)
+        label(chip,item[1],10,C.muted,UDim2.fromOffset(10,0),UDim2.new(.6,-10,1,0),false)
+        local value=label(chip,item[2],11,C.accent,UDim2.new(.6,0,0,0),UDim2.new(.4,-10,1,0),false);value.TextXAlignment=Enum.TextXAlignment.Right;value.Font=Enum.Font.BuilderSansBold
+    end
     local hint=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     label(hint,(p.engine=="stockfish" and runtime.pianoText("Stockfish ben\195\182tigt Internet. Nur die Brettstellung wird an chess-api.com gesendet.","Stockfish needs internet. Only the board position is sent to chess-api.com.")or runtime.pianoText("Lokale Lua-Suche. Keine zus\195\164tzliche EXE.","Local Lua search. No additional EXE.")),11,C.muted,UDim2.fromOffset(4,0),UDim2.new(1,-8,1,0))
 end
