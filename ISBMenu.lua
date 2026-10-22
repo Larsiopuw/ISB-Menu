@@ -1,7 +1,7 @@
--- ISB Menu 2.6.82 | Own-game universal client toolkit
+-- ISB Menu 2.6.83 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.82",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.83",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -695,7 +695,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
-    ["2.6.82"]="777 Auto-Spin under Scripts > This Game: teleport safely to the button, spin automatically and optionally stop when the title is unlocked. Idle protection runs only while auto-spin is active.",
+    ["2.6.83"]="777 Auto-Spin under Scripts > This Game: teleport safely to the button and spin as soon as it becomes available. Optionally stop when the title is unlocked; idle protection runs only while auto-spin is active.",
     ["2.6.81"]="Connect Four Auto-Player under Scripts > This Game with local move calculation, a board view, winning lines and search depth. Automatic play continues across rounds, with pause and single-move controls.",
     ["2.6.80"]="Tic Tac Toe Auto-Player under Scripts > This Game with complete local move calculation, a board view and winning lines. Autoplay continues through subsequent rounds at the same table until paused or you leave the seat.",
     ["2.6.78"]="Anti-Void with pixel recovery, a cyan light trail and a guided return camera. Recovery uses an earlier ground position with verified surrounding support, edge clearance and no added height offset.",
@@ -2997,7 +2997,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.82",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren, automatisch weiterdrehen und optional beim freigeschalteten Titel stoppen. Ein zeitlich begrenzter AFK-Schutz l\195\164uft nur w\195\164hrend Auto-Spin."},
+    {version="2.6.83",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz l\195\164uft nur w\195\164hrend Auto-Spin."},
     {version="2.6.81",text="Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen \195\188ber weitere Runden sowie Pause und einzelne Z\195\188ge."},
     {version="2.6.80",text="Tic Tac Toe Auto-Player unter Scripts > Dieses Spiel mit vollst\195\164ndiger lokaler Zugberechnung, Brettansicht und Gewinnlinien. Autoplay spielt weitere Runden am selben Tisch automatisch weiter, bis du pausierst oder aufstehst."},
     {version="2.6.78",text="Anti-Void mit Pixel-Recovery, cyanfarbener Lichtspur und R\195\188ckflug-Kamera. Die R\195\188ckkehr verwendet einen fr\195\188heren, rundum gepr\195\188ften Bodenpunkt mit Kantenabstand und ohne zus\195\164tzlichen H\195\182henversatz."},
@@ -8345,12 +8345,11 @@ runtime.slot=(function(deps)
     local function status(value)if p.status~=value then p.status=value;changed()end end
     function p.stop(reason)
         p.epoch+=1;p.active=false;p.starting=false;p.pending=nil;p.antiAfk=false
+        if p.unwatch then pcall(p.unwatch);p.unwatch=nil end
         if p.cleanup then pcall(p.cleanup);p.cleanup=nil end
         status(reason or 'stopped')
     end
-    function p.setStopOnWin(value)
-        p.stopOnWin=value==true;changed()
-    end
+    function p.setStopOnWin(value)p.stopOnWin=value==true;changed()end
     local function valid(s)return s and s.supported and s.ready and s.character and s.healthy and s.prompt end
     function p.start()
         if not p.alive or p.active then return false end
@@ -8358,7 +8357,8 @@ runtime.slot=(function(deps)
         if not ok or not valid(s)then status('unavailable');return false end
         if not s.profileReady then status('loading');return false end
         if p.stopOnWin and s.owned then status('won');return false end
-        p.epoch+=1;local epoch=p.epoch;p.active=true;p.starting=true;p.context={character=s.character,prompt=s.prompt};p.pending=nil;p.last=nil;p.lastError=nil
+        p.epoch+=1;local epoch=p.epoch;p.active=true;p.starting=true
+        p.context={character=s.character,prompt=s.prompt};p.pending=nil;p.last=nil;p.lastError=nil
         status('positioning')
         deps.spawn(function()
             local success,err=pcall(function()
@@ -8371,14 +8371,19 @@ runtime.slot=(function(deps)
                 if not p.active or p.epoch~=epoch then return end
                 local cleanup=deps.guard(function()if p.active and p.epoch==epoch then p.stop('idle_error')end end)
                 if not p.active or p.epoch~=epoch then if cleanup then cleanup()end;return end
-                p.cleanup=cleanup;p.antiAfk=true;p.starting=false;p.next=deps.clock()+.75;status('waiting')
+                p.cleanup=cleanup;p.antiAfk=true
+                if deps.watch then
+                    local unwatch=deps.watch(fresh.prompt,function()if p.active and p.epoch==epoch then p.tick()end end)
+                    if not p.active or p.epoch~=epoch then if unwatch then unwatch()end;return end
+                    p.unwatch=unwatch
+                end
+                p.starting=false;p.tick()
             end)
             if not success and p.epoch==epoch then p.lastError=tostring(err);p.stop('error')end
         end)
         return true
     end
-    function p.tick()
-        if not p.alive or not p.active or p.starting then return end
+    local function step()
         local ok,s=pcall(deps.snapshot)
         if not ok or not valid(s)then p.stop('unavailable');return end
         if s.character~=p.context.character or s.prompt~=p.context.prompt then p.stop('changed');return end
@@ -8388,25 +8393,36 @@ runtime.slot=(function(deps)
         local now=deps.clock()
         if p.pending then
             local request=p.pending
-            if not s.enabled or s.signature~=request.before then request.accepted=true end
+            if not s.enabled then request.disabled=true;request.accepted=true end
+            if s.signature~=request.before then request.accepted=true end
             if s.signature~=request.signature then request.signature=s.signature;request.stable=now end
-            if request.accepted and now-request.time>=7.2 and s.enabled and s.result and now-(request.stable or now)>=.5 then
-                p.pending=nil;p.next=now+.8
-                if s.ownResult then
-                    p.spins+=1;p.last=s.result;changed()
-                    if p.stopOnWin and s.result=='777'then p.stop('won')else status('waiting')end
-                else status('other_player')end
-            elseif now-request.time>(request.accepted and 25 or 10)then p.stop('timeout')
-            else status(request.accepted and 'spinning'or 'confirming')end
-            return
+            -- A disabled -> enabled cycle is the server's availability boundary.
+            -- Display-only fallback still requires settled digits, never repeated sends.
+            local finished=s.enabled and request.accepted and (request.disabled or
+                (s.result and now-request.time>=7.2 and now-request.stable>=.5))
+            if finished then
+                p.pending=nil
+                if s.result and s.ownResult then
+                    p.spins+=1;p.last=s.result
+                    if p.stopOnWin and s.result=='777'then p.stop('won');return end
+                    changed()
+                end
+            elseif now-request.time>(request.accepted and 25 or 10)then p.stop('timeout');return
+            else status(request.accepted and 'spinning'or 'confirming');return end
         end
-        if now<(p.next or 0)then return end
         if not s.enabled then status('other_player');return end
-        p.pending={time=now,before=s.signature,signature=s.signature,stable=now,accepted=false}
-        p.next=now+1
+        -- Reserve this opening before invoking input: signal and Heartbeat cannot double-send.
+        p.pending={time=now,before=s.signature,signature=s.signature,stable=now,accepted=false,disabled=false}
         local fired,err=pcall(deps.press,s.prompt)
         if not fired then p.lastError=tostring(err);p.stop('error');return end
         status('confirming')
+    end
+    function p.tick()
+        if not p.alive or not p.active or p.starting or p.ticking then return end
+        p.ticking=true
+        local ok,err=pcall(step)
+        p.ticking=false
+        if not ok then p.lastError=tostring(err);p.stop('error')end
     end
     function p.dispose()p.stop('stopped');p.alive=false end
     return p
@@ -8418,14 +8434,15 @@ end)({clock=os.clock,spawn=task.spawn,snapshot=runtime.readSlot,
         for _=1,12 do if not c.humanoid.SeatPart then break end;task.wait(.05)end
     end,
     move=runtime.positionAtSlot,guard=runtime.slotIdleGuard,
+    watch=function(prompt,callback)
+        local connection=prompt:GetPropertyChangedSignal("Enabled"):Connect(callback)
+        return function()connection:Disconnect()end
+    end,
     interrupted=function()return state.fly or runtime.freecam~=nil or runtime.roleplay~=nil end,
     press=function(prompt)assert(type(fireproximityprompt)=='function','prompt_input_unavailable');fireproximityprompt(prompt)end,
     changed=runtime.refreshSlot})
 connect(player.CharacterRemoving,function()runtime.slot.stop('changed')end)
-connect(Run.Heartbeat,function(dt)
-    runtime.slotClock=(runtime.slotClock or 0)+(dt or 0)
-    if runtime.slotClock>=.15 then runtime.slotClock=0;runtime.slot.tick()end
-end)
+connect(Run.Heartbeat,function()if runtime.slot.active then runtime.slot.tick()end end)
 function runtime.openSlot()if not runtime.currentGame()then return false end;page="777 Auto-Spin";query="";render();return true end
 function runtime.drawSlot()
     local p=runtime.slot

@@ -1,8 +1,8 @@
-# ISB Menu 2.6.82 · by Larsiopuw
+# ISB Menu 2.6.83 · by Larsiopuw
 
 ## 777 Auto-Spin
 
-Unter **Scripts → Dieses Spiel → 777 Auto-Spin** öffnen. **Auto-Spin starten** sucht eine freie, bodennahe Position am Automaten, teleportiert einmal dorthin und betätigt den normalen Spin-Prompt. Die Funktion wartet auf die Drehung und ein stabiles eigenes Ergebnis, bevor der nächste Versuch beginnt. Belegte Automaten werden abgewartet; es werden keine Ergebnisse oder Gewinnchancen verändert. Es gibt keine Sieg- oder Zeitgarantie.
+Unter **Scripts → Dieses Spiel → 777 Auto-Spin** öffnen. **Auto-Spin starten** sucht eine freie, bodennahe Position am Automaten, teleportiert einmal dorthin und betätigt den normalen Spin-Prompt. Die Funktion reagiert direkt auf die Freigabe des Knopfs und sendet einen Versuch pro Freigabe, ohne zusätzliche Wartezeit. Eine Prüfung pro Frame dient als Rückfall. Das eigene Ergebnis wird beim Abschluss der Drehung übernommen. Belegte Automaten werden abgewartet; es werden keine Ergebnisse oder Gewinnchancen verändert. Es gibt keine Sieg- oder Zeitgarantie.
 
 **Bei freigeschaltetem Titel stoppen** ist standardmäßig an. Wer 777 bereits besitzt, wird deshalb beim Start weder teleportiert noch dreht er weiter. Für weitere Drehungen kann diese Option bewusst ausgeschaltet werden. Ein bestätigtes eigenes 777 oder der entsprechende Profilfortschritt beendet die Automatik bei aktiver Option. Drehungen und letztes eigenes Ergebnis stehen kompakt in der Hauptkarte.
 
@@ -122,9 +122,9 @@ Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden ab
 
 Zusammengehörige Zwischenstände sind als abgeschlossene Funktionen zusammengefasst. Technische Versuche und Prüfergebnisse stehen separat im Prüfbericht.
 
-### 2.6.82
+### 2.6.83
 
-- 777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren, automatisch weiterdrehen und optional beim freigeschalteten Titel stoppen. Ein zeitlich begrenzter AFK-Schutz läuft nur während Auto-Spin.
+- 777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz läuft nur während Auto-Spin.
 
 ### 2.6.81
 
