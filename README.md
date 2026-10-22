@@ -1,4 +1,4 @@
-# ISB Menu 2.6.74 · by Larsiopuw
+# ISB Menu 2.6.75 · by Larsiopuw
 
 ## Piano automatisch spielen
 
@@ -34,15 +34,32 @@ Für die Standard-Roblox-Kamera wird während der Piano-Wiedergabe nur die Shift
 
 Die Online-Liste stammt wie beim VP-Player von nanoMIDI. Die eigenständige Windows-App muss dafür nicht laufen. Verwendet wird die übliche chromatische 61-Tasten-Belegung (C2–C7); Pianos mit anderen Steuerungen sind nicht allgemein abgedeckt. Die verwendete Skriptumgebung muss Roblox-interne Tasteneingaben unterstützen; PC-weite Tastaturfunktionen werden nicht verwendet. Falls der interne Eingabeweg fehlt oder blockiert ist, erscheint ein Hinweis. Beim Wechsel in andere Fenster läuft das Lied weiter, solange Roblox den Player weiter ausführt. Chat, das Roblox-Menü, Aufstehen nach sitzendem Start und Respawn unterbrechen die Wiedergabe und geben gehaltene Tasten frei. Bei einer längeren Unterbrechung durch Roblox pausiert der Player, damit keine verspäteten Noten nachgeholt werden. F8 wird innerhalb von Roblox verarbeitet; zum Stoppen nach dem Raustabben zurück ins Spiel wechseln. MIDI und Oberfläche wurden geprüft; eine Live-Prüfung der Tasteneingabe im Roblox-Spiel steht noch aus.
 
+## Spielerinfo-Item am Ende des Inventars
+
+Nach Start, Respawn und einem ersetzten Backpack wartet unser Item auf eine Ladepause von 1,25 Sekunden nach dem letzten neu hinzugekommenen Spiel-Tool. Es wird danach wieder hinten in den Backpack eingefuegt. Bereits bekannte Tools beim normalen Aus- und Ablegen starten diese Wartezeit nicht erneut. Das ausgeruestete Spielerinfo-Item wird nicht zwangsweise abgelegt; eine ausstehende Korrektur folgt nach dem Ablegen. Fremde Tools werden nicht umgehaengt. Die konkrete Darstellung haengt weiterhin vom Inventarsystem des jeweiligen Spiels ab.
+
+## Admin-Serverwechsel und aktive Keybinds
+
+Unter **Einstellungen > Erkennung** laesst sich **Bei Admin automatisch Server wechseln** einschalten. Die Option ist anfangs aus und wird lokal gespeichert. Sie verwendet die vorhandene Erkennung des Spielbesitzers, konfigurierter Staff-IDs und oeffentlicher Gruppenrollen; diese Rollen sind Hinweise, keine verifizierten Berechtigungen. Bereits anwesende und neu beitretende erkannte Admins zaehlen, die eigene Person wird ausgeschlossen.
+
+Der Wechsel sucht automatisch in bis zu drei Seiten oeffentlicher Server nach einem freien Ziel ausserhalb der aktuellen Sitzung. Parallele Erkennungen loesen keinen doppelten Wechsel aus. Abschalten, Verlassen des Admins und Beenden des Menues verwerfen noch nicht gesendete Anfragen. Bei Fehlern wartet die Funktion mindestens 60 Sekunden. Sie garantiert keinen adminfreien Zielserver; das Menue muss nach einem Teleport erneut gestartet werden, sofern der Executor es nicht selbst neu laedt.
+
+Links mittig steht eine kompakte Liste aktiver Funktionen mit den aktuellen Tasten fuer Fliegen, Noclip, Highlights/ESP, Laufgeschwindigkeit und Freecam. Sie gilt auch bei Aktivierung per Menue und bleibt beim Schliessen des Hauptfensters sichtbar. Sind alle diese Funktionen aus, verschwindet die Liste. Aktive Funktionen werden nicht gespeichert.
+
 ## Schach im Spiel
 
 Unter **Scripts > Dieses Spiel > Schach** stehen **Auto spielen**, **Pause** und **Ein Zug** bereit. Bei englischer Menuesprache heisst der Pfad **Scripts > This Game > Chess**. Der Bereich erscheint nur im registrierten Spiel und Place; **Local / Lokal** bleibt der separate Lua-Dateilader. Setze dich zuerst an einen Schachtisch. Die Stellung, eigene Farbe und das Zugrecht kommen direkt aus den vorhandenen Spieldaten; Bildschirmaufnahme, Mauskalibrierung und eine zusaetzliche EXE werden nicht benoetigt.
 
-Standardmaessig berechnet **Stockfish** die Zuege online ueber https://chess-api.com/v1. Gesendet wird nur die Brettstellung als FEN mit den Analyseparametern, keine Roblox-Spieler-ID. Angefragt wird Tiefe 18; die Anzeige zeigt die tatsaechlich vom Dienst erreichte Tiefe. Internet und eine HTTP-Funktion des Executors sind erforderlich. Bei Fehlern oder Zeitueberschreitung stoppt die Automatik, ohne still auf eine schwaechere Engine umzuschalten. **Offline** waehlt ausdruecklich die bisherige begrenzte Lua-Suche (Tiefe 4, maximal 7000 Knoten und 0,8 Sekunden). Die Auswahl wird gespeichert. Eine Sieg-Garantie gibt es nicht.
+Standardmaessig berechnet **Stockfish** die Zuege online ueber https://chess-api.com/v1. Gesendet wird nur die Brettstellung als FEN mit den Analyseparametern, keine Roblox-Spieler-ID. Angefragt wird Tiefe 18; die Anzeige zeigt die tatsaechlich vom Dienst erreichte Tiefe. Internet und eine HTTP-Funktion des Executors sind erforderlich. En-passant-Felder werden nur fuer die Online-Anfrage entfernt, weil der Dienst diese gueltigen Spielstellungen sonst ablehnt. Echte legale En-passant-Kandidaten werden zusaetzlich durch Stockfish-Analyse ihrer Folgestellungen mit dem regulaeren Zug verglichen. Originalstellung und lokale Legalitaetspruefung bleiben erhalten. Bei Fehlern oder Zeitueberschreitung stoppt die Automatik, ohne still auf eine schwaechere Engine umzuschalten. **Offline** waehlt ausdruecklich die bisherige begrenzte Lua-Suche (Tiefe 4, maximal 7000 Knoten und 0,8 Sekunden). Die Auswahl wird gespeichert. Eine Sieg-Garantie gibt es nicht.
 
-Der Server prueft die Zuege weiterhin. Vor jedem Zug werden Stellung und Version erneut verglichen; nach dem Senden wartet das Menue auf die erwartete bestaetigte Stellung. Bei Aussteigen, Gegner-/Tischwechsel, Neustart, Fehler oder ausbleibender Bestaetigung stoppt die Automatik. Auto spielen ist beim Laden ausgeschaltet. Ein Engine-Wechsel pausiert die Automatik.
+Der Server prueft die Zuege weiterhin. Vor jedem Zug werden Stellung und Version erneut verglichen; nach dem Senden wartet das Menue auf die erwartete bestaetigte Stellung. Bei Aussteigen, Gegner-/Tischwechsel, Neustart, Fehler oder ausbleibender Bestaetigung stoppt die Automatik. Auto spielen ist beim Laden ausgeschaltet. Ein Engine-Wechsel pausiert die Automatik. **Humanize** ist standardmaessig aus und wird gespeichert. Eingeschaltet wartet jeder berechnete Zug zufaellig 1,2 bis 3,2 Sekunden. Nach dieser Pause werden Sitzplatz, Charakter, Stellung und Version erneut geprueft; Pause und Beenden verwerfen den wartenden Zug.
 
 Live geprueft: der Stockfish-Aufruf aus dem verbundenen Executor lieferte fuer die Startstellung einen lokal geprueften legalen Zug d2d4 mit Tiefe 16 in rund 0,32 Sekunden; dabei wurde kein Zug gesendet. Der neue Menueaufbau startete ohne gemeldete Fehler und zeigt beide Engine-Schalter. Bereits zuvor wurde ein eigener Zug an Tisch 4, b1c3, mit exakt passender Serverstellung und Versionswechsel 73 auf 74 bestaetigt. Ein kompletter Partie-Durchlauf mit Stockfish ist noch nicht verifiziert. Die bisherige ChessPilot-App wurde nicht veraendert.
+
+## Änderungen in 2.6.75
+
+- Optionaler Admin-Serverwechsel unter Erkennung, standardmäßig aus; links mittig erscheinen nur aktive Funktionen mit ihren Keybinds.
+- Stockfish-Stellungen nach Bauern-Doppelschritten korrigiert und Humanize mit 1,2–3,2 Sekunden Zufallspause ergänzt. Das Spielerinfo-Item wird nach dem Laden neuer Spiel-Items hinten einsortiert.
 
 ## Änderungen in 2.6.74
 

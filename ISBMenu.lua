@@ -1,7 +1,7 @@
--- ISB Menu 2.6.74 | Own-game universal client toolkit
+-- ISB Menu 2.6.75 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.74",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.75",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -99,7 +99,7 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish", favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, lowEffects=false, fpsCap=60}
+local settings = {flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish",chessHumanize=false, favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, adminAutoHop=false, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -129,6 +129,8 @@ if type(readfile) == "function" then
         settings.blur=false
         if data.designVersion~="2.2" and data.designVersion~="2.3" then settings.theme="Amber" end
         settings.friendHighlights=data.friendHighlights~=false; settings.staffHighlights=data.staffHighlights~=false
+        settings.chessHumanize=data.chessHumanize==true
+        settings.adminAutoHop=data.adminAutoHop==true
         settings.lowEffects=data.lowEffects==true
         if data.provider=="RoScripts" then settings.provider=data.provider end
         if data.discovery=="Neu" or data.discovery=="Favoriten" then settings.discovery=data.discovery end
@@ -193,6 +195,12 @@ local flyObjects, flyHumanoid, flyAutoRotate = {}, nil, nil
 local runtime={flightVelocity=Vector3.zero,flightAcceleration=Vector3.zero,gameStaff={},groupRoles={},profileData={},antiVoid=false,shader=false,
     role="Member", saveRevision=0,lastSaved=nil,saveError=nil, imageCache={},performanceOwned={},voiceMaintenance=0,tweens={}}
 runtime.english={
+    ["Bei Admin automatisch Server wechseln"]="Automatically hop when staff is detected",
+    ["Wechselt automatisch bei erkannten Spiel-Admins. Standardm\195\164\195\159ig aus."]="Automatically changes servers when game staff is detected. Off by default.",
+    ["Admin erkannt. Serverwechsel wird angefordert."]="Staff detected. Requesting a server change.",
+    ["Automatischer Serverwechsel fehlgeschlagen. Neuer Versuch fr\195\188hestens in 60 Sekunden."]="Automatic server change failed. Retrying no sooner than 60 seconds.",
+    ["Aktive Keybinds"]="Active keybinds",
+
     ["On"]="On",
     ["Off"]="Off",
     ["Huckepack \194\183 "]="Piggyback \194\183 ",
@@ -680,6 +688,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.75"]="Optional staff server hopping under Detection, off by default; the left-center list shows only active functions and their keybinds.\nFixed Stockfish positions after double pawn moves and added Humanize with a random 1.2\226\128\1473.2 second delay. Player Info is placed after newly loaded game items.",
     ["2.6.74"]="Game-specific features are grouped under Scripts > This Game and appear only in their registered game. Chess is available as its own entry there.\nStockfish online analysis for stronger chess moves; offline search remains selectable. The display shows the depth actually reached.",
     ["2.6.73"]="New Chess Auto-Player under Scripts > Chess: direct board and turn data in the supported game, without image recognition or an additional EXE.\nAuto play, Pause and One move with local Lua search, position validation and server acknowledgement before the next move.",
     ["2.6.72"]="Piano playback speed changes immediately while playing, without pausing or restarting.\nThe Roblox hotbar is temporarily disabled during playback and restored afterwards; newly equipped tools are returned to the backpack.",
@@ -2379,6 +2388,39 @@ for i,caption in ipairs({"\226\134\145","\226\134\147"}) do
 end
 runtime.flightTier=math.clamp(math.floor(tonumber(settings.flightTier) or 1),1,4)
 if settings.flightCustomSpeed then runtime.setFlightSpeed(settings.flightCustomSpeed) end
+runtime.activeKeys=make("CanvasGroup",{Name="ActiveKeybinds",Visible=false,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(0,.5),Position=UDim2.new(0,18,.5,0),Size=UDim2.fromOffset(216,50)},gui)
+round(runtime.activeKeys,14);runtime.glassSurface(runtime.activeKeys,14);stroke(runtime.activeKeys)
+label(runtime.activeKeys,"Aktive Keybinds",11,C.muted,UDim2.fromOffset(14,10),UDim2.fromOffset(188,18))
+runtime.activeKeyRows={}
+for _,entry in ipairs({{"fly","flyKey","Fliegen"},{"noclip","noclipKey","Noclip"},{"esp","espKey","Highlights / ESP"},{"speed","speedKey","Laufgeschwindigkeit"},{"freecam","freecamKey","Freecam"}})do
+    local row=make("Frame",{Name="ActiveKey_"..entry[1],Visible=false,BackgroundTransparency=1,Size=UDim2.fromOffset(188,30)},runtime.activeKeys)
+    local dot=make("Frame",{BackgroundColor3=C.accent,Position=UDim2.fromOffset(0,12),Size=UDim2.fromOffset(5,5)},row);round(dot,3)
+    label(row,entry[3],12,C.text,UDim2.fromOffset(13,0),UDim2.fromOffset(139,30))
+    local cap=make("Frame",{BackgroundColor3=C.card,Position=UDim2.fromOffset(154,3),Size=UDim2.fromOffset(34,24)},row);round(cap,7);stroke(cap)
+    local key=label(cap,"",12,C.accent,UDim2.new(),UDim2.fromScale(1,1));key.TextXAlignment=Enum.TextXAlignment.Center;key.Font=Enum.Font.BuilderSansBold
+    table.insert(runtime.activeKeyRows,{id=entry[1],field=entry[2],row=row,key=key})
+end
+function runtime.updateActiveKeys()
+    local count=0;local signature=""
+    for _,entry in ipairs(runtime.activeKeyRows)do
+        local active=(entry.id=="freecam" and runtime.freecam~=nil)or (entry.id~="freecam" and state[entry.id]==true)
+        signature=signature..(active and entry.id..":"..settings[entry.field]or "")..";"
+        if active then count+=1 end
+    end
+    if signature==runtime.activeKeySignature then return end
+    runtime.activeKeySignature=signature;runtime.activeKeys.Visible=count>0
+    local index=0
+    for _,entry in ipairs(runtime.activeKeyRows)do
+        local active=(entry.id=="freecam" and runtime.freecam~=nil)or (entry.id~="freecam" and state[entry.id]==true)
+        entry.row.Visible=active
+        if active then
+            entry.row.Position=UDim2.fromOffset(14,33+index*32);index+=1
+            entry.key.Text=settings[entry.field];entry.key.TextSize=#settings[entry.field]>3 and 9 or 12
+        end
+    end
+    runtime.activeKeys.Size=UDim2.fromOffset(216,42+count*32)
+end
+
 runtime.flightHud=make("CanvasGroup",{Name="FlightHUD",Visible=false,BackgroundColor3=C.panel,AnchorPoint=Vector2.new(.5,0),Position=UDim2.new(.5,0,0,58),Size=UDim2.fromOffset(540,48)},gui)
 round(runtime.flightHud,16); runtime.glassSurface(runtime.flightHud,16); stroke(runtime.flightHud)
 runtime.flightInfo=label(runtime.flightHud,"",13,C.text,UDim2.fromOffset(14,7),UDim2.fromOffset(254,34)); runtime.flightInfo.Font=Enum.Font.BuilderSansBold
@@ -3004,6 +3046,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.75",text="Optionaler Admin-Serverwechsel unter Erkennung, standardm\195\164\195\159ig aus; links mittig erscheinen nur aktive Funktionen mit ihren Keybinds.\nStockfish-Stellungen nach Bauern-Doppelschritten korrigiert und Humanize mit 1,2\226\128\1473,2 Sekunden Zufallspause erg\195\164nzt. Das Spielerinfo-Item wird nach dem Laden neuer Spiel-Items hinten einsortiert."},
     {version="2.6.74",text="Spielbezogene Funktionen liegen unter Scripts > Dieses Spiel und erscheinen nur in dem dafuer registrierten Spiel. Schach ist dort als eigener Eintrag erreichbar.\nStockfish-Onlineanalyse fuer staerkere Schachzuege; Offline-Suche bleibt waehlbar. Die Anzeige zeigt die tatsaechlich erreichte Suchtiefe."},
     {version="2.6.73",text="Neuer Schach Auto-Player unter Scripts > Schach: direkte Brett- und Zugdaten im unterstuetzten Spiel, ohne Bilderkennung oder zusaetzliche EXE.\nAuto spielen, Pause und Ein Zug mit lokaler Lua-Suche, Stellungspruefung und Serverbestaetigung vor dem naechsten Zug."},
     {version="2.6.72",text="Das Piano-Tempo laesst sich waehrend der Wiedergabe direkt aendern, ohne Pause oder Neustart.\nDie Roblox-Hotbar wird waehrend des Spielens voruebergehend deaktiviert und danach wiederhergestellt; neu ausgeruestete Tools werden im Rucksack verstaut."},
@@ -3127,6 +3170,87 @@ connect(workspace.DescendantAdded,function(obj)
         runtime.performanceOwned[obj]=obj.Enabled; obj.Enabled=false
     end
 end)
+function runtime.hasGameStaff()
+    for other,detected in pairs(runtime.gameStaff)do
+        if detected and other~=player and other.Parent==Players then return true end
+    end
+    return false
+end
+runtime.adminHop=(function(deps)
+    local p={generation=0,busy=false,teleporting=false,nextAttempt=0,started=0}
+    local function allowed()return deps.alive() and deps.enabled() and deps.hasStaff()end
+    function p.cancel()p.generation+=1;p.busy=false end
+    function p.failed(reason)
+        p.cancel();p.teleporting=false;p.nextAttempt=deps.clock()+60
+        if deps.alive() and deps.enabled() and deps.notice then deps.notice(reason)end
+    end
+    function p.tick()
+        if not allowed()then if p.busy then p.cancel()end;return end
+        if p.busy and deps.clock()-p.started>15 then p.failed('timeout');return end
+        if p.busy or p.teleporting or deps.clock()<p.nextAttempt then return end
+        p.generation+=1;local generation=p.generation
+        p.busy=true;p.started=deps.clock();p.nextAttempt=p.started+60
+        deps.spawn(function()
+            local function current()return generation==p.generation and allowed()end
+            local ok,err=pcall(function()
+                local cursor=nil;local seen={}
+                for _=1,3 do
+                    if not current()then return end
+                    local data=deps.fetch(cursor)
+                    if not current()then return end
+                    assert(type(data)=='table' and type(data.data)=='table','response')
+                    for _,entry in ipairs(data.data)do
+                        if type(entry)=='table' and type(entry.id)=='string' and #entry.id<=100
+                            and entry.id:match('^[%w%-]+$') and entry.id~=deps.currentJob
+                            and type(entry.playing)=='number' and entry.playing>=0
+                            and type(entry.maxPlayers)=='number' and entry.maxPlayers>0
+                            and entry.playing<entry.maxPlayers and entry.maxPlayers<100000 then
+                            if not current()then return end
+                            p.teleporting=true
+                            if deps.notice then deps.notice('joining')end
+                            deps.teleport(entry.id)
+                            return
+                        end
+                    end
+                    cursor=data.nextPageCursor
+                    if type(cursor)~='string' or cursor=='' or #cursor>512 or seen[cursor]then break end
+                    seen[cursor]=true
+                end
+                if current()then error('no_server')end
+            end)
+            if generation~=p.generation then return end
+            p.busy=false
+            if not ok then p.failed(tostring(err))end
+        end)
+    end
+    return p
+end)({
+    alive=function()return alive end,enabled=function()return settings.adminAutoHop and Teleport~=nil end,
+    hasStaff=runtime.hasGameStaff,clock=os.clock,spawn=task.spawn,currentJob=game.JobId,
+    fetch=function(cursor)
+        local url="https://games.roblox.com/v1/games/"..tostring(game.PlaceId).."/servers/Public?sortOrder=Asc&limit=100"
+        if cursor then url=url.."&cursor="..Http:UrlEncode(cursor)end
+        return requestJSON(url)
+    end,
+    teleport=function(id)Teleport:TeleportToPlaceInstance(game.PlaceId,id,player)end,
+    notice=function(reason)
+        if reason=="joining"then notify("Admin erkannt. Serverwechsel wird angefordert.","Serverhop","shield-check")
+        else notify("Automatischer Serverwechsel fehlgeschlagen. Neuer Versuch fr\195\188hestens in 60 Sekunden.","Serverhop");logEvent("Serverhop",tostring(reason):sub(1,160))end
+    end,
+})
+function runtime.setAdminAutoHop(enabled)
+    settings.adminAutoHop=enabled==true;runtime.adminHop.cancel();save()
+    if settings.adminAutoHop then
+        runtime.adminHop.tick()
+        for _,other in ipairs(Players:GetPlayers())do features.detectGameStaff(other)end
+    end
+end
+if Teleport and Teleport.TeleportInitFailed then
+    connect(Teleport.TeleportInitFailed,function(who)
+        if who==player and runtime.adminHop.teleporting then runtime.adminHop.failed("teleport_failed")end
+    end)
+end
+
 function features.detectGameStaff(other,joined)
     task.spawn(function()
         local detected=table.find(CONFIG.StaffUserIds,other.UserId)~=nil
@@ -3159,6 +3283,7 @@ function features.detectGameStaff(other,joined)
         local previousRole=runtime.groupRoles[other]
         runtime.gameStaff[other]=detected
         runtime.groupRoles[other]=roleLabel
+        if detected and other~=player then runtime.adminHop.tick()end
         if page=="Spieler" and (previous~=detected or previousRole~=roleLabel) and refreshPlayers then refreshPlayers() end
         if detected and not previous and other~=player then notify(other.DisplayName..(joined and " ist dem Server beigetreten." or " geh\195\182rt zur Spiel-Leitung."),joined and "Admin beigetreten" or "Spiel-Admin","shield-check") end
     end)
@@ -4954,7 +5079,25 @@ function runtime.showInspector(other)
     label(panel,"Lokale K\195\182rper-/Outfit-Kopie \194\183 nur f\195\188r diese Sitzung",10,C.muted,UDim2.fromOffset(16,532),UDim2.new(1,-32,0,18))
     runtime.refreshInspector(); runtime.fitAuxiliary(); runtime.requestInspectorProfile(other)
 end
+function runtime.queueInspectorLast()
+    local tool=runtime.inspectorTool
+    if not alive or not tool then return end
+    runtime.inspectorSortGeneration=(runtime.inspectorSortGeneration or 0)+1
+    local generation=runtime.inspectorSortGeneration
+    runtime.inspectorSortPending=true
+    if tool.Parent==player.Character then return end
+    tool.Parent=gui
+    runtime.inventoryDirty=true
+    task.delay(1.25,function()
+        if not alive or runtime.inspectorTool~=tool or generation~=runtime.inspectorSortGeneration then return end
+        local backpack=player:FindFirstChildOfClass("Backpack")
+        if not backpack or tool.Parent==player.Character then return end
+        runtime.inspectorSortPending=false;tool.Parent=backpack
+        runtime.inventoryDirty=true;runtime.updateInventoryClearance()
+    end)
+end
 function runtime.destroyInspectorTool()
+    runtime.inspectorSortGeneration=(runtime.inspectorSortGeneration or 0)+1;runtime.inspectorSortPending=false
     runtime.clearInspectorHover()
     for _,connection in ipairs(runtime.inspectorToolConnections or {}) do connection:Disconnect() end
     runtime.inspectorToolConnections={}; runtime.inspectorMouse=nil
@@ -4963,19 +5106,30 @@ end
 function runtime.ensureInspectorTool()
     if not alive then return end
     local backpack=player:FindFirstChildOfClass("Backpack")
-    if runtime.inspectorTool and runtime.inspectorTool.Parent and (runtime.inspectorTool.Parent==backpack or runtime.inspectorTool.Parent==player.Character) then return end
+    if runtime.inspectorTool and runtime.inspectorTool.Parent and (runtime.inspectorTool.Parent==backpack or runtime.inspectorTool.Parent==player.Character or runtime.inspectorTool.Parent==gui) then return end
     runtime.destroyInspectorTool()
     if not backpack then return end
-    local tool=make("Tool",{Name="ISB Spielerinfo",ToolTip="ISB \194\183 Ausr\195\188sten und einen Spieler anklicken",RequiresHandle=false,CanBeDropped=false,TextureId=iconAsset("isb-inspect") or ""},backpack)
+    local tool=make("Tool",{Name="ISB Spielerinfo",ToolTip="ISB \194\183 Ausr\195\188sten und einen Spieler anklicken",RequiresHandle=false,CanBeDropped=false,TextureId=iconAsset("isb-inspect") or ""},gui)
     runtime.inspectorTool=tool
     runtime.inventoryDirty=true; runtime.updateInventoryClearance()
     table.insert(runtime.inspectorToolConnections,tool.Equipped:Connect(function(mouse) runtime.inspectorMouse=mouse or player:GetMouse() end))
-    table.insert(runtime.inspectorToolConnections,tool.Unequipped:Connect(function() runtime.inspectorMouse=nil; runtime.clearInspectorHover(); runtime.hideInspector() end))
+    table.insert(runtime.inspectorToolConnections,tool.Unequipped:Connect(function() runtime.inspectorMouse=nil; runtime.clearInspectorHover(); runtime.hideInspector();if runtime.inspectorSortPending then task.defer(runtime.queueInspectorLast)end end))
     table.insert(runtime.inspectorToolConnections,tool.Activated:Connect(function()
         if not alive or tool.Parent~=player.Character or not runtime.inspectorMouse then return end
         local other=runtime.inspectorTarget()
         if other then runtime.showInspector(other) end
     end))
+    local seen=setmetatable({},{__mode="k"})
+    local function arrived(child)
+        if child~=tool and child:IsA("Tool") and not seen[child]then seen[child]=true;runtime.queueInspectorLast()end
+    end
+    for _,container in ipairs({backpack,player.Character})do
+        if container then
+            for _,child in ipairs(container:GetChildren())do if child:IsA("Tool")then seen[child]=true end end
+            table.insert(runtime.inspectorToolConnections,container.ChildAdded:Connect(arrived))
+        end
+    end
+    runtime.queueInspectorLast()
 end
 connect(player.ChildAdded,function(child) if child:IsA("Backpack") then task.defer(runtime.ensureInspectorTool) end end)
 connect(player.CharacterAdded,function() task.defer(runtime.ensureInspectorTool) end)
@@ -5939,7 +6093,7 @@ function runtime.readChess()
 end
 runtime.chess=(function(deps)
     local p:any={alive=true,auto=false,once=false,epoch=0,status='ready',nodes=0,depth=0,
-        engine=deps.engine=='local' and 'local'or deps.online and 'stockfish'or 'local'}
+        humanize=deps.humanize==true,engine=deps.engine=='local' and 'local'or deps.online and 'stockfish'or 'local'}
     local values={P=100,N=320,B=335,R=500,Q=900,K=0}
     local function changed()if deps.changed and p.alive then deps.changed()end end
     local function status(code)if p.status~=code then p.status=code;changed()end end
@@ -6042,15 +6196,41 @@ runtime.chess=(function(deps)
         if deps.preference then deps.preference(value)end
         changed()
     end
+    function p.setHumanize(enabled)
+        p.humanize=enabled==true
+        if deps.humanizePreference then deps.humanizePreference(p.humanize)end
+        changed()
+    end
+    function p.analysisFen(rules,fen,state,moves)
+        return (fen:gsub('^(%S+%s+[wb]%s+%S+%s+)%S+','%1-'))
+    end
+    function p.enPassantMoves(rules,fen,state,moves)
+        local ep=fen:match('^%S+%s+[wb]%s+%S+%s+(%S+)');local found={}
+        if not ep or ep=='-'then return found end
+        local target=rules.parseSquare(ep)
+        for _,move in ipairs(moves)do
+            local piece=state.board[move.from]
+            if move.to==target and piece and piece:upper()=='P' and math.abs(move.from%8-target%8)==1 then table.insert(found,move)end
+        end
+        return found
+    end
+    local function onlineScore(data)
+        local mate=tonumber(data.mate)
+        if mate and mate~=0 and mate==mate and math.abs(mate)<10000 then return (mate>0 and 100000 or -100000)-mate end
+        local value=tonumber(data.eval)
+        assert(value and value==value and math.abs(value)<100000,'engine_evaluation_invalid')
+        return value
+    end
     function p.chooseMove(rules,fen,cancel)
         if p.engine=='local'then return p.search(rules,fen,cancel)end
         assert(type(deps.online)=='function','online_engine_unavailable')
         local state=rules.fromFEN(fen)
         local info=rules.evaluate(state)
         if info.result or #info.moves==0 then return nil,{depth=0,nodes=0}end
-        local data=deps.online(fen)
+        local analysisFen=p.analysisFen(rules,fen,state,info.moves)
+        local data=deps.online(analysisFen)
         if cancel and cancel()then return nil,{depth=0,nodes=0}end
-        assert(type(data)=='table' and data.type=='bestmove' and data.fen==fen,'engine_position_mismatch')
+        assert(type(data)=='table' and data.type=='bestmove' and data.fen==analysisFen,'engine_position_mismatch')
         local depth=tonumber(data.depth)
         assert(depth and depth==math.floor(depth) and depth>=1 and depth<=128,'engine_depth_invalid')
         local uci=data.move
@@ -6060,6 +6240,26 @@ runtime.chess=(function(deps)
         local move=rules.findMove(info.moves,from,to,promotion)
         assert(move,'engine_move_illegal')
         local nodes=type(data.debug)=='string' and tonumber(data.debug:match('nodes%s+(%d+)'))or 0
+        local captures=p.enPassantMoves(rules,fen,state,info.moves)
+        if #captures>0 then
+            local bestScore=onlineScore(data);local white=state.turn=='w'
+            for _,capture in ipairs(captures)do
+                if cancel and cancel()then return nil,{depth=0,nodes=0}end
+                local child=clone(state);local childInfo=rules.play(child,table.clone(capture))
+                local score;local childDepth=depth
+                if childInfo.result then score=childInfo.result=='checkmate' and (white and 100000 or -100000)or 0
+                else
+                    local childFen=p.analysisFen(rules,rules.toFEN(child),child,childInfo.moves)
+                    local answer=deps.online(childFen)
+                    if cancel and cancel()then return nil,{depth=0,nodes=0}end
+                    assert(type(answer)=='table' and answer.type=='bestmove' and answer.fen==childFen,'engine_position_mismatch')
+                    childDepth=tonumber(answer.depth)
+                    assert(childDepth and childDepth==math.floor(childDepth) and childDepth>=1 and childDepth<=128,'engine_depth_invalid')
+                    score=onlineScore(answer)
+                end
+                if (white and score>bestScore)or (not white and score<bestScore)then move=capture;bestScore=score;depth=childDepth end
+            end
+        end
         return move,{depth=depth,nodes=nodes or 0}
     end
     function p.start(automatic)
@@ -6110,6 +6310,12 @@ runtime.chess=(function(deps)
                 local move,stats=p.chooseMove(p.rules,c.fen,function()return not p.alive or epoch~=p.epoch end)
                 if not p.alive or epoch~=p.epoch then return end
                 p.nodes=stats.nodes;p.depth=stats.depth
+                if move and p.humanize then
+                    assert(type(deps.wait)=='function','humanize_wait_unavailable')
+                    status('delaying')
+                    deps.wait(1.2+math.clamp((deps.random or math.random)(),0,1)*2)
+                    if not p.alive or epoch~=p.epoch then return end
+                end
                 local fresh=deps.snapshot()
                 if not same(c,fresh)then status('changed');p.once=false;return end
                 if not move then stop('finished');return end
@@ -6131,6 +6337,7 @@ runtime.chess=(function(deps)
     function p.dispose()p.epoch+=1;p.alive=false;p.auto=false;p.once=false;p.pending=nil end
     return p
 end)({
+    humanize=settings.chessHumanize,wait=task.wait,humanizePreference=function(value)settings.chessHumanize=value;save()end,
     engine=settings.chessEngine,online=runtime.requestStockfish,preference=function(value)settings.chessEngine=value;save()end,
     userId=player.UserId,clock=os.clock,spawn=task.spawn,yield=task.wait,rules=runtime.prepareChess,snapshot=runtime.readChess,
     send=function(id,from,to,promotion)runtime.chessController:SendAction("ChessMinigame",id,"Move",from,to,promotion)end,
@@ -6154,6 +6361,7 @@ function runtime.drawChess()
         ready={"Bereit. Auto spielen oder Ein Zug w\195\164hlen.","Ready. Choose Auto play or One move."},
         paused={"Pausiert.","Paused."},waiting={"Warte auf den Gegner und den Partiestart.","Waiting for opponent and game start."},
         opponent={"Der Gegner ist am Zug.","Opponent to move."},thinking={"Berechne einen legalen Zug...","Calculating a legal move..."},
+        delaying={"Kurze Pause vor dem Zug...","Waiting briefly before the move..."},
         confirming={"Warte auf die Serverbest\195\164tigung.","Waiting for server confirmation."},
         timeout={"Keine Zugbest\195\164tigung. Bitte Stellung pr\195\188fen und neu starten.","No move confirmation. Check the position and restart."},
         changed={"Partie oder Stellung ge\195\164ndert. Zug verworfen.","Game or position changed. Move discarded."},
@@ -6167,7 +6375,7 @@ function runtime.drawChess()
     local message=states[not ok and 'unsupported' or p.status]or states.ready
     local text=runtime.pianoText(message[1],message[2])
     if ok and c then text=c.tableName.."  |  "..runtime.pianoText(c.white==player.UserId and "Wei\195\159"or "Schwarz",c.white==player.UserId and "White"or "Black").."\n"..text end
-    local f=plainCard(runtime.pianoText("Schach Auto-Player","Chess Auto-Player"),text,204,false);f.Name="ChessPlayback"
+    local f=plainCard(runtime.pianoText("Schach Auto-Player","Chess Auto-Player"),text,244,false);f.Name="ChessPlayback"
     local auto=rowButton(f,runtime.pianoText("Auto spielen","Auto play"),UDim2.fromOffset(16,82),UDim2.fromOffset(140,32),function()p.start(true)end)
     auto.Name="ChessAuto";if p.auto then auto.TextColor3=C.accent end
     local pause=rowButton(f,"Pause",UDim2.fromOffset(166,82),UDim2.fromOffset(90,32),p.pause);pause.Name="ChessPause"
@@ -6178,7 +6386,10 @@ function runtime.drawChess()
         local button=rowButton(f,item[2],UDim2.fromOffset(126+(i-1)*132,126),UDim2.fromOffset(122,30),function()p.setEngine(mode)end)
         button.Name="ChessEngine_"..mode;if p.engine==mode then button.TextColor3=C.accent end
     end
-    label(f,(p.lastMove and runtime.pianoText("Letzter Zug: ","Last move: ")..p.lastMove.."  |  "or "")..runtime.pianoText("Suchtiefe ","Depth ")..p.depth..(p.engine=="local" and "  |  "..runtime.formatCount(p.nodes)..runtime.pianoText(" Knoten"," nodes")or ""),11,C.muted,UDim2.fromOffset(16,172),UDim2.new(1,-32,0,18))
+    label(f,runtime.pianoText("Zuf\195\164llige Pause: 1,2\226\128\1473,2 s","Random delay: 1.2\226\128\1473.2 s"),11,C.muted,UDim2.fromOffset(16,166),UDim2.fromOffset(242,30))
+    local humanize=rowButton(f,"Humanize: "..runtime.pianoText(p.humanize and "An"or "Aus",p.humanize and "On"or "Off"),UDim2.fromOffset(258,166),UDim2.fromOffset(132,30),function()p.setHumanize(not p.humanize)end)
+    humanize.Name="ChessHumanize";if p.humanize then humanize.TextColor3=C.accent end
+    label(f,(p.lastMove and runtime.pianoText("Letzter Zug: ","Last move: ")..p.lastMove.."  |  "or "")..runtime.pianoText("Suchtiefe ","Depth ")..p.depth..(p.engine=="local" and "  |  "..runtime.formatCount(p.nodes)..runtime.pianoText(" Knoten"," nodes")or ""),11,C.muted,UDim2.fromOffset(16,212),UDim2.new(1,-32,0,18))
     local hint=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     label(hint,(p.engine=="stockfish" and runtime.pianoText("Stockfish ben\195\182tigt Internet. Nur die Brettstellung wird an chess-api.com gesendet.","Stockfish needs internet. Only the board position is sent to chess-api.com.")or runtime.pianoText("Lokale Lua-Suche. Keine zus\195\164tzliche EXE.","Local Lua search. No additional EXE.")),11,C.muted,UDim2.fromOffset(4,0),UDim2.new(1,-8,1,0))
 end
@@ -6292,6 +6503,7 @@ render = function()
         elseif settingsSection=="Erkennung" then
             drawAction({id="friendmarkers",name="Freunde markieren",desc="Freunde aus deiner Roblox-Freundesliste leuchten blau",kind="toggle",get=function() return settings.friendHighlights end,fn=function() settings.friendHighlights=not settings.friendHighlights; save() end})
             drawAction({id="staffmarkers",name="Spiel-Admins markieren",desc="Owner, Admin, Developer und Moderator der Spiel-Gruppe leuchten rot",kind="toggle",get=function() return settings.staffHighlights end,fn=function() settings.staffHighlights=not settings.staffHighlights; save() end})
+            drawAction({id="adminautohop",name="Bei Admin automatisch Server wechseln",desc="Wechselt automatisch bei erkannten Spiel-Admins. Standardm\195\164\195\159ig aus.",kind="toggle",get=function()return settings.adminAutoHop end,fn=function()runtime.setAdminAutoHop(not settings.adminAutoHop)end})
             plainCard("Rollen-Erkennung","Verwendet \195\182ffentlich sichtbare Gruppenrollen und den Spielbesitzer. Rollenbezeichnungen sind Hinweise, keine verifizierten Berechtigungen.",92)
             plainCard("Executor",session.executor.." "..session.executorVersion,78)
             plainCard("F\195\164higkeiten",string.format("Dateien: %s  \194\183  Clipboard: %s  \194\183  Asset-Icons: %s",tostring(capabilities.files),tostring(capabilities.clipboard),tostring(capabilities.icons)),82)
@@ -6538,6 +6750,7 @@ end)
 local visualTimer, fpsTime, frames = 0,0,0
 local lastViewport, lastCamera = nil,nil
 connect(Run.RenderStepped,function(dt)
+    runtime.updateActiveKeys()
     runtime.updateInspectorHover()
     if opened and page=="Musik" then runtime.mediaProgress() end
     if opened and page=="Spieler" then runtime.fillPlayerRows() end
@@ -6546,7 +6759,7 @@ connect(Run.RenderStepped,function(dt)
         if runtime.media.volumeTick>=.08 then runtime.media.volumeTick=0; runtime.commitMediaVolume() end
     else runtime.media.volumeTick=0 end
     runtime.detailTick=(runtime.detailTick or 0)+dt
-    if runtime.detailTick>=.25 then runtime.detailTick=0; runtime.refreshInspector(); if opened and page=="Spieler" and runtime.selectedPlayer then runtime.refreshDetails() end end
+    if runtime.detailTick>=.25 then runtime.detailTick=0; runtime.adminHop.tick(); runtime.refreshInspector(); if opened and page=="Spieler" and runtime.selectedPlayer then runtime.refreshDetails() end end
     runtime.media.pollTime=runtime.media.pollTime+dt
     if opened and page=="Musik" and runtime.media.pollTime>=1 then runtime.media.pollTime=0; runtime.mediaPoll() end
 
