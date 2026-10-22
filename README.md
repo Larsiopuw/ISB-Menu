@@ -1,4 +1,4 @@
-# ISB Menu 2.6.85 · by Larsiopuw
+# ISB Menu 2.6.86 · by Larsiopuw
 
 ## 777 Auto-Spin
 
@@ -6,9 +6,9 @@ Unter **Scripts → Dieses Spiel → 777 Auto-Spin** öffnen. **Auto-Spin starte
 
 **Bei freigeschaltetem Titel stoppen** ist standardmäßig an. Wer 777 bereits besitzt, wird deshalb beim Start weder teleportiert noch dreht er weiter. Für weitere Drehungen kann diese Option bewusst ausgeschaltet werden. Ein bestätigtes eigenes 777 oder der entsprechende Profilfortschritt beendet die Automatik bei aktiver Option. Drehungen und letztes eigenes Ergebnis stehen kompakt in der Hauptkarte. **777-Gewinne** zeigt zusätzlich den gespeicherten Gesamtzähler aus dem Spielprofil, auch aus früheren Sitzungen. Er aktualisiert sich bei geöffneter Karte automatisch; noch nicht geladene Profildaten erscheinen als Gedankenstrich.
 
-Der lokale AFK-Schutz ist ausschließlich während Auto-Spin aktiv und verwendet Roblox VirtualUser; es werden keine PC-weiten Tasten und keine dauerhaft deaktivierten fremden Idle-Verbindungen verwendet. Stop, Respawn, entfernte/ersetzte Automaten, Verlassen des Knopfbereichs und Fehler entfernen die eigene Idle-Verbindung. Backend-Fehler stoppen die Funktion. Der Backend-Aufruf und die Bereinigung sind live geprüft; ein kompletter 20-Minuten-Idle-Test ist nicht durchgeführt. Spiel- oder Verbindungsabbrüche können dadurch nicht ausgeschlossen werden.
+Der lokale AFK-Schutz ist ausschließlich während Auto-Spin aktiv und verwendet Roblox VirtualUser; es werden keine PC-weiten Tasten und keine dauerhaft deaktivierten fremden Idle-Verbindungen verwendet. Stop, Respawn, entfernte/ersetzte Automaten und Fehler entfernen die eigene Idle-Verbindung. Backend-Fehler stoppen die Funktion. Der Backend-Aufruf und die Bereinigung sind live geprüft; ein kompletter 20-Minuten-Idle-Test ist nicht durchgeführt. Spiel- oder Verbindungsabbrüche können dadurch nicht ausgeschlossen werden.
 
-Start beendet aktive Flug-/Freecam-/Quick-Action-/Piano-Steuerung, damit sich diese nicht mit der Platzierung überlagert. Danach bleibt der Charakter frei beweglich; Weglaufen stoppt die Automatik, statt ihn zurückzuziehen. Die Funktion startet nicht automatisch nach Laden oder Respawn und wird nicht als aktiv gespeichert. Sie ist an dasselbe registrierte Spiel/Place wie die drei Brettspiele gebunden und steht nach Schach, Vier gewinnt und Tic Tac Toe.
+Start beendet aktive Flug-/Freecam-/Quick-Action-/Piano-Steuerung, damit sich diese nicht mit der Platzierung überlagert. Solange Auto-Spin aktiv ist, bringt es den Charakter nach Weglaufen oder Wegschubsen automatisch auf einen sicheren Platz am Knopf zurück. Auch innerhalb der Prompt-Reichweite wird eine Abweichung von mehr als zwei Studs korrigiert. Stop beendet diese Rückkehr sofort. Die Funktion startet nicht automatisch nach Laden oder Respawn und wird nicht als aktiv gespeichert. Sie ist an dasselbe registrierte Spiel/Place wie die drei Brettspiele gebunden und steht nach Schach, Vier gewinnt und Tic Tac Toe.
 
 ## Vier gewinnt automatisch spielen
 
@@ -122,9 +122,9 @@ Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden ab
 
 Zusammengehörige Zwischenstände sind als abgeschlossene Funktionen zusammengefasst. Technische Versuche und Prüfergebnisse stehen separat im Prüfbericht.
 
-### 2.6.85
+### 2.6.86
 
-- 777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz läuft nur während Auto-Spin. Gesamtzahl der 777-Gewinne direkt in der Hauptkarte.
+- 777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz läuft nur während Auto-Spin. Gesamtzahl der 777-Gewinne direkt in der Hauptkarte. Automatische Rückkehr zum Knopf während Auto-Spin.
 
 ### 2.6.81
 

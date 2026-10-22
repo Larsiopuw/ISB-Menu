@@ -1,7 +1,7 @@
--- ISB Menu 2.6.85 | Own-game universal client toolkit
+-- ISB Menu 2.6.86 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.85",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.86",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -695,7 +695,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
-    ["2.6.85"]="777 Auto-Spin under Scripts > This Game: teleport safely to the button and spin as soon as it becomes available. Optionally stop when the title is unlocked; idle protection runs only while auto-spin is active. Lifetime 777 win count shown in the main card.",
+    ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely to the button and spin as soon as it becomes available. Optionally stop when the title is unlocked; idle protection runs only while auto-spin is active. Lifetime 777 win count shown in the main card. Automatically returns to the button while auto-spin is active.",
     ["2.6.81"]="Connect Four Auto-Player under Scripts > This Game with local move calculation, a board view, winning lines and search depth. Automatic play continues across rounds, with pause and single-move controls.",
     ["2.6.80"]="Tic Tac Toe Auto-Player under Scripts > This Game with complete local move calculation, a board view and winning lines. Autoplay continues through subsequent rounds at the same table until paused or you leave the seat.",
     ["2.6.78"]="Anti-Void with pixel recovery, a cyan light trail and a guided return camera. Recovery uses an earlier ground position with verified surrounding support, edge clearance and no added height offset.",
@@ -2997,7 +2997,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.85",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz l\195\164uft nur w\195\164hrend Auto-Spin. Gesamtzahl der 777-Gewinne direkt in der Hauptkarte."},
+    {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz l\195\164uft nur w\195\164hrend Auto-Spin. Gesamtzahl der 777-Gewinne direkt in der Hauptkarte. Automatische R\195\188ckkehr zum Knopf w\195\164hrend Auto-Spin."},
     {version="2.6.81",text="Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen \195\188ber weitere Runden sowie Pause und einzelne Z\195\188ge."},
     {version="2.6.80",text="Tic Tac Toe Auto-Player unter Scripts > Dieses Spiel mit vollst\195\164ndiger lokaler Zugberechnung, Brettansicht und Gewinnlinien. Autoplay spielt weitere Runden am selben Tisch automatisch weiter, bis du pausierst oder aufstehst."},
     {version="2.6.78",text="Anti-Void mit Pixel-Recovery, cyanfarbener Lichtspur und R\195\188ckflug-Kamera. Die R\195\188ckkehr verwendet einen fr\195\188heren, rundum gepr\195\188ften Bodenpunkt mit Kantenabstand und ohne zus\195\164tzlichen H\195\182henversatz."},
@@ -8322,6 +8322,7 @@ function runtime.positionAtSlot(c)
         end)
     c.root.CFrame=target;c.root.AssemblyLinearVelocity=Vector3.zero;c.root.AssemblyAngularVelocity=Vector3.zero
     if runtime.voidGround then runtime.voidGround.reset()end
+    return target.Position
 end
 function runtime.slotIdleGuard(failed)
     local virtual=game:GetService("VirtualUser");local closed=false;local connection
@@ -8367,7 +8368,7 @@ runtime.slot=(function(deps)
                 if not p.active or p.epoch~=epoch then return end
                 local fresh=deps.snapshot()
                 assert(valid(fresh)and fresh.character==p.context.character and fresh.prompt==p.context.prompt,'context_changed')
-                deps.move(fresh)
+                p.context.position=deps.move(fresh)
                 if not p.active or p.epoch~=epoch then return end
                 local cleanup=deps.guard(function()if p.active and p.epoch==epoch then p.stop('idle_error')end end)
                 if not p.active or p.epoch~=epoch then if cleanup then cleanup()end;return end
@@ -8388,8 +8389,13 @@ runtime.slot=(function(deps)
         if not ok or not valid(s)then p.stop('unavailable');return end
         if s.character~=p.context.character or s.prompt~=p.context.prompt then p.stop('changed');return end
         if deps.interrupted and deps.interrupted()then p.stop('interrupted');return end
-        if not s.near then p.stop('moved');return end
         if p.stopOnWin and s.profileReady and s.owned then p.stop('won');return end
+        if not s.near or (deps.displaced and deps.displaced(s,p.context.position))then
+            p.context.position=deps.move(s)
+            if not p.active then return end
+            s=deps.snapshot()
+            assert(valid(s)and s.character==p.context.character and s.prompt==p.context.prompt and s.near,'return_to_button_failed')
+        end
         local now=deps.clock()
         if p.pending then
             local request=p.pending
@@ -8434,6 +8440,7 @@ end)({clock=os.clock,spawn=task.spawn,snapshot=runtime.readSlot,
         for _=1,12 do if not c.humanoid.SeatPart then break end;task.wait(.05)end
     end,
     move=runtime.positionAtSlot,guard=runtime.slotIdleGuard,
+    displaced=function(c,position)return position~=nil and(c.root.Position-position).Magnitude>2 end,
     watch=function(prompt,callback)
         local connection=prompt:GetPropertyChangedSignal("Enabled"):Connect(callback)
         return function()connection:Disconnect()end
