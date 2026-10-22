@@ -9000,9 +9000,25 @@ runtime.halloweenTarget=(function(c,bell,inside,range,raycast,blocked)
 end)
 runtime.halloweenCamera=(function(deps)
     local owner
+    local function mask(saved)
+        if not deps.models then return end
+        saved.cameraMask=saved.cameraMask or {}
+        for _,model in ipairs(deps.models(saved))do
+            for _,part in ipairs(model:GetDescendants())do
+                if part:IsA('BasePart')then
+                    if saved.cameraMask[part]==nil then saved.cameraMask[part]=part.LocalTransparencyModifier end
+                    part.LocalTransparencyModifier=1
+                end
+            end
+        end
+    end
     local function release(saved)
         if not saved or owner~=saved then return end
         owner=nil;deps.unbind()
+        for part,value in pairs(saved.cameraMask or {})do
+            if part.Parent and part.LocalTransparencyModifier==1 then part.LocalTransparencyModifier=value end
+        end
+        saved.cameraMask=nil
         local old=saved.cameraState;saved.cameraState=nil
         if old and deps.camera()==old.camera then
             old.camera.CFrame=old.frame;old.camera.Focus=old.focus
@@ -9020,12 +9036,14 @@ runtime.halloweenCamera=(function(deps)
             deps.bind(function()
                 if owner~=saved then return end
                 if not deps.valid(saved)or deps.camera()~=saved.cameraState.camera then release(saved);return end
+                mask(saved)
                 local cam=saved.cameraState.camera
                 cam.CameraType=Enum.CameraType.Scriptable
                 cam.CFrame=CFrame.lookAt(saved.root.Position+Vector3.new(0,1.5,0),saved.bellPosition)
                 cam.Focus=CFrame.new(saved.bellPosition)
             end)
         end
+        mask(saved)
         local cam=saved.cameraState.camera
         cam.CameraType=Enum.CameraType.Scriptable
         cam.CFrame=CFrame.lookAt(saved.root.Position+Vector3.new(0,1.5,0),position)
@@ -9033,6 +9051,7 @@ runtime.halloweenCamera=(function(deps)
     end
     return {aim=aim,release=release}
 end)({camera=function()return workspace.CurrentCamera end,
+    models=function(saved)local models={saved.character};if runtime.outfitBody and runtime.outfitBody.model then table.insert(models,runtime.outfitBody.model)end;return models end,
     valid=function(saved)return runtime.halloweenValid(nil,saved)end,
     bind=function(fn)Run:BindToRenderStep("ISBHalloweenCamera",Enum.RenderPriority.Camera.Value+2,fn)end,
     unbind=function()Run:UnbindFromRenderStep("ISBHalloweenCamera")end})
