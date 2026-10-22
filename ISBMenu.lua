@@ -703,7 +703,7 @@ runtime.englishHistory={
     ["2.6.91"]="Halloween-Event under Scripts > This Game: native doorbell input with confirmed candy credit and return to the previous position. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually.",
     ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game.",
     ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
-    ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely to the button and spin as soon as it becomes available. Optionally stop when the title is unlocked; idle protection runs only while auto-spin is active. Lifetime 777 win count shown in the main card. Automatically returns to the button while auto-spin is active.",
+    ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely and use native prompt input as soon as the button is available. An unconfirmed start is retried briefly, including the first spin after teleport; confirmed spins receive no further input. Optionally stop when the title is unlocked. Lifetime 777 wins and automatic return to the button, using shared ISB Menu idle protection.",
     ["2.6.81"]="Connect Four Auto-Player under Scripts > This Game with local move calculation, a board view, winning lines and search depth. Automatic play continues across rounds, with pause and single-move controls.",
     ["2.6.80"]="Tic Tac Toe Auto-Player under Scripts > This Game with complete local move calculation, a board view and winning lines. Autoplay continues through subsequent rounds at the same table until paused or you leave the seat.",
     ["2.6.78"]="Anti-Void with pixel recovery, a cyan light trail and a guided return camera. Recovery uses an earlier ground position with verified surrounding support, edge clearance and no added height offset.",
@@ -3009,7 +3009,7 @@ runtime.changelog={
     {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: native Klingeleingabe mit best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur Ausgangsposition. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet."},
     {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar."},
     {version="2.6.89",text="VIP-Aufzug mit eigenen lokalen E-Kn\195\182pfen: direkt hinein und zur\195\188ck teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterst\195\188tzten Spiel."},
-    {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz l\195\164uft nur w\195\164hrend Auto-Spin. Gesamtzahl der 777-Gewinne direkt in der Hauptkarte. Automatische R\195\188ckkehr zum Knopf w\195\164hrend Auto-Spin."},
+    {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und per nativer Knopfeingabe direkt bei Freigabe drehen. Ein unbest\195\164tigter Start wird kurz wiederholt, auch beim ersten Spin nach dem Teleport; best\195\164tigte Drehungen erhalten keine weiteren Eingaben. Optional beim freigeschalteten Titel stoppen. Gesamtzahl der 777-Gewinne und automatische R\195\188ckkehr zum Knopf. Gemeinsamer AFK-Schutz des ISB-Men\195\188s."},
     {version="2.6.81",text="Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen \195\188ber weitere Runden sowie Pause und einzelne Z\195\188ge."},
     {version="2.6.80",text="Tic Tac Toe Auto-Player unter Scripts > Dieses Spiel mit vollst\195\164ndiger lokaler Zugberechnung, Brettansicht und Gewinnlinien. Autoplay spielt weitere Runden am selben Tisch automatisch weiter, bis du pausierst oder aufstehst."},
     {version="2.6.78",text="Anti-Void mit Pixel-Recovery, cyanfarbener Lichtspur und R\195\188ckflug-Kamera. Die R\195\188ckkehr verwendet einen fr\195\188heren, rundum gepr\195\188ften Bodenpunkt mit Kantenabstand und ohne zus\195\164tzlichen H\195\182henversatz."},
@@ -8735,12 +8735,34 @@ function runtime.refreshSlot()
     runtime.slotRefresh=true
     task.defer(function()runtime.slotRefresh=false;if alive and opened and page=="777 Auto-Spin"then render()end end)
 end
+runtime.slotPromptInput=(function(deps)
+    local p:any={held=nil,epoch=0}
+    function p.release()
+        p.epoch+=1
+        local prompt=p.held;p.held=nil
+        if prompt then pcall(deps.finish,prompt)end
+    end
+    function p.press(prompt)
+        if p.held==prompt then return false end
+        p.release();local epoch=p.epoch
+        p.held=prompt
+        local ok,err=pcall(deps.begin,prompt)
+        if not ok then p.release();error(err)end
+        deps.delay(math.max(.12,tonumber(deps.duration(prompt))or 0)+.02,function()
+            if p.epoch==epoch and p.held==prompt then p.release()end
+        end)
+        return true
+    end
+    return p
+end)({begin=function(prompt)prompt:InputHoldBegin()end,
+    finish=function(prompt)prompt:InputHoldEnd()end,duration=function(prompt)return prompt.HoldDuration end,delay=task.delay})
 runtime.slot=(function(deps)
     local p:any={active=false,alive=true,status='ready',spins=0,stopOnWin=true,epoch=0}
     local function changed()if p.alive and deps.changed then deps.changed()end end
     local function status(value)if p.status~=value then p.status=value;changed()end end
     function p.stop(reason)
         p.epoch+=1;p.active=false;p.starting=false;p.pending=nil;p.antiAfk=false
+        if deps.release then pcall(deps.release)end
         if p.unwatch then pcall(p.unwatch);p.unwatch=nil end
         if p.cleanup then pcall(p.cleanup);p.cleanup=nil end
         status(reason or 'stopped')
@@ -8809,11 +8831,18 @@ runtime.slot=(function(deps)
                     changed()
                 end
             elseif now-request.time>(request.accepted and 25 or 10)then p.stop('timeout');return
-            else status(request.accepted and 'spinning'or 'confirming');return end
+            else
+                if not request.accepted and s.enabled and now>=(request.nextTry or math.huge)and(request.sends or 1)<8 then
+                    request.nextTry=now+.4;request.sends=(request.sends or 1)+1
+                    local fired,err=pcall(deps.press,s.prompt)
+                    if not fired then p.lastError=tostring(err);p.stop('error');return end
+                end
+                status(request.accepted and 'spinning'or 'confirming');return
+            end
         end
         if not s.enabled then status('other_player');return end
         -- Reserve this opening before invoking input: signal and Heartbeat cannot double-send.
-        p.pending={time=now,before=s.signature,signature=s.signature,stable=now,accepted=false,disabled=false}
+        p.pending={time=now,before=s.signature,signature=s.signature,stable=now,accepted=false,disabled=false,nextTry=now+.4,sends=1}
         local fired,err=pcall(deps.press,s.prompt)
         if not fired then p.lastError=tostring(err);p.stop('error');return end
         status('confirming')
@@ -8841,7 +8870,7 @@ end)({clock=os.clock,spawn=task.spawn,snapshot=runtime.readSlot,
         return function()connection:Disconnect()end
     end,
     interrupted=function()return state.fly or runtime.freecam~=nil or runtime.roleplay~=nil end,
-    press=function(prompt)assert(type(fireproximityprompt)=='function','prompt_input_unavailable');fireproximityprompt(prompt)end,
+    press=runtime.slotPromptInput.press,release=runtime.slotPromptInput.release,
     suspended=function()return runtime.halloween and runtime.halloween.busy end,
     changed=runtime.refreshSlot})
 connect(player.CharacterRemoving,function()runtime.slot.stop('changed')end)
@@ -8870,7 +8899,7 @@ function runtime.drawSlot()
     local messages={ready={"Zum Knopf reisen und automatisch drehen.","Travel to the button and spin automatically."},
         positioning={"Sicheren Platz am Knopf suchen\226\128\166","Finding a safe position at the button\226\128\166"},
         waiting={"Auto-Spin aktiv. Warte auf den n\195\164chsten Versuch.","Auto-spin on. Waiting for the next attempt."},
-        confirming={"Warte auf den Start der Drehung.","Waiting for the spin to start."},spinning={"Drehung l\195\164uft\226\128\166","Spin in progress\226\128\166"},
+        confirming={"Starte die Drehung...","Starting the spin..."},spinning={"Drehung l\195\164uft\226\128\166","Spin in progress\226\128\166"},
         other_player={"Der Automat ist gerade belegt.","The machine is currently in use."},
         stopped={"Gestoppt.","Stopped."},won={"777 ist freigeschaltet. Auto-Spin gestoppt.","777 is unlocked. Auto-spin stopped."},
         unavailable={"Automat oder Charakter nicht verf\195\188gbar.","Machine or character unavailable."},
