@@ -1,4 +1,4 @@
-# ISB Menu 2.6.84 · by Larsiopuw
+# ISB Menu 2.6.85 · by Larsiopuw
 
 ## 777 Auto-Spin
 
@@ -122,7 +122,7 @@ Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden ab
 
 Zusammengehörige Zwischenstände sind als abgeschlossene Funktionen zusammengefasst. Technische Versuche und Prüfergebnisse stehen separat im Prüfbericht.
 
-### 2.6.84
+### 2.6.85
 
 - 777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz läuft nur während Auto-Spin. Gesamtzahl der 777-Gewinne direkt in der Hauptkarte.
 
