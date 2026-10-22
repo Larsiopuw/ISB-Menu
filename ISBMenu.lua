@@ -1,7 +1,7 @@
--- ISB Menu 2.6.88 | Own-game universal client toolkit
+-- ISB Menu 2.6.89 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.88",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.89",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -695,7 +695,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
-    ["2.6.88"]="VIP elevator in this game: press E once to enter or return. Your character faces straight out of the elevator on arrival. Automatically active while ISB Menu is loaded.",
+    ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
     ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely to the button and spin as soon as it becomes available. Optionally stop when the title is unlocked; idle protection runs only while auto-spin is active. Lifetime 777 win count shown in the main card. Automatically returns to the button while auto-spin is active.",
     ["2.6.81"]="Connect Four Auto-Player under Scripts > This Game with local move calculation, a board view, winning lines and search depth. Automatic play continues across rounds, with pause and single-move controls.",
     ["2.6.80"]="Tic Tac Toe Auto-Player under Scripts > This Game with complete local move calculation, a board view and winning lines. Autoplay continues through subsequent rounds at the same table until paused or you leave the seat.",
@@ -2998,7 +2998,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.88",text="VIP-Aufzug in diesem Spiel: einmal E dr\195\188cken zum Betreten und Zur\195\188ckkehren. Der Charakter blickt nach der Ankunft gerade aus dem Aufzug. Automatisch aktiv, solange das ISB-Men\195\188 geladen ist."},
+    {version="2.6.89",text="VIP-Aufzug mit eigenen lokalen E-Kn\195\182pfen: direkt hinein und zur\195\188ck teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterst\195\188tzten Spiel."},
     {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz l\195\164uft nur w\195\164hrend Auto-Spin. Gesamtzahl der 777-Gewinne direkt in der Hauptkarte. Automatische R\195\188ckkehr zum Knopf w\195\164hrend Auto-Spin."},
     {version="2.6.81",text="Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen \195\188ber weitere Runden sowie Pause und einzelne Z\195\188ge."},
     {version="2.6.80",text="Tic Tac Toe Auto-Player unter Scripts > Dieses Spiel mit vollst\195\164ndiger lokaler Zugberechnung, Brettansicht und Gewinnlinien. Autoplay spielt weitere Runden am selben Tisch automatisch weiter, bis du pausierst oder aufstehst."},
@@ -3414,82 +3414,38 @@ function runtime.currentGame()
     local entry=runtime.gameCatalog[game.GameId]
     return entry and entry.places[game.PlaceId] and entry or nil
 end
-runtime.elevatorArrival=(function(deps)
-    local p:any={alive=true}
-    function p.arm(prompt,actor)
-        if not p.alive or(actor~=nil and actor~=deps.player)then return end
-        local context=deps.resolve(prompt)
-        if context then p.pending={context=context,deadline=deps.clock()+4}end
-    end
-    function p.tick()
-        if not p.alive or not p.pending then return end
-        local request=p.pending
-        if deps.clock()>request.deadline or not deps.valid(request.context)then p.pending=nil;return end
-        if deps.arrived(request.context)then
-            p.pending=nil
-            deps.align(request.context)
-        end
-    end
-    function p.dispose()p.alive=false;p.pending=nil end
-    return p
-end)({
-    player=player,clock=os.clock,
-    resolve=function(prompt)
-        local room=prompt.Parent.Parent.Parent
-        local destination=room:FindFirstChild(prompt.Parent.Parent.Name=="TeleportTo"and "TeleportBack"or "TeleportTo")
-        local button=destination and destination:FindFirstChild("Button")
-        local face=destination and destination:FindFirstChild("Plane.018")
-        local r,h=root(),humanoid()
-        if not button or not face or not r or not h or h.Health<=0 then return nil end
-        local direction=Vector3.new(face.CFrame.RightVector.X,0,face.CFrame.RightVector.Z)
-        if direction.Magnitude<.01 then return nil end
-        return {character=player.Character,root=r,humanoid=h,button=button,face=face,direction=direction.Unit}
-    end,
-    valid=function(c)
-        return alive and runtime.currentGame()~=nil and player.Character==c.character
-            and c.root.Parent~=nil and c.humanoid.Health>0 and c.button:IsDescendantOf(workspace)
-    end,
-    arrived=function(c)return(c.root.Position-c.button.Position).Magnitude<=16 end,
-    align=function(c)
-        local position=c.root.Position
-        c.root.CFrame=CFrame.lookAt(position,position+c.direction,Vector3.yAxis)
-        c.root.AssemblyAngularVelocity=Vector3.zero
-    end,
-})
 runtime.elevatorPrompts=(function(deps)
-    local p:any={alive=true,owned={}}
+    local p:any={alive=true,owned={},nextUse=0}
     local function matches(prompt)
-        if not deps.supported()or not prompt:IsA('ProximityPrompt')then return false end
+        if not deps.supported()or not prompt:IsA('ProximityPrompt')or prompt.Name=='ISBElevatorPrompt'then return false end
         local button=prompt.Parent;local door=button and button.Parent;local room=door and door.Parent
         local poi=room and room.Parent;local environment=poi and poi.Parent
         return button and button.Name=='Button'and door and(door.Name=='TeleportTo'or door.Name=='TeleportBack')
             and room and room.Name=='VipRoom'and poi and poi.Name=='PointOfInterest'
             and environment and environment.Name=='Environment'and environment.Parent==deps.root
     end
-    local function apply(prompt)
-        if not p.alive or not matches(prompt)or p.owned[prompt]then return end
-        local entry={original=prompt.HoldDuration}
-        p.owned[prompt]=entry
-        if deps.triggered then
-            entry.trigger=prompt.Triggered:Connect(function(actor)
-                if p.alive and matches(prompt)then deps.triggered(prompt,actor)end
-            end)
-        end
-        entry.connection=prompt:GetPropertyChangedSignal('HoldDuration'):Connect(function()
-            if p.alive and matches(prompt)and prompt.HoldDuration~=0 then
-                entry.original=prompt.HoldDuration;prompt.HoldDuration=0
-            end
+    local function apply(original)
+        if not p.alive or not matches(original)or p.owned[original]then return end
+        local proxy=deps.create(original)
+        local entry={proxy=proxy,enabled=original.Enabled};p.owned[original]=entry
+        entry.trigger=proxy.Triggered:Connect(function(actor)
+            if not p.alive or not matches(original)or(actor~=nil and actor~=deps.player)or deps.clock()<p.nextUse then return end
+            p.nextUse=deps.clock()+.5
+            local ok,err=pcall(deps.teleport,original)
+            if not ok and deps.error then deps.error(tostring(err))end
         end)
-        prompt.HoldDuration=0
+        entry.changed=original:GetPropertyChangedSignal('Enabled'):Connect(function()
+            if p.alive and original.Enabled then original.Enabled=false end
+        end)
+        original.Enabled=false
+        proxy.Parent=original.Parent
     end
     function p.dispose()
-        if not p.alive then return end
-        p.alive=false
-        if p.added then p.added:Disconnect();p.added=nil end
-        for prompt,entry in pairs(p.owned)do
-            entry.connection:Disconnect()
-            if entry.trigger then entry.trigger:Disconnect()end
-            pcall(function()if prompt.Parent and prompt.HoldDuration==0 then prompt.HoldDuration=entry.original end end)
+        if not p.alive then return end;p.alive=false
+        if p.added then p.added:Disconnect()end
+        for original,entry in pairs(p.owned)do
+            entry.trigger:Disconnect();entry.changed:Disconnect();entry.proxy:Destroy()
+            pcall(function()if original.Parent then original.Enabled=entry.enabled end end)
         end
         table.clear(p.owned)
     end
@@ -3497,12 +3453,45 @@ runtime.elevatorPrompts=(function(deps)
         p.added=deps.root.DescendantAdded:Connect(apply)
         local environment=deps.root:FindFirstChild('Environment');local poi=environment and environment:FindFirstChild('PointOfInterest')
         local room=poi and poi:FindFirstChild('VipRoom')
-        if room then for _,descendant in ipairs(room:GetDescendants())do apply(descendant)end end
+        if room then for _,v in ipairs(room:GetDescendants())do apply(v)end end
     end
     return p
-end)({root=workspace,supported=function()return runtime.currentGame()~=nil end,
-    triggered=runtime.elevatorArrival.arm})
-connect(Run.Heartbeat,function()runtime.elevatorArrival.tick()end)
+end)({
+    root=workspace,player=player,clock=os.clock,supported=function()return runtime.currentGame()~=nil end,
+    create=function(original)
+        local proxy=Instance.new("ProximityPrompt");proxy.Name="ISBElevatorPrompt"
+        for _,key in ipairs({"ActionText","ObjectText","KeyboardKeyCode","GamepadKeyCode","MaxActivationDistance",
+            "RequiresLineOfSight","ClickablePrompt","UIOffset","Style","Exclusivity"})do proxy[key]=original[key]end
+        proxy.HoldDuration=0;proxy.Enabled=true
+        return proxy
+    end,
+    teleport=function(original)
+        local r,h=root(),humanoid()
+        if not r or not h or h.Health<=0 or(r.Position-original.Parent.Position).Magnitude>original.MaxActivationDistance+2 then return end
+        local room=original.Parent.Parent.Parent
+        local destination=room:FindFirstChild(original.Parent.Parent.Name=="TeleportTo"and "TeleportBack"or "TeleportTo")
+        local face=destination and destination:FindFirstChild("Plane.018")
+        assert(face,"elevator_destination_missing")
+        local direction=Vector3.new(face.CFrame.RightVector.X,0,face.CFrame.RightVector.Z).Unit
+        local foot=face.Position+direction*5.2
+        local params=RaycastParams.new();params.FilterType=Enum.RaycastFilterType.Exclude
+        local ignore={player.Character};if runtime.outfitBody and runtime.outfitBody.model then table.insert(ignore,runtime.outfitBody.model)end
+        params.FilterDescendantsInstances=ignore;params.IgnoreWater=true;params.RespectCanCollide=true
+        local hit=workspace:Raycast(foot+Vector3.new(0,8,0),Vector3.new(0,-48,0),params)
+        assert(hit and hit.Normal.Y>.85,"elevator_floor_unavailable")
+        local clearance=h.HipHeight+r.Size.Y*.5
+        if h.RigType==Enum.HumanoidRigType.R6 then local leg=player.Character:FindFirstChild("Left Leg");clearance+=leg and leg.Size.Y or 2 end
+        local position=Vector3.new(foot.X,hit.Position.Y+math.max(.5,clearance),foot.Z)
+        runtime.recovery.cancel(false);runtime.stopRoleplay();runtime.stopFreecam(false)
+        if runtime.slot then runtime.slot.stop()end
+        if state.fly then state.fly=false;stopFly();runtime.updateActiveKeys()end
+        h.Sit=false
+        r.CFrame=CFrame.lookAt(position,position+direction,Vector3.yAxis)
+        r.AssemblyLinearVelocity=Vector3.zero;r.AssemblyAngularVelocity=Vector3.zero
+        if runtime.voidGround then runtime.voidGround.reset()end
+    end,
+    error=function(message)logEvent("Aufzug",message);notify("Aufzug-Ziel noch nicht geladen. Bitte erneut versuchen.","Aufzug")end,
+})
 function runtime.openThisGame()
     if not runtime.currentGame()then return false end
     page="Dieses Spiel";query="";render();return true
@@ -9298,7 +9287,6 @@ api.Destroy = function()
     runtime.piano.dispose()
     runtime.slot.dispose()
     runtime.elevatorPrompts.dispose()
-    runtime.elevatorArrival.dispose()
     runtime.connect4Roster.clear()
     runtime.connect4.dispose()
     runtime.tictactoe.dispose()

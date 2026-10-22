@@ -1,8 +1,8 @@
-# ISB Menu 2.6.88 · by Larsiopuw
+# ISB Menu 2.6.89 · by Larsiopuw
 
-## VIP-Aufzug ohne Gedrueckthalten
+## VIP-Aufzug mit lokalem E-Knopf
 
-Im registrierten Spiel reicht bei den beiden Aufzug-Knoepfen zur VIP Room und zurueck zur Main Map ein einzelner Druck auf E. Automatisch aktiv, solange das ISB-Menue geladen ist; kein zusaetzlicher Schalter. Beim Entladen werden die urspruenglichen Haltezeiten wiederhergestellt. Neu geladene/gestreamte Aufzug-Knoepfe werden ebenfalls erfasst. Nach bestaetigter Ankunft richtet das Menue den Charakter aufrecht und gerade aus der Aufzugtuer aus. Die Ankunftshoehe und Position bleiben dabei erhalten; nur die Rotation wird einmalig korrigiert. Andere Interaktionen bleiben unveraendert.
+Im registrierten Spiel erstellt das Menue an beiden Aufzug-Knoepfen eigene lokale ProximityPrompts. Ein einzelner Druck auf E teleportiert direkt zum gegenueberliegenden Aufzug, ausgerichtet zur Tuer und mit Bodenpruefung fuer die jeweilige Charaktergroesse. Das Spiel-Teleportereignis wird dabei nicht ausgeloest. Die normalen Prompts behalten ihre Haltezeit; sie sind nur lokal deaktiviert, damit sie den Tastendruck nicht ebenfalls verarbeiten. Beim Entladen werden die eigenen Knoepfe entfernt und die urspruenglichen Enabled-Zustaende wiederhergestellt. Neue/gestreamte Knoepfe werden erfasst. Die Funktion ist automatisch aktiv und auf dieses Spiel begrenzt. Ist das Ziel noch nicht geladen oder kein tragfaehiger Boden gefunden, erfolgt kein Teleport. Eine halbe Sekunde lokale Entprellung verhindert Doppelaktivierung.
 
 ## 777 Auto-Spin
 
@@ -126,9 +126,9 @@ Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden ab
 
 Zusammengehörige Zwischenstände sind als abgeschlossene Funktionen zusammengefasst. Technische Versuche und Prüfergebnisse stehen separat im Prüfbericht.
 
-### 2.6.88
+### 2.6.89
 
-- VIP-Aufzug in diesem Spiel: einmal E drücken zum Betreten und Zurückkehren. Der Charakter blickt nach der Ankunft gerade aus dem Aufzug. Automatisch aktiv, solange das ISB-Menü geladen ist.
+- VIP-Aufzug mit eigenen lokalen E-Knöpfen: direkt hinein und zurück teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterstützten Spiel.
 
 ### 2.6.86
 
