@@ -1,7 +1,7 @@
--- ISB Menu 2.6.79 | Own-game universal client toolkit
+-- ISB Menu 2.6.80 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.79",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.80",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -694,7 +694,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
-    ["2.6.79"]="Tic Tac Toe Auto-Player under Scripts > This Game with automatic play, single moves, a board view and complete local calculation of the best move. Visible only in the supported game.",
+    ["2.6.80"]="Tic Tac Toe Auto-Player under Scripts > This Game with complete local move calculation, a board view and winning lines. Autoplay continues through subsequent rounds at the same table until paused or you leave the seat.",
     ["2.6.78"]="Anti-Void with pixel recovery, a cyan light trail and a guided return camera. Recovery uses an earlier ground position with verified surrounding support, edge clearance and no added height offset.",
     ["2.6.76"]="Chess Auto-Player under Scripts > This Game: Stockfish or offline search, automatic play and single moves with a configurable random move delay.\nOptional server hopping when game staff is detected under Detection, off by default. A compact left-center list shows active functions and their keybinds.\nPlayer Info is placed at the end of the inventory after game items finish loading.",
     ["2.6.72"]="Piano Auto-Player with an online library, search, sorting and favorites, plus imports of personal MIDI and VP text files.\nPlayback includes pause, stop, seeking and live tempo changes. Previews use recorded piano samples.\nRoblox-only input supports background playback and keyboard layouts; the hotbar and standard Shift-Lock binding are temporarily disabled while playing.",
@@ -2994,7 +2994,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.79",text="Tic Tac Toe Auto-Player unter Scripts > Dieses Spiel mit automatischem Spielen, einzelnen Z\195\188gen, Brettansicht und vollst\195\164ndiger lokaler Berechnung des besten Zugs. Nur im unterst\195\188tzten Spiel sichtbar."},
+    {version="2.6.80",text="Tic Tac Toe Auto-Player unter Scripts > Dieses Spiel mit vollst\195\164ndiger lokaler Zugberechnung, Brettansicht und Gewinnlinien. Autoplay spielt weitere Runden am selben Tisch automatisch weiter, bis du pausierst oder aufstehst."},
     {version="2.6.78",text="Anti-Void mit Pixel-Recovery, cyanfarbener Lichtspur und R\195\188ckflug-Kamera. Die R\195\188ckkehr verwendet einen fr\195\188heren, rundum gepr\195\188ften Bodenpunkt mit Kantenabstand und ohne zus\195\164tzlichen H\195\182henversatz."},
     {version="2.6.76",text="Schach Auto-Player unter Scripts > Dieses Spiel: Stockfish oder Offline-Suche, automatisches Spielen und einzelne Z\195\188ge mit frei einstellbarer zuf\195\164lliger Zugpause.\nOptionaler Serverwechsel bei erkannten Spiel-Admins unter Erkennung, standardm\195\164\195\159ig aus. Links mittig zeigt eine kompakte Liste aktive Funktionen mit ihren Keybinds.\nDas Spielerinfo-Item wird nach dem Laden der Spiel-Items am Ende des Inventars einsortiert."},
     {version="2.6.72",text="Piano Auto-Player mit Online-Bibliothek, Suche, Sortierung und Favoriten sowie Import eigener MIDI- und VP-Textdateien.\nWiedergabe mit Pause, Stop, Zeitleiste und direkt ver\195\164nderbarem Tempo. Vorschauen verwenden echte Piano-Aufnahmen.\nRoblox-interne Eingaben unterst\195\188tzen Hintergrundwiedergabe und Tastaturlayouts; w\195\164hrend des Spielens werden Hotbar und die normale Shift-Lock-Belegung vor\195\188bergehend gesperrt."},
@@ -7648,7 +7648,7 @@ function runtime.readTicTacToe()
         local id=model:GetAttribute("MinigameId")
         local object=id and controller:GetMinigame("TicTacToeMinigame",id)
         local st=object and object.State
-        if st and type(st.PlayerUserIds)=='table'and(st.PlayerUserIds[1]==player.UserId or st.PlayerUserIds[2]==player.UserId)then
+        if st and type(st.PlayerUserIds)=='table'then
             local seated=h and h.Health>0 and h.SeatPart and h.SeatPart:IsDescendantOf(model)
             if seated then
                 assert(not found,'ambiguous_tictactoe_session')
@@ -7673,6 +7673,15 @@ runtime.tictactoe=(function(deps)
     local function changed()if deps.changed and p.alive then deps.changed()end end
     local function status(value)if p.status~=value then p.status=value;changed()end end
     local function stop(value)p.auto=false;p.once=false;status(value)end
+    function p.winningLines(board)
+        local found={}
+        if type(board)~='table'or #board~=9 then return found end
+        for _,line in ipairs(lines)do
+            local value=board[line[1]]
+            if (value==1 or value==2)and value==board[line[2]]and value==board[line[3]]then table.insert(found,line)end
+        end
+        return found
+    end
     function p.inspect(board)
         assert(type(board)=='table' and #board==9,'invalid_grid')
         local counts={0,0};local empty=0;local winner=0
@@ -7716,7 +7725,7 @@ runtime.tictactoe=(function(deps)
     end
     local function valid(c)
         if not c or type(c.id)~='string'or c.seated~=true or not c.character then return false end
-        if type(c.players)~='table'or(c.players[1]~=deps.userId and c.players[2]~=deps.userId)then return false end
+        if type(c.players)~='table'then return false end
         for i=1,2 do if type(c.players[i])~='number'or c.players[i]<0 or c.players[i]%1~=0 then return false end end
         if c.players[1]~=0 and c.players[1]==c.players[2]then return false end
         if type(c.version)~='number'or c.version<0 or c.version%1~=0 then return false end
@@ -7731,24 +7740,40 @@ runtime.tictactoe=(function(deps)
         if not p.alive then return end
         if deps.supported and not deps.supported()then stop('unsupported');return end
         p.auto=automatic==true;p.once=not p.auto
-        if not p.pending then p.match=nil;p.character=nil;p.roster=nil;p.version=nil;p.board=nil end
+        if not p.pending then p.match=nil;p.character=nil;p.roster=nil;p.version=nil;p.board=nil;p.roundFinished=false;p.awaitReset=false end
         status('ready');p.tick()
     end
     function p.tick()
         if not p.alive or(not p.auto and not p.once and not p.pending)then return end
         local ok,c=pcall(deps.snapshot)
         if not ok then stop('unsupported');p.pending=nil;return end
-        if not valid(c)then stop('no_seat');p.pending=nil;return end
+        if not c or type(c.id)~='string'or c.seated~=true or not c.character then stop('no_seat');p.pending=nil;return end
+        if (p.match and p.match~=c.id)or(p.character and p.character~=c.character)then stop('changed');p.pending=nil;return end
+        p.match=c.id;p.character=c.character
+        if not valid(c)then if p.auto then status('waiting')else stop('error')end;return end
         p.context=c
         local roster=tostring(c.players[1])..':'..tostring(c.players[2])
-        if (p.match and p.match~=c.id)or(p.character and p.character~=c.character)or(p.roster and p.roster~=roster)or(p.version and c.version<p.version)then
-            stop('changed');p.pending=nil;return
-        end
+        local reset=(p.roster and p.roster~=roster)or(p.version and c.version<p.version)
         if p.board then
-            for i=1,9 do if p.board[i]~=0 and c.board[i]~=p.board[i]then stop('changed');p.pending=nil;return end end
+            for i=1,9 do if p.board[i]~=0 and c.board[i]~=p.board[i]then reset=true end end
+        end
+        local winner,empty=p.inspect(c.board)
+        if reset then
+            if not p.auto then stop('changed');p.pending=nil;return end
+            p.awaitReset=true
+        end
+        if p.roundFinished and winner==0 and empty>0 then p.awaitReset=true end
+        if p.awaitReset then
+            p.pending=nil
+            -- Echo properties can arrive separately. Only resume on a clean new board,
+            -- allowing the opponent's opening move to arrive before the next poll.
+            if winner==0 and empty>=8 and not c.busy then
+                p.awaitReset=false;p.roundFinished=false;p.lastSent=nil;p.score=nil;p.lastMove=nil;p.suggested=nil
+                changed()
+            else status('intermission');return end
         end
         p.board=table.clone(c.board)
-        p.match=c.id;p.character=c.character;p.roster=roster;p.version=c.version
+        p.roster=roster;p.version=c.version
         if p.pending then
             local sent=p.pending
             local preserved=true
@@ -7761,9 +7786,13 @@ runtime.tictactoe=(function(deps)
             else status(p.status=='paused'and 'paused'or 'confirming');return end
         end
         if not p.auto and not p.once then return end
-        local winner,empty=p.inspect(c.board)
-        if winner~=0 or empty==0 then stop('finished');return end
+        if winner~=0 or empty==0 then
+            p.roundFinished=true;p.once=false
+            if p.auto then status('intermission')else stop('finished')end
+            return
+        end
         if c.players[1]==0 or c.players[2]==0 or(c.turn~=1 and c.turn~=2)then status('waiting');return end
+        if c.players[1]~=deps.userId and c.players[2]~=deps.userId then status('waiting');return end
         if c.busy then status('waiting');return end
         local side=c.players[1]==deps.userId and 1 or 2
         if c.turn~=side or c.currentUserId~=deps.userId then p.once=false;status('opponent');return end
@@ -7806,7 +7835,8 @@ function runtime.drawTicTacToe()
         paused={"Pausiert.","Paused."},opponent={"Der Gegner ist am Zug.","Opponent to move."},
         waiting={"Warte auf den Gegner oder den Rundenstart.","Waiting for opponent or round start."},
         confirming={"Warte auf die Serverbest\195\164tigung.","Waiting for server confirmation."},
-        finished={"Runde beendet. Automatik gestoppt.","Round ended. Automatic play stopped."},
+        finished={"Runde beendet.","Round ended."},
+        intermission={"Autoplay aktiv. Warte auf die n\195\164chste Runde.","Autoplay on. Waiting for the next round."},
         timeout={"Keine Zugbest\195\164tigung. Bitte Brett und Verbindung pr\195\188fen.","No move confirmation. Check board and connection."},
         changed={"Tisch oder Runde ge\195\164ndert. Automatik gestoppt.","Table or round changed. Automatic play stopped."},
         no_seat={"Setze dich an einen Tic-Tac-Toe-Tisch.","Sit at a Tic Tac Toe table."},
@@ -7820,7 +7850,7 @@ function runtime.drawTicTacToe()
     for _,child in ipairs(f:GetChildren())do if child:IsA("TextLabel")then child.Size=UDim2.new(1,-32,0,child.Text==title and 24 or 32)end end
     local controls=make("Frame",{BackgroundTransparency=1,Position=UDim2.fromOffset(16,78),Size=UDim2.new(1,-32,0,36)},f)
     local auto=rowButton(controls,runtime.pianoText("Auto spielen","Auto play"),UDim2.new(),UDim2.new(.46,-6,1,0),function()p.start(true)end)
-    auto.Name="TicTacToeAuto";auto.TextColor3=C.accent;auto.BackgroundColor3=C.panel
+    auto.Name="TicTacToeAuto";auto.TextColor3=p.auto and C.panel or C.accent;auto.BackgroundColor3=p.auto and C.accent or C.panel
     rowButton(controls,"Pause",UDim2.new(.46,2,0,0),UDim2.new(.25,-6,1,0),p.pause).Name="TicTacToePause"
     rowButton(controls,runtime.pianoText("Ein Zug","One move"),UDim2.new(.71,4,0,0),UDim2.new(.29,-4,1,0),function()p.start(false)end).Name="TicTacToeOnce"
     local board=make("Frame",{Name="TicTacToeBoard",BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,126),Size=UDim2.fromOffset(114,114)},f);round(board,11)
@@ -7829,6 +7859,16 @@ function runtime.drawTicTacToe()
         local square=make("Frame",{Name="Cell"..i,BackgroundColor3=C.card,Position=UDim2.fromOffset(4+((i-1)%3)*36,4+math.floor((i-1)/3)*36),Size=UDim2.fromOffset(34,34)},board);round(square,7)
         local mark=label(square,value==1 and "X"or value==2 and "O"or "",20,value==1 and C.accent or C.text,UDim2.new(),UDim2.fromScale(1,1),false)
         mark.TextXAlignment=Enum.TextXAlignment.Center;mark.TextYAlignment=Enum.TextYAlignment.Center;mark.Font=Enum.Font.BuilderSansBold
+    end
+    for index,win in ipairs(p.winningLines(c and c.board or {}))do
+        local first,last=win[1],win[3]
+        local x1,y1=21+((first-1)%3)*36,21+math.floor((first-1)/3)*36
+        local x2,y2=21+((last-1)%3)*36,21+math.floor((last-1)/3)*36
+        local dx,dy=x2-x1,y2-y1
+        local strike=make("Frame",{Name="WinningLine"..index,BackgroundColor3=C.accent,BorderSizePixel=0,
+            AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromOffset((x1+x2)/2,(y1+y2)/2),
+            Size=UDim2.fromOffset(math.sqrt(dx*dx+dy*dy)+20,3),Rotation=math.deg(math.atan2(dy,dx)),ZIndex=(board.ZIndex or 1)+5},board)
+        round(strike,2)
     end
     local analysis=make("Frame",{Name="TicTacToeAnalysis",BackgroundColor3=C.panel,BackgroundTransparency=.25,Position=UDim2.fromOffset(142,126),Size=UDim2.new(1,-158,0,114)},f);round(analysis,11)
     label(analysis,runtime.pianoText("Vollst\195\164ndige Suche","Complete search"),12,C.text,UDim2.fromOffset(12,10),UDim2.new(1,-24,0,20),false)
