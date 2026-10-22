@@ -5003,7 +5003,7 @@ function runtime.refreshGameInfoView(view)
     for i,entry in ipairs(runtime.gameInfoLists)do runtime.renderGameInfoList(view,view.lists[i],entry,data.values[entry[1]],data.values.EquippedTitle)end
 end
 function runtime.gameInfoBorder(card,surface)
-    -- Paint only the visible portion, avoiding stale oversized-frame clipping in Roblox.
+    -- Bound paint size with overscan; the ScrollingFrame alone clips border and content.
     local viewport=card.Parent
     while viewport and not viewport:IsA("ScrollingFrame")do viewport=viewport.Parent end
     if not viewport then card.BackgroundTransparency=0;round(card,16);stroke(card);return end
@@ -5026,7 +5026,9 @@ function runtime.gameInfoBorder(card,surface)
         local x,y,width=0,0,card.AbsoluteSize.X/unit
         top.Position=UDim2.fromOffset(x,y);top.Size=UDim2.fromOffset(width,32)
         bottom.Position=UDim2.fromOffset(x,y+height-32);bottom.Size=UDim2.fromOffset(width,32)
-        local first,last=math.max(16,(viewport.AbsolutePosition.Y-card.AbsolutePosition.Y)/unit),math.min(height-16,(viewport.AbsolutePosition.Y+viewport.AbsoluteSize.Y-card.AbsolutePosition.Y)/unit)
+        -- Do not trim paint at a separately calculated viewport edge: native clipping can differ.
+        local overscan=64
+        local first,last=math.max(16,(viewport.AbsolutePosition.Y-card.AbsolutePosition.Y)/unit-overscan),math.min(height-16,(viewport.AbsolutePosition.Y+viewport.AbsoluteSize.Y-card.AbsolutePosition.Y)/unit+overscan)
         middle.Position=UDim2.fromOffset(x,first);middle.Size=UDim2.fromOffset(width,math.max(0,last-first));middle.Visible=last>first
     end
     local function watch(object,name)table.insert(owned,object:GetPropertyChangedSignal(name):Connect(update))end
