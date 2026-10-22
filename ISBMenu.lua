@@ -1,7 +1,7 @@
--- ISB Menu 2.6.77 | Own-game universal client toolkit
+-- ISB Menu 2.6.78 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.77",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.78",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -694,7 +694,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
-    ["2.6.77"]="Anti-Void gains pixel recovery with a cyan light trail, a guided return camera and reappearance at the last safe ground position.",
+    ["2.6.78"]="Anti-Void with pixel recovery, a cyan light trail and a guided return camera. Recovery uses an earlier ground position with verified surrounding support, edge clearance and no added height offset.",
     ["2.6.76"]="Chess Auto-Player under Scripts > This Game: Stockfish or offline search, automatic play and single moves with a configurable random move delay.\nOptional server hopping when game staff is detected under Detection, off by default. A compact left-center list shows active functions and their keybinds.\nPlayer Info is placed at the end of the inventory after game items finish loading.",
     ["2.6.72"]="Piano Auto-Player with an online library, search, sorting and favorites, plus imports of personal MIDI and VP text files.\nPlayback includes pause, stop, seeking and live tempo changes. Previews use recorded piano samples.\nRoblox-only input supports background playback and keyboard layouts; the hotbar and standard Shift-Lock binding are temporarily disabled while playing.",
     ["2.6.61"]="Outfit Stealer copies a player\226\128\153s body shape, clothing, accessories and available animations for your local view.\nThe camera, held items and effects account for the copied body. Own outfit, respawn and shutdown restore the original appearance.",
@@ -2870,7 +2870,7 @@ function runtime.visitWaypoint(entry,freecam)
     if forward.Magnitude<.0001 then forward=Vector3.new(0,0,-1) end
     part.CFrame=CFrame.lookAt(position,position+forward.Unit)
     part.AssemblyLinearVelocity=Vector3.zero; part.AssemblyAngularVelocity=Vector3.zero
-    runtime.safeGround=nil
+    runtime.safeGround=nil; if runtime.voidGround then runtime.voidGround.reset()end
     local camera=workspace.CurrentCamera
     if camera then
         -- Keep the character as the camera focus after changing position.
@@ -2993,7 +2993,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.77",text="Anti-Void erh\195\164lt die Pixel-Recovery mit cyanfarbener Lichtspur, R\195\188ckflug-Kamera und Wiedererscheinen am letzten sicheren Bodenpunkt."},
+    {version="2.6.78",text="Anti-Void mit Pixel-Recovery, cyanfarbener Lichtspur und R\195\188ckflug-Kamera. Die R\195\188ckkehr verwendet einen fr\195\188heren, rundum gepr\195\188ften Bodenpunkt mit Kantenabstand und ohne zus\195\164tzlichen H\195\182henversatz."},
     {version="2.6.76",text="Schach Auto-Player unter Scripts > Dieses Spiel: Stockfish oder Offline-Suche, automatisches Spielen und einzelne Z\195\188ge mit frei einstellbarer zuf\195\164lliger Zugpause.\nOptionaler Serverwechsel bei erkannten Spiel-Admins unter Erkennung, standardm\195\164\195\159ig aus. Links mittig zeigt eine kompakte Liste aktive Funktionen mit ihren Keybinds.\nDas Spielerinfo-Item wird nach dem Laden der Spiel-Items am Ende des Inventars einsortiert."},
     {version="2.6.72",text="Piano Auto-Player mit Online-Bibliothek, Suche, Sortierung und Favoriten sowie Import eigener MIDI- und VP-Textdateien.\nWiedergabe mit Pause, Stop, Zeitleiste und direkt ver\195\164nderbarem Tempo. Vorschauen verwenden echte Piano-Aufnahmen.\nRoblox-interne Eingaben unterst\195\188tzen Hintergrundwiedergabe und Tastaturlayouts; w\195\164hrend des Spielens werden Hotbar und die normale Shift-Lock-Belegung vor\195\188bergehend gesperrt."},
     {version="2.6.61",text="Outfit Stealer kopiert K\195\182rperbau, Kleidung, Accessoires und verf\195\188gbare Animationen eines Spielers f\195\188r deine lokale Ansicht.\nKamera, gehaltene Items und Effekte ber\195\188cksichtigen den kopierten K\195\182rper. Eigenes Outfit, Respawn und Beenden stellen die urspr\195\188ngliche Darstellung wieder her."},
@@ -5120,6 +5120,83 @@ local function drawPlayers()
     runtime.fillPlayerRows()
     runtime.fillPlayerRows()
 end
+runtime.probeVoidGround=(function(context,record,raycast)
+    local r=context.root
+    local frame=record and record.frame or r.CFrame
+    local clearance=record and record.clearance
+    local radius=math.clamp(math.max(r.Size.X,r.Size.Z)*0.5+1.5,3,6)
+    local depth=clearance or math.max(4,context.humanoid.HipHeight+r.Size.Y*0.5+1)
+    local origin=frame.Position+Vector3.new(0,2,0)
+    local center=raycast(origin,Vector3.new(0,-depth-3,0))
+    if not center or center.Normal.Y<0.85 then return nil end
+    local support=center.Instance
+    if support:IsA("BasePart")and(not support.CanCollide or not support.Anchored or support.AssemblyLinearVelocity.Magnitude>0.5)then return nil end
+    if record and(support~=record.support or math.abs(center.Position.Y-record.floorY)>0.5)then return nil end
+    for _,point in ipairs({{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}})do
+        local offset=Vector3.new(point[1]*radius,0,point[2]*radius)
+        local hit=raycast(origin+offset,Vector3.new(0,-depth-3,0))
+        if not hit or hit.Normal.Y<0.85 or math.abs(hit.Position.Y-center.Position.Y)>0.75 then return nil end
+        local part=hit.Instance
+        if part:IsA("BasePart")and(not part.CanCollide or not part.Anchored or part.AssemblyLinearVelocity.Magnitude>0.5)then return nil end
+    end
+    clearance=clearance or(frame.Position.Y-center.Position.Y)
+    if clearance<0.5 or clearance>depth+0.5 then return nil end
+    return {frame=frame+Vector3.new(0,center.Position.Y+clearance-frame.Position.Y,0),
+        clearance=clearance,floorY=center.Position.Y,support=support}
+end)
+runtime.voidGround=(function(deps)
+    local p:any={history={},nextSample=0}
+    function p.reset()
+        p.history={};p.identity=nil;p.stableSince=nil;p.nextSample=0;p.lastPosition=nil
+    end
+    function p.sample(context)
+        if p.identity~=context.character then p.reset();p.identity=context.character end
+        local now=deps.clock()
+        if now<p.nextSample then return end
+        p.nextSample=now+0.15
+        if not deps.grounded(context)then p.stableSince=nil;return end
+        local record=deps.probe(context)
+        if not record then p.stableSince=nil;return end
+        if p.lastPosition and (record.frame.Position-p.lastPosition).Magnitude>40 then
+            p.history={};p.stableSince=nil
+        end
+        p.lastPosition=record.frame.Position
+        if not p.stableSince then p.stableSince=now;return end
+        if now-p.stableSince<0.3 then return end
+        record.time=now;table.insert(p.history,record)
+        if #p.history>60 then table.remove(p.history,1)end
+    end
+    function p.choose(context)
+        if p.identity~=context.character then p.reset();return nil end
+        local latest=p.history[#p.history]
+        if not latest then return nil end
+        -- Keep a full second behind the last verified footprint, even after a long fall.
+        for i=#p.history,1,-1 do
+            local record=p.history[i]
+            if record.time<=latest.time-1 or i==1 then
+                local checked=deps.probe(context,record)
+                if checked then return checked.frame end
+            end
+        end
+        return nil
+    end
+    return p
+end)({
+    clock=os.clock,
+    grounded=function(c)
+        return c.humanoid.FloorMaterial~=Enum.Material.Air and not c.humanoid.Sit
+            and math.abs(c.root.AssemblyLinearVelocity.Y)<4
+            and c.root.Position.Y>(workspace.FallenPartsDestroyHeight or -500)+100
+    end,
+    probe=function(c,record)
+        local params=RaycastParams.new()
+        params.FilterType=Enum.RaycastFilterType.Exclude
+        local ignore={c.character}
+        if runtime.outfitBody and runtime.outfitBody.model then table.insert(ignore,runtime.outfitBody.model)end
+        params.FilterDescendantsInstances=ignore;params.IgnoreWater=true;params.RespectCanCollide=true
+        return runtime.probeVoidGround(c,record,function(origin,direction)return workspace:Raycast(origin,direction,params)end)
+    end,
+})
 runtime.makeVoidVisuals=(function(deps)
 local owned={};local tweens={};local epoch=0;local live=true;local effectFolder
 local function newObject(kind)
@@ -6421,7 +6498,7 @@ end)({
     end,
     error=function(message)logEvent("Anti-Void",message);notify("Zum Bodenpunkt zur\195\188ckgekehrt. Der Effekt konnte nicht vollst\195\164ndig abgespielt werden.","Anti-Void")end,
 })
-addAction("antivoid","Bewegung","Anti-Void","Pixel-R\195\188ckflug zum letzten sicheren Bodenpunkt","toggle",function() runtime.antiVoid=not runtime.antiVoid; if not runtime.antiVoid then runtime.recovery.cancel(true)end; runtime.safeGround=nil end,function() return runtime.antiVoid end)
+addAction("antivoid","Bewegung","Anti-Void","Pixel-R\195\188ckflug zum letzten sicheren Bodenpunkt","toggle",function() runtime.antiVoid=not runtime.antiVoid; if not runtime.antiVoid then runtime.recovery.cancel(true)end; runtime.safeGround=nil; if runtime.voidGround then runtime.voidGround.reset()end end,function() return runtime.antiVoid end)
 addAction("shader","Darstellung","Shader","Realistische Farben, Sonnenstrahlen und Himmel","toggle",function() runtime.setShader(not runtime.shader) end,function() return runtime.shader end)
 function runtime.pianoText(de,en) return runtime.language=="de" and de or en end
 function runtime.pianoLayout()
@@ -7928,11 +8005,18 @@ connect(Run.PreSimulation,function(dt)
     if runtime.antiVoid and not runtime.recovery.active then
         local r,h=root(),humanoid()
         if r and h and h.Health>0 and not state.fly and not runtime.freecam and not runtime.roleplay and not player:GetAttribute("InFallRecovery")then
-            if h.FloorMaterial and h.FloorMaterial~=Enum.Material.Air and r.Position.Y>(workspace.FallenPartsDestroyHeight or -500)+100 then runtime.safeGround=r.CFrame end
-            if runtime.safeGround and r.Position.Y<(workspace.FallenPartsDestroyHeight or -500)+75 and os.clock()>(runtime.voidCooldown or 0) then
-                runtime.recovery.start(runtime.safeGround+Vector3.new(0,5,0)); runtime.voidCooldown=os.clock()+5
-                notify("Zum letzten Bodenpunkt zur\195\188ckgekehrt.","Anti-Void")
+            local context={character=player.Character,root=r,humanoid=h}
+            runtime.voidGround.sample(context)
+            if r.Position.Y<(workspace.FallenPartsDestroyHeight or -500)+75 and os.clock()>(runtime.voidCooldown or 0)then
+                runtime.voidCooldown=os.clock()+0.5
+                local target=runtime.voidGround.choose(context)
+                if target and runtime.recovery.start(target)then
+                    runtime.voidCooldown=os.clock()+5
+                    notify("Zum letzten Bodenpunkt zur\195\188ckgekehrt.","Anti-Void")
+                end
             end
+        else
+            runtime.voidGround.stableSince=nil
         end
     end
     local camera=workspace.CurrentCamera
@@ -8085,7 +8169,7 @@ end)
 connect(player.CharacterRemoving,function()
     runtime.recovery.cancel(false)
     runtime.clearOutfit(false)
-    runtime.safeGround=nil; runtime.stopEmote(); runtime.stopRoleplay()
+    runtime.safeGround=nil; if runtime.voidGround then runtime.voidGround.reset()end; runtime.stopEmote(); runtime.stopRoleplay()
     stopFly(); restoreCollisions()
     table.clear(originals)
 end)
@@ -8155,7 +8239,7 @@ function runtime.teleportFromFreecam()
     local focus=destination+owned.focusOffset
     owned.frame=CFrame.lookAt(focus-look*distance,focus,owned.camera.CFrame.UpVector)
     owned.focus=CFrame.new(focus)
-    runtime.safeGround=nil
+    runtime.safeGround=nil; if runtime.voidGround then runtime.voidGround.reset()end
     runtime.stopFreecam(false)
     notify("An Kameraposition teleportiert \194\183 Freecam beendet","Freecam","eye")
 end

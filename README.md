@@ -1,4 +1,4 @@
-# ISB Menu 2.6.77 · by Larsiopuw
+# ISB Menu 2.6.78 · by Larsiopuw
 
 ## Piano automatisch spielen
 
@@ -39,6 +39,8 @@ Die Online-Liste stammt wie beim VP-Player von nanoMIDI. Die eigenständige Wind
 Anti-Void im Bewegungsbereich kehrt zur letzten gespeicherten Bodenposition zurueck. Dabei loest sich deine lokale Darstellung in Pixel auf; eine cyanfarbene Lichtspur und die Kamera begleiten den Rueckflug. Am Ziel erscheint dein Avatar wieder. Die Darstellung basiert auf den bereitgestellten FallRecovery-Skripten und benoetigt im Menue kein FallRecoveryEvent und kein Serverskript.
 
 Der eigentliche Charakter wird sofort am sicheren Ziel stabilisiert, waehrend der sichtbare Effekt fliegt. Die Erkennung verwendet weiterhin die bisherige Anti-Void-Fallgrenze. Kamera, Sichtbarkeit und Humanoid-Zustaende werden bei Abschluss, Abschalten, Respawn, Beenden oder einem Fehler bereinigt. Fliegen, Freecam, Quick Actions und Wegpunkt-Teleports beenden eine laufende Recovery. Eine bereits aktive serverseitige InFallRecovery verhindert einen zweiten Start.
+
+Anti-Void speichert nur stabil unterstützte Positionen: Mitte und acht Punkte ringsum müssen festen, annähernd ebenen Boden haben. Die Rückkehr liegt mindestens eine Sekunde vor dem letzten geprüften Punkt (bei kurzer Historie am ältesten sicheren Punkt), mit mindestens drei Studs geprüftem Kantenabstand. Vor der Rückkehr wird der Boden erneut geprüft. Der ursprüngliche Abstand des Charakterkerns zum Boden bleibt erhalten; der frühere Aufschlag von fünf Studs entfällt. Bewegliche Plattformen werden nicht als Rückkehrziel gespeichert. Nach Respawn und Teleports beginnt die Historie neu.
 
 Die Animation ist lokal sichtbar. Menue-Sounds und reduzierte Effekte beruecksichtigen die vorhandenen Einstellungen. Bei reduzierten Bewegungen erfolgt weiterhin der direkte Ruecksprung ohne Kameraflug. Sound-Assets muessen im Spiel freigegeben sein. Spielseitige Todeszonen oder Teleport-Regeln koennen eine lokale Anti-Void-Rettung verhindern.
 
@@ -94,9 +96,9 @@ Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden ab
 
 Zusammengehörige Zwischenstände sind als abgeschlossene Funktionen zusammengefasst. Technische Versuche und Prüfergebnisse stehen separat im Prüfbericht.
 
-### 2.6.77
+### 2.6.78
 
-- Anti-Void erhält die Pixel-Recovery mit cyanfarbener Lichtspur, Rückflug-Kamera und Wiedererscheinen am letzten sicheren Bodenpunkt.
+- Anti-Void mit Pixel-Recovery, cyanfarbener Lichtspur und Rückflug-Kamera. Die Rückkehr verwendet einen früheren, rundum geprüften Bodenpunkt mit Kantenabstand und ohne zusätzlichen Höhenversatz.
 
 ### 2.6.76
 
