@@ -1,7 +1,7 @@
--- ISB Menu 2.6.86 | Own-game universal client toolkit
+-- ISB Menu 2.6.87 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.86",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.87",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -695,6 +695,7 @@ runtime.english={
 }
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.englishHistory={
+    ["2.6.87"]="VIP elevator in this game: press E once to enter or return, without holding. Automatically active while ISB Menu is loaded.",
     ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely to the button and spin as soon as it becomes available. Optionally stop when the title is unlocked; idle protection runs only while auto-spin is active. Lifetime 777 win count shown in the main card. Automatically returns to the button while auto-spin is active.",
     ["2.6.81"]="Connect Four Auto-Player under Scripts > This Game with local move calculation, a board view, winning lines and search depth. Automatic play continues across rounds, with pause and single-move controls.",
     ["2.6.80"]="Tic Tac Toe Auto-Player under Scripts > This Game with complete local move calculation, a board view and winning lines. Autoplay continues through subsequent rounds at the same table until paused or you leave the seat.",
@@ -2997,6 +2998,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.87",text="VIP-Aufzug in diesem Spiel: einmal E dr\195\188cken zum Betreten und Zur\195\188ckkehren, ohne Gedr\195\188ckthalten. Automatisch aktiv, solange das ISB-Men\195\188 geladen ist."},
     {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und direkt bei Freigabe automatisch drehen. Optional beim freigeschalteten Titel stoppen; AFK-Schutz l\195\164uft nur w\195\164hrend Auto-Spin. Gesamtzahl der 777-Gewinne direkt in der Hauptkarte. Automatische R\195\188ckkehr zum Knopf w\195\164hrend Auto-Spin."},
     {version="2.6.81",text="Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen \195\188ber weitere Runden sowie Pause und einzelne Z\195\188ge."},
     {version="2.6.80",text="Tic Tac Toe Auto-Player unter Scripts > Dieses Spiel mit vollst\195\164ndiger lokaler Zugberechnung, Brettansicht und Gewinnlinien. Autoplay spielt weitere Runden am selben Tisch automatisch weiter, bis du pausierst oder aufstehst."},
@@ -3412,6 +3414,45 @@ function runtime.currentGame()
     local entry=runtime.gameCatalog[game.GameId]
     return entry and entry.places[game.PlaceId] and entry or nil
 end
+runtime.elevatorPrompts=(function(deps)
+    local p:any={alive=true,owned={}}
+    local function matches(prompt)
+        if not deps.supported()or not prompt:IsA('ProximityPrompt')then return false end
+        local button=prompt.Parent;local door=button and button.Parent;local room=door and door.Parent
+        local poi=room and room.Parent;local environment=poi and poi.Parent
+        return button and button.Name=='Button'and door and(door.Name=='TeleportTo'or door.Name=='TeleportBack')
+            and room and room.Name=='VipRoom'and poi and poi.Name=='PointOfInterest'
+            and environment and environment.Name=='Environment'and environment.Parent==deps.root
+    end
+    local function apply(prompt)
+        if not p.alive or not matches(prompt)or p.owned[prompt]then return end
+        local entry={original=prompt.HoldDuration}
+        p.owned[prompt]=entry
+        entry.connection=prompt:GetPropertyChangedSignal('HoldDuration'):Connect(function()
+            if p.alive and matches(prompt)and prompt.HoldDuration~=0 then
+                entry.original=prompt.HoldDuration;prompt.HoldDuration=0
+            end
+        end)
+        prompt.HoldDuration=0
+    end
+    function p.dispose()
+        if not p.alive then return end
+        p.alive=false
+        if p.added then p.added:Disconnect();p.added=nil end
+        for prompt,entry in pairs(p.owned)do
+            entry.connection:Disconnect()
+            pcall(function()if prompt.Parent and prompt.HoldDuration==0 then prompt.HoldDuration=entry.original end end)
+        end
+        table.clear(p.owned)
+    end
+    if deps.supported()then
+        p.added=deps.root.DescendantAdded:Connect(apply)
+        local environment=deps.root:FindFirstChild('Environment');local poi=environment and environment:FindFirstChild('PointOfInterest')
+        local room=poi and poi:FindFirstChild('VipRoom')
+        if room then for _,descendant in ipairs(room:GetDescendants())do apply(descendant)end end
+    end
+    return p
+end)({root=workspace,supported=function()return runtime.currentGame()~=nil end})
 function runtime.openThisGame()
     if not runtime.currentGame()then return false end
     page="Dieses Spiel";query="";render();return true
@@ -9206,6 +9247,7 @@ api.Destroy = function()
     runtime.recovery.cancel(false)
     runtime.piano.dispose()
     runtime.slot.dispose()
+    runtime.elevatorPrompts.dispose()
     runtime.connect4Roster.clear()
     runtime.connect4.dispose()
     runtime.tictactoe.dispose()

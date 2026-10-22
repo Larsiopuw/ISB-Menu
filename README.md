@@ -1,4 +1,8 @@
-# ISB Menu 2.6.86 · by Larsiopuw
+# ISB Menu 2.6.87 · by Larsiopuw
+
+## VIP-Aufzug ohne Gedrueckthalten
+
+Im registrierten Spiel reicht bei den beiden Aufzug-Knoepfen zur VIP Room und zurueck zur Main Map ein einzelner Druck auf E. Automatisch aktiv, solange das ISB-Menue geladen ist; kein zusaetzlicher Schalter. Beim Entladen werden die urspruenglichen Haltezeiten wiederhergestellt. Neu geladene/gestreamte Aufzug-Knoepfe werden ebenfalls erfasst. Andere Interaktionen bleiben unveraendert.
 
 ## 777 Auto-Spin
 
@@ -121,6 +125,10 @@ Tasten in Einstellungen anklicken und neu belegen. Doppelte Belegungen werden ab
 ## Änderungshistorie
 
 Zusammengehörige Zwischenstände sind als abgeschlossene Funktionen zusammengefasst. Technische Versuche und Prüfergebnisse stehen separat im Prüfbericht.
+
+### 2.6.87
+
+- VIP-Aufzug in diesem Spiel: einmal E drücken zum Betreten und Zurückkehren, ohne Gedrückthalten. Automatisch aktiv, solange das ISB-Menü geladen ist.
 
 ### 2.6.86
 
