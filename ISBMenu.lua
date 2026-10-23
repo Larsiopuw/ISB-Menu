@@ -1,7 +1,7 @@
--- ISB Menu 2.6.96 | Own-game universal client toolkit
+-- ISB Menu 2.6.97 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.96",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.97",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -704,7 +704,7 @@ runtime.english={
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.english["Auto-Angeln"]="Auto Fishing"
 runtime.englishHistory={
-    ["2.6.96"]="Safe teleports: the character automatically stands up before changing location. Seat state, seat joints and minigame occupancy are checked before teleporting; chess receives two separate jump inputs. An unreleased seat, Stop or respawn prevents teleporting. Includes outbound and return trips of automatic features.",
+    ["2.6.97"]="Safe teleports: the character automatically stands up before changing location. Seat state, seat joints and minigame occupancy are checked before teleporting; chess uses one jump input while waiting for an opponent and two separate jump inputs during an active round. An unreleased seat, Stop or respawn prevents teleporting. Includes outbound and return trips of automatic features.",
     ["2.6.95"]="Animated background: the existing dark gradients on the window, dock and small glass surfaces move slowly and smoothly. Original colors, gradient stops, transparency and cards are preserved. Settings > General can disable the animation or keep it still with Reduce motion; both preferences are saved.",
     ["2.6.94"]="Table finder inside Chess, Connect Four and Tic Tac Toe: table list with occupancy and distance, filters for waiting opponents or empty tables, and nearest-seat teleport with confirmation from game data. Optional saved table highlights: green for empty, amber for a waiting player, red for full and blue for your table. Occupied or off-map seats are excluded from available destinations.",
     ["2.6.93"]="Auto Fishing under Scripts > This Game: automatically equip an available standard or golden rod, cast into the pond and control the blue catching region by holding and releasing. Automatic casts after the game cooldown, confirmed catches and credits, background operation and shared idle protection; starts and stops manually. Varied valid casting targets, checks of the rod\226\128\153s actual cooldown and bounded retries of rejected casts prevent repeated failed-cast sounds.",
@@ -1563,7 +1563,7 @@ runtime.createSeatExit=function(deps)
         p.busy=true
         local ok,result=pcall(function()
             if deps.before then deps.before(context)end
-            local minimum=initial.chess and 2 or 1
+            local minimum=initial.chessPlaying and 2 or 1
             local pulses=0;local nextPulse=0;local clearSince
             while valid()and deps.clock()<deadline do
                 local s=deps.snapshot(context)
@@ -1596,15 +1596,15 @@ function runtime.seatExitContext(c)
 end
 function runtime.seatGameIds(model,tag)
     if not runtime.currentGame or not runtime.currentGame()then return nil end
-    local ok,ids=pcall(function()
+    local ok,ids,phase=pcall(function()
         local controller=runtime.prepareTicTacToe()
         local id=model:GetAttribute('MinigameId');local object=id and controller:GetMinigame(tag,id)
         local state=object and object.State;local view=object and object.View and object.View.snapshot
         local roster=state and state.PlayerUserIds or view and{view.white,view.black}
         if object and object.Echo and object.Echo.Initialized then roster=object.Echo:Read('PlayerUserIds')or roster end
-        return roster
+        return roster,view and view.phase
     end)
-    return ok and type(ids)=='table'and ids or nil
+    return ok and type(ids)=='table'and ids or nil,ok and phase or nil
 end
 function runtime.seatExitSnapshot(c)
     local h=c.humanoid;local seat=h.SeatPart
@@ -1651,17 +1651,17 @@ function runtime.seatExitSnapshot(c)
             linked=linked or(ok and ours==true)
         end
     end
-    local chess=false;local inGame=false
+    local chessPlaying=false;local inGame=false
     for model,tag in pairs(c.seatGames)do
-        chess=chess or tag=='ChessMinigame'
         if model.Parent then
-            local ids=runtime.seatGameIds(model,tag)
+            local ids,phase=runtime.seatGameIds(model,tag)
+            chessPlaying=chessPlaying or(tag=='ChessMinigame'and phase=='Playing'and ids~=nil and table.find(ids,player.UserId)~=nil)
             inGame=inGame or(ids and table.find(ids,player.UserId)~=nil)or false
         end
     end
     local seatedState=false;local ok,value=pcall(function()return h:GetState()end)
     if ok then seatedState=value==Enum.HumanoidStateType.Seated end
-    return{blocked=seat~=nil or h.Sit==true or seatedState or linked or inGame,chess=chess}
+    return{blocked=seat~=nil or h.Sit==true or seatedState or linked or inGame,chessPlaying=chessPlaying}
 end
 function runtime.releaseSeatSpace()
     if not runtime.seatSpaceInput then return true end
@@ -3258,7 +3258,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.96",text="Sichere Teleports: Vor jedem Ortswechsel steht der Charakter automatisch auf. Sitzstatus, Sitzverbindung und Minispiel-Belegung werden vor dem Teleport gepr\195\188ft; beim Schach werden zwei getrennte Sprungimpulse ausgel\195\182st. Nicht freigegebene Sitze, Stop und Respawn verhindern den Teleport. Gilt auch f\195\188r Hin- und R\195\188ckwege der Automatikfunktionen."},
+    {version="2.6.97",text="Sichere Teleports: Vor jedem Ortswechsel steht der Charakter automatisch auf. Sitzstatus, Sitzverbindung und Minispiel-Belegung werden vor dem Teleport gepr\195\188ft; beim Schach reicht beim Warten auf einen Gegner ein Sprungimpuls, w\195\164hrend einer laufenden eigenen Runde werden zwei getrennte Sprungimpulse ausgel\195\182st. Nicht freigegebene Sitze, Stop und Respawn verhindern den Teleport. Gilt auch f\195\188r Hin- und R\195\188ckwege der Automatikfunktionen."},
     {version="2.6.95",text="Animierter Hintergrund: Die vorhandenen dunklen Verl\195\164ufe von Fenster, Dock und kleinen Glasfl\195\164chen bewegen sich langsam und weich. Urspr\195\188ngliche Farben, Farbpunkte, Transparenz und Karten bleiben erhalten. Unter Einstellungen > Allgemein l\195\164sst sich die Animation abschalten oder \195\188ber Animationen reduzieren ruhig darstellen; beide Optionen werden gespeichert."},
     {version="2.6.94",text="Tischfinder direkt in Schach, Vier gewinnt und Tic Tac Toe: Tischliste mit Belegung und Entfernung, Filter f\195\188r wartende Gegner oder leere Tische und Beitritt zum n\195\164chsten freien Sitz mit Best\195\164tigung durch die Spieldaten. Optionale gespeicherte Tisch-Markierungen: Gr\195\188n f\195\188r leer, Gelb f\195\188r einen wartenden Spieler, Rot f\195\188r voll und Blau f\195\188r den eigenen Tisch. Belegte oder ausgelagerte Sitze werden nicht als freie Ziele verwendet."},
     {version="2.6.93",text="Auto-Angeln unter Scripts > Dieses Spiel: verf\195\188gbare Standard- oder goldene Angel automatisch ausr\195\188sten, in den Teich auswerfen und den blauen Fangbereich durch Halten und Loslassen steuern. Automatische Folgew\195\188rfe nach dem Spiel-Cooldown, best\195\164tigte F\195\164nge und Credits, Hintergrundbetrieb und zentrale AFK-Sicherung; Start und Stop bleiben manuell. Wechselnde g\195\188ltige Wurfziele, Pr\195\188fung des tats\195\164chlichen Angel-Cooldowns und begrenzte Wiederholung abgelehnter W\195\188rfe verhindern dauernde Fehlwurf-Ger\195\164usche."},
