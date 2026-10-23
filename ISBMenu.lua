@@ -1,7 +1,7 @@
--- ISB Menu 2.6.102 | Own-game universal client toolkit
+-- ISB Menu 2.6.103 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.102",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.103",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -704,7 +704,7 @@ runtime.english={
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.english["Auto-Angeln"]="Auto Fishing"
 runtime.englishHistory={
-    ["2.6.102"]="Scripts: current-game navigation is visible in every game and in local scripts, using its game icon and actual name. Long names are truncated cleanly and delayed game metadata updates existing labels automatically. Games without registered features show a clear empty state; individual features remain restricted to their registered game and place.",
+    ["2.6.103"]="Scripts: current-game navigation is visible in every game and in local scripts, using its game icon and actual name. Long names are truncated cleanly and delayed game metadata updates existing labels automatically. Games without registered features show a clear empty state; individual features remain restricted to their registered game and place. Script navigation uses evenly sized provider and action buttons, a dedicated full-width game row and aligned discovery filters.",
     ["2.6.98"]="Safe teleports: the character automatically stands up before changing location. Seat state, seat joints and minigame occupancy are checked before teleporting; chess uses one jump input while waiting for an opponent and two separate jump inputs during an active round. An unreleased seat, Stop or respawn prevents teleporting. Includes outbound and return trips of automatic features. Chess camera transitions are completed before teleporting; Halloween captures the normal return view before departure and restores it with its field of view after returning.",
     ["2.6.95"]="Animated background: the existing dark gradients on the window, dock and small glass surfaces move slowly and smoothly. Original colors, gradient stops, transparency and cards are preserved. Settings > General can disable the animation or keep it still with Reduce motion; both preferences are saved.",
     ["2.6.94"]="Table finder inside Chess, Connect Four and Tic Tac Toe: table list with occupancy and distance, filters for waiting opponents or empty tables, and nearest-seat teleport with confirmation from game data. Optional saved table highlights: green for empty, amber for a waiting player, red for full and blue for your table. Occupied or off-map seats are excluded from available destinations.",
@@ -3310,7 +3310,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.102",text="Scripts: Die Navigation zum aktuellen Spiel ist in jedem Spiel und im lokalen Script-Bereich sichtbar, mit dessen Spiel-Icon und echtem Namen. Lange Namen werden sauber gek\195\188rzt und sp\195\164ter geladene Spielnamen automatisch aktualisiert. Spiele ohne hinterlegte Funktionen zeigen einen verst\195\164ndlichen Hinweis; einzelne Funktionen bleiben auf das registrierte Spiel und den passenden Place begrenzt."},
+    {version="2.6.103",text="Scripts: Die Navigation zum aktuellen Spiel ist in jedem Spiel und im lokalen Script-Bereich sichtbar, mit dessen Spiel-Icon und echtem Namen. Lange Namen werden sauber gek\195\188rzt und sp\195\164ter geladene Spielnamen automatisch aktualisiert. Spiele ohne hinterlegte Funktionen zeigen einen verst\195\164ndlichen Hinweis; einzelne Funktionen bleiben auf das registrierte Spiel und den passenden Place begrenzt. Die Script-Navigation ist in gleichm\195\164\195\159ig breite Anbieter- und Aktionsbuttons, eine eigene Spielzeile und eine ausgerichtete Filterzeile gegliedert."},
     {version="2.6.100",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet. Eingaben erst bei stabiler Ankunft, ausreichender N\195\164he und auf die Klingel gerichteter Kamera. Die Prompt-Sichtbarkeit und ausgel\195\182ste Interaktionen werden ber\195\188cksichtigt. Bei ausbleibender Gutschrift werden fr\195\188h andere gepr\195\188fte Innenpositionen verwendet; Eingaben und Neuausrichtungen bleiben begrenzt. W\195\164hrend des Besuchs bleibt die genaue Klingel unabh\195\164ngig von fremden Item-Kn\195\182pfen sichtbar und wird direkt angesprochen; ihre urspr\195\188ngliche Anzeige-Priorit\195\164t wird beim Verlassen oder Abbrechen wiederhergestellt."},
     {version="2.6.98",text="Sichere Teleports: Vor jedem Ortswechsel steht der Charakter automatisch auf. Sitzstatus, Sitzverbindung und Minispiel-Belegung werden vor dem Teleport gepr\195\188ft; beim Schach reicht beim Warten auf einen Gegner ein Sprungimpuls, w\195\164hrend einer laufenden eigenen Runde werden zwei getrennte Sprungimpulse ausgel\195\182st. Nicht freigegebene Sitze, Stop und Respawn verhindern den Teleport. Gilt auch f\195\188r Hin- und R\195\188ckwege der Automatikfunktionen. Der Schach-Kamera\195\188bergang wird vor dem Teleport sauber beendet; Halloween sichert die normale R\195\188ckkehransicht vor der Abreise und stellt sie mit Sichtfeld nach der R\195\188ckkehr wieder her."},
     {version="2.6.95",text="Animierter Hintergrund: Die vorhandenen dunklen Verl\195\164ufe von Fenster, Dock und kleinen Glasfl\195\164chen bewegen sich langsam und weich. Urspr\195\188ngliche Farben, Farbpunkte, Transparenz und Karten bleiben erhalten. Unter Einstellungen > Allgemein l\195\164sst sich die Animation abschalten oder \195\188ber Animationen reduzieren ruhig darstellen; beide Optionen werden gespeichert."},
@@ -3824,7 +3824,7 @@ function runtime.gameHubButton(parent,position,size)
     local b=rowButton(parent,'',position,size,runtime.openThisGame);b.Name='ThisGameOpen'
     local face=b:FindFirstChild('ButtonFace')or b
     local icon=make('ImageLabel',{Name='ThisGameIcon',Localize=false,Active=false,BackgroundTransparency=1,
-        Position=UDim2.fromOffset(8,4),Size=UDim2.fromOffset(22,22),ScaleType=Enum.ScaleType.Crop,
+        Position=UDim2.new(0,10,.5,-11),Size=UDim2.fromOffset(22,22),ScaleType=Enum.ScaleType.Crop,
         Image='rbxthumb://type=GameIcon&id='..tostring(game.GameId)..'&w=150&h=150'},face);round(icon,6)
     local text=label(face,runtime.gameHubName(),12,C.text,UDim2.fromOffset(38,0),UDim2.new(1,-46,1,0),false)
     text.Name='ThisGameName';text.TextTruncate=Enum.TextTruncate.AtEnd;text.TextWrapped=false
@@ -3855,9 +3855,9 @@ function runtime.drawThisGame()
 end
 
 local function drawScripts()
-    local mode=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
-    rowButton(mode,"Zur Online-Suche",UDim2.new(),UDim2.fromOffset(150,30),function() scriptSearch.localMode=false; render() end)
-    runtime.gameHubButton(mode,UDim2.new(1,-210,0,0),UDim2.fromOffset(210,30))
+    local mode=make("Frame",{Name="ScriptsToolbar",BackgroundTransparency=1,Size=UDim2.new(1,0,0,80)},content)
+    rowButton(mode,"Zur Online-Suche",UDim2.new(),UDim2.new(1,0,0,32),function() scriptSearch.localMode=false; render() end)
+    runtime.gameHubButton(mode,UDim2.fromOffset(0,42),UDim2.new(1,0,0,36))
     local f=plainCard("Eigene Scripts","Lokale Lua-Dateien aus deinem Executor-Workspace. Ausf\195\188hrung nur nach deinem Klick.",126)
     local input=make("TextBox",{Text="",PlaceholderText="Dateiname.lua",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,
         TextSize=13,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,78),Size=UDim2.new(1,-160,0,32)},f)
@@ -3933,9 +3933,10 @@ function runtime.scriptVerifiedBadge(parent,position)
     return badge
 end
 local function drawScriptSearch()
-    local controls=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
+    local toolbar=make("Frame",{Name="ScriptsToolbar",BackgroundTransparency=1,Size=UDim2.new(1,0,0,scriptSearch.selected and 80 or 120)},content)
+    local controls=make("Frame",{Name="ScriptsSources",BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},toolbar)
     for i,name in ipairs({"ScriptBlox","RoScripts"}) do
-        local b=rowButton(controls,name,UDim2.fromOffset((i-1)*104,0),UDim2.fromOffset(96,30),function()
+        local b=rowButton(controls,name,UDim2.new((i-1)*.25,(i-1)*2,0,0),UDim2.new(.25,-6,0,32),function()
             scriptSearch.provider=name; settings.provider=name; save(); scriptSearch.loaded=false; scriptSearch.selected=nil; scriptSearch.source=nil; scriptSearch.rows={}; scriptSearch.allRows={}
             scriptSearch.loading=false; scriptSearch.error=nil; scriptSearch.page=1; scriptSearch.totalPages=1
             scriptSearch.generation=scriptSearch.generation+1
@@ -3945,13 +3946,13 @@ local function drawScriptSearch()
         round(b,15); b.BackgroundColor3=scriptSearch.provider==name and C.text or C.card
         b.TextColor3=scriptSearch.provider==name and C.bg or C.muted
     end
-    rowButton(controls,"Suchen",UDim2.fromOffset(210,0),UDim2.fromOffset(82,30),function() searchRemoteScripts(1) end)
-    rowButton(controls,"Lokal",UDim2.fromOffset(302,0),UDim2.fromOffset(74,30),function() scriptSearch.localMode=true; query=""; render() end)
-    runtime.gameHubButton(controls,UDim2.fromOffset(386,0),UDim2.new(1,-386,0,30))
+    rowButton(controls,"Suchen",UDim2.new(.5,4,0,0),UDim2.new(.25,-6,0,32),function() searchRemoteScripts(1) end)
+    rowButton(controls,"Lokal",UDim2.new(.75,6,0,0),UDim2.new(.25,-6,0,32),function() scriptSearch.localMode=true; query=""; render() end)
+    runtime.gameHubButton(toolbar,UDim2.fromOffset(0,42),UDim2.new(1,0,0,36))
     if not scriptSearch.selected then
-        local filters=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
+        local filters=make("Frame",{Name="ScriptsFilters",BackgroundTransparency=1,Position=UDim2.fromOffset(0,88),Size=UDim2.new(1,0,0,32)},toolbar)
         for i,name in ipairs({"Beliebt","Neu","Favoriten"}) do
-            local b=rowButton(filters,name,UDim2.fromOffset((i-1)*102,0),UDim2.fromOffset(94,28),function()
+            local b=rowButton(filters,name,UDim2.new((i-1)/3,(i-1)*8/3,0,0),UDim2.new(1/3,-16/3,0,32),function()
                 scriptSearch.discovery=name; scriptSearch.query=""; scriptSearch.loaded=false; query=""; searchRemoteScripts(1)
             end)
             b.TextColor3=scriptSearch.discovery==name and C.accent or C.muted

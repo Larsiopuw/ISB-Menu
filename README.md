@@ -1,4 +1,4 @@
-# ISB Menu 2.6.102 · by Larsiopuw
+# ISB Menu 2.6.103 · by Larsiopuw
 
 
 ## Dieses Spiel in allen Spielen
@@ -349,3 +349,5 @@ Designreferenz: [Apple Liquid Glass](https://developer.apple.com/videos/play/wwd
 <!-- -- by Larsiopuw -->
 
 Die Spielinformationen verwenden eine feste abgerundete Rahmenfläche statt einer beim Vergrößern verzögert gezeichneten Konturlinie. Der Rahmen bleibt beim Auf-/Zuklappen ohne Scrollbewegung sichtbar, sowohl im Spieler-Tab als auch im Spielerinfo-Item. Rahmen und Inhalt befinden sich in derselben Karte innerhalb der Scrollliste. Ausschließlich der native Scroll-Ausschnitt schneidet beide ab: die begrenzten Rahmenflächen reichen mit Reserve über dessen Rand hinaus und erzeugen keine eigene, versetzte Schnittkante.
+
+Die Scripts-Leiste gruppiert Anbieter und Aktionen mit gleichen Buttonbreiten. Darunter stehen der Spielbutton über die volle Breite und drei gleichmäßig ausgerichtete Filter. Im lokalen Bereich stehen Online-Rücksprung und Spielzugang untereinander.
