@@ -1,9 +1,9 @@
-# ISB Menu 2.6.101 · by Larsiopuw
+# ISB Menu 2.6.102 · by Larsiopuw
 
 
 ## Dieses Spiel in allen Spielen
 
-Unter Scripts ist der Button „Dieses Spiel“ immer vorhanden: in der Online-Suche und im lokalen Script-Bereich. Bei englischer Sprache heißt er „This Game“. Ohne passende registrierte Funktionen zeigt der Tab „Noch keine Funktionen“ und „Für dieses Spiel sind aktuell keine eigenen Funktionen verfügbar.“ mit einem Rückweg zu Scripts.
+Unter Scripts ist der Button zum aktuellen Spiel immer vorhanden: in der Online-Suche und im lokalen Script-Bereich. Links zeigt er das echte GameIcon der aktuellen Universe-ID, daneben den tatsächlichen Spielnamen aus den bereits abgefragten Roblox-Spieldaten. Lange Namen werden am Ende mit Auslassung gekürzt; der Text bleibt innerhalb der restlichen Leistenbreite. Später geladene Metadaten aktualisieren vorhandene Buttons automatisch. Eigennamen werden nicht übersetzt. Dieselbe Darstellung gilt für die Rücksprung-Buttons aus einzelnen Spielfunktionen. Ohne passende registrierte Funktionen zeigt der Tab „Noch keine Funktionen“ und „Für dieses Spiel sind aktuell keine eigenen Funktionen verfügbar.“ mit einem Rückweg zu Scripts.
 
 Die Sichtbarkeit des Tabs erweitert nicht die Freigabe einzelner Funktionen. Schach, Vier gewinnt, Tic Tac Toe, 777, Halloween und Angeln erscheinen weiterhin nur bei passender Universe- und Place-ID. Direkte Aufrufe ihrer Seiten bleiben außerhalb dieses Spiels gesperrt. Auch ein registriertes Spiel mit leerer Funktionsliste erhält den leeren Zustand.
 

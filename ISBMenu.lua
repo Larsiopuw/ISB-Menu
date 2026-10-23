@@ -1,7 +1,7 @@
--- ISB Menu 2.6.101 | Own-game universal client toolkit
+-- ISB Menu 2.6.102 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.101",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.102",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -704,7 +704,7 @@ runtime.english={
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.english["Auto-Angeln"]="Auto Fishing"
 runtime.englishHistory={
-    ["2.6.101"]="Scripts: This Game is visible in every game, including the local script section. Games without registered features show a clear empty state. Individual features and their direct entry points remain restricted to their registered game and place.",
+    ["2.6.102"]="Scripts: current-game navigation is visible in every game and in local scripts, using its game icon and actual name. Long names are truncated cleanly and delayed game metadata updates existing labels automatically. Games without registered features show a clear empty state; individual features remain restricted to their registered game and place.",
     ["2.6.98"]="Safe teleports: the character automatically stands up before changing location. Seat state, seat joints and minigame occupancy are checked before teleporting; chess uses one jump input while waiting for an opponent and two separate jump inputs during an active round. An unreleased seat, Stop or respawn prevents teleporting. Includes outbound and return trips of automatic features. Chess camera transitions are completed before teleporting; Halloween captures the normal return view before departure and restores it with its field of view after returning.",
     ["2.6.95"]="Animated background: the existing dark gradients on the window, dock and small glass surfaces move slowly and smoothly. Original colors, gradient stops, transparency and cards are preserved. Settings > General can disable the animation or keep it still with Reduce motion; both preferences are saved.",
     ["2.6.94"]="Table finder inside Chess, Connect Four and Tic Tac Toe: table list with occupancy and distance, filters for waiting opponents or empty tables, and nearest-seat teleport with confirmation from game data. Optional saved table highlights: green for empty, amber for a waiting player, red for full and blue for your table. Occupied or off-map seats are excluded from available destinations.",
@@ -3310,7 +3310,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.101",text="Scripts: Der Tab Dieses Spiel ist in jedem Spiel sichtbar, auch im lokalen Script-Bereich. F\195\188r Spiele ohne hinterlegte Funktionen zeigt er einen verst\195\164ndlichen Hinweis. Einzelne Funktionen und ihre direkten Aufrufe bleiben auf das jeweils registrierte Spiel und den passenden Place begrenzt."},
+    {version="2.6.102",text="Scripts: Die Navigation zum aktuellen Spiel ist in jedem Spiel und im lokalen Script-Bereich sichtbar, mit dessen Spiel-Icon und echtem Namen. Lange Namen werden sauber gek\195\188rzt und sp\195\164ter geladene Spielnamen automatisch aktualisiert. Spiele ohne hinterlegte Funktionen zeigen einen verst\195\164ndlichen Hinweis; einzelne Funktionen bleiben auf das registrierte Spiel und den passenden Place begrenzt."},
     {version="2.6.100",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet. Eingaben erst bei stabiler Ankunft, ausreichender N\195\164he und auf die Klingel gerichteter Kamera. Die Prompt-Sichtbarkeit und ausgel\195\182ste Interaktionen werden ber\195\188cksichtigt. Bei ausbleibender Gutschrift werden fr\195\188h andere gepr\195\188fte Innenpositionen verwendet; Eingaben und Neuausrichtungen bleiben begrenzt. W\195\164hrend des Besuchs bleibt die genaue Klingel unabh\195\164ngig von fremden Item-Kn\195\182pfen sichtbar und wird direkt angesprochen; ihre urspr\195\188ngliche Anzeige-Priorit\195\164t wird beim Verlassen oder Abbrechen wiederhergestellt."},
     {version="2.6.98",text="Sichere Teleports: Vor jedem Ortswechsel steht der Charakter automatisch auf. Sitzstatus, Sitzverbindung und Minispiel-Belegung werden vor dem Teleport gepr\195\188ft; beim Schach reicht beim Warten auf einen Gegner ein Sprungimpuls, w\195\164hrend einer laufenden eigenen Runde werden zwei getrennte Sprungimpulse ausgel\195\182st. Nicht freigegebene Sitze, Stop und Respawn verhindern den Teleport. Gilt auch f\195\188r Hin- und R\195\188ckwege der Automatikfunktionen. Der Schach-Kamera\195\188bergang wird vor dem Teleport sauber beendet; Halloween sichert die normale R\195\188ckkehransicht vor der Abreise und stellt sie mit Sichtfeld nach der R\195\188ckkehr wieder her."},
     {version="2.6.95",text="Animierter Hintergrund: Die vorhandenen dunklen Verl\195\164ufe von Fenster, Dock und kleinen Glasfl\195\164chen bewegen sich langsam und weich. Urspr\195\188ngliche Farben, Farbpunkte, Transparenz und Karten bleiben erhalten. Unter Einstellungen > Allgemein l\195\164sst sich die Animation abschalten oder \195\188ber Animationen reduzieren ruhig darstellen; beide Optionen werden gespeichert."},
@@ -3812,6 +3812,25 @@ end)({
     end,
     error=function(message)logEvent("Aufzug",message);notify("Aufzug-Ziel noch nicht geladen. Bitte erneut versuchen.","Aufzug")end,
 })
+runtime.gameHubNames=setmetatable({},{__mode='k'})
+function runtime.gameHubName()
+    if session.placeName and session.placeName~=''and session.placeName~="Spielname nicht verf\195\188gbar"then return session.placeName end
+    return runtime.pianoText('Spiel','Game')
+end
+function runtime.refreshGameHubNames()
+    for text in pairs(runtime.gameHubNames)do if text.Parent then text.Text=runtime.gameHubName()else runtime.gameHubNames[text]=nil end end
+end
+function runtime.gameHubButton(parent,position,size)
+    local b=rowButton(parent,'',position,size,runtime.openThisGame);b.Name='ThisGameOpen'
+    local face=b:FindFirstChild('ButtonFace')or b
+    local icon=make('ImageLabel',{Name='ThisGameIcon',Localize=false,Active=false,BackgroundTransparency=1,
+        Position=UDim2.fromOffset(8,4),Size=UDim2.fromOffset(22,22),ScaleType=Enum.ScaleType.Crop,
+        Image='rbxthumb://type=GameIcon&id='..tostring(game.GameId)..'&w=150&h=150'},face);round(icon,6)
+    local text=label(face,runtime.gameHubName(),12,C.text,UDim2.fromOffset(38,0),UDim2.new(1,-46,1,0),false)
+    text.Name='ThisGameName';text.TextTruncate=Enum.TextTruncate.AtEnd;text.TextWrapped=false
+    runtime.gameHubNames[text]=true
+    return b
+end
 function runtime.openThisGame()
     page="Dieses Spiel";query="";render();return true
 end
@@ -3838,7 +3857,7 @@ end
 local function drawScripts()
     local mode=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
     rowButton(mode,"Zur Online-Suche",UDim2.new(),UDim2.fromOffset(150,30),function() scriptSearch.localMode=false; render() end)
-    rowButton(mode,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(1,-114,0,0),UDim2.fromOffset(110,30),runtime.openThisGame).Name="ThisGameOpen"
+    runtime.gameHubButton(mode,UDim2.new(1,-210,0,0),UDim2.fromOffset(210,30))
     local f=plainCard("Eigene Scripts","Lokale Lua-Dateien aus deinem Executor-Workspace. Ausf\195\188hrung nur nach deinem Klick.",126)
     local input=make("TextBox",{Text="",PlaceholderText="Dateiname.lua",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,
         TextSize=13,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,78),Size=UDim2.new(1,-160,0,32)},f)
@@ -3928,7 +3947,7 @@ local function drawScriptSearch()
     end
     rowButton(controls,"Suchen",UDim2.fromOffset(210,0),UDim2.fromOffset(82,30),function() searchRemoteScripts(1) end)
     rowButton(controls,"Lokal",UDim2.fromOffset(302,0),UDim2.fromOffset(74,30),function() scriptSearch.localMode=true; query=""; render() end)
-    rowButton(controls,runtime.pianoText("Dieses Spiel","This Game"),UDim2.fromOffset(386,0),UDim2.fromOffset(110,30),runtime.openThisGame).Name="ThisGameOpen"
+    runtime.gameHubButton(controls,UDim2.fromOffset(386,0),UDim2.new(1,-386,0,30))
     if not scriptSearch.selected then
         local filters=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
         for i,name in ipairs({"Beliebt","Neu","Favoriten"}) do
@@ -8531,7 +8550,7 @@ function runtime.openTicTacToe()if not runtime.currentGame()then return false en
 function runtime.drawTicTacToe()
     local p=runtime.tictactoe
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-    rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    runtime.gameHubButton(back,UDim2.new(),UDim2.fromOffset(210,30))
     local ok,c=pcall(runtime.readTicTacToe)
     if not ok then c=nil end
     local states={ready={"Bereit. W\195\164hle Auto spielen oder Ein Zug.","Ready. Choose Auto play or One move."},
@@ -8899,7 +8918,7 @@ function runtime.openConnect4()if not runtime.currentGame()then return false end
 function runtime.drawConnect4()
     local p=runtime.connect4
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-    rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    runtime.gameHubButton(back,UDim2.new(),UDim2.fromOffset(210,30))
     local ok,c=pcall(runtime.readConnect4);if not ok then c=nil end
     local messages={ready={"Bereit. Auto spielen oder Ein Zug w\195\164hlen.","Ready. Choose Auto play or One move."},
         paused={"Pausiert.","Paused."},opponent={"Der Gegner ist am Zug.","Opponent to move."},
@@ -9269,7 +9288,7 @@ function runtime.drawSlot()
     local ok,s=pcall(runtime.readSlot)
     local totalWins=ok and s and s.profileReady and s.totalWins~=nil and tostring(s.totalWins)or "\226\128\148"
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-    rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    runtime.gameHubButton(back,UDim2.new(),UDim2.fromOffset(210,30))
     local messages={ready={"Zum Knopf reisen und automatisch drehen.","Travel to the button and spin automatically."},
         positioning={"Sicheren Platz am Knopf suchen\226\128\166","Finding a safe position at the button\226\128\166"},
         waiting={"Auto-Spin aktiv. Warte auf den n\195\164chsten Versuch.","Auto-spin on. Waiting for the next attempt."},
@@ -9689,7 +9708,7 @@ function runtime.refreshFishing()
 end
 function runtime.drawFishing()
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-    rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    runtime.gameHubButton(back,UDim2.new(),UDim2.fromOffset(210,30))
     local f=plainCard(runtime.pianoText("Auto-Angeln","Auto Fishing"),"",238,false);f.Name="FishingAutomation"
     local view={card=f,values={}};runtime.fishingView=view
     view.status=label(f,"",12,C.muted,UDim2.fromOffset(16,43),UDim2.new(1,-32,0,32),false);view.status.TextWrapped=true
@@ -9719,7 +9738,7 @@ function runtime.openHalloween()if not runtime.currentGame()then return false en
 function runtime.drawHalloween()
     local p=runtime.halloween
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-    rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    runtime.gameHubButton(back,UDim2.new(),UDim2.fromOffset(210,30))
     local messages={ready={"W\195\164hle deine Optionen und starte das Event.","Choose your options and start the event."},
         stopped={"Halloween-Event gestoppt.","Halloween event stopped."},waiting={"Aktiv \194\183 Warte auf ein Halloween-Haus.","Active \194\183 Waiting for a Halloween house."},
         travelling={"Zur Klingel unterwegs\226\128\166","Travelling to the doorbell\226\128\166"},returning={"Geklingelt \194\183 Kehre zur Ausgangsposition zur\195\188ck.","Doorbell rung \194\183 Returning to your previous position."},
@@ -10378,7 +10397,7 @@ function runtime.openChess()if not runtime.currentGame()then return false end;pa
 function runtime.drawChess()
     local p=runtime.chess
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-    rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    runtime.gameHubButton(back,UDim2.new(),UDim2.fromOffset(210,30))
     local ok,c=pcall(runtime.readChess)
     local states={
         ready={"Bereit. Auto spielen oder Ein Zug w\195\164hlen.","Ready. Choose Auto play or One move."},
@@ -11142,7 +11161,7 @@ task.spawn(function()
             if type(Marketplace.GetProductInfoAsync)=="function" then return Marketplace:GetProductInfoAsync(game.PlaceId,Enum.InfoType.Asset) end
             return Marketplace:GetProductInfo(game.PlaceId,Enum.InfoType.Asset)
         end)
-        if alive and ok and type(info)=="table" then session.placeName=tostring(info.Name or session.placeName) end
+        if alive and ok and type(info)=="table" then session.placeName=tostring(info.Name or session.placeName);runtime.refreshGameHubNames()end
     end
     local ok,friends=pcall(function() return Players:GetFriendsAsync(player.UserId) end)
     if ok and friends then
