@@ -1,7 +1,7 @@
--- ISB Menu 2.6.90 | Own-game universal client toolkit
+-- ISB Menu 2.6.94 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.93",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.94",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -99,7 +99,7 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {halloweenClaims={},halloweenAutomatic=true,halloweenNotifications=true,halloweenEsp=true,flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish",chessHumanize=false,chessDelayMin=1.2,chessDelayMax=3.2, favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, adminAutoHop=false, lowEffects=false, fpsCap=60}
+local settings = {tableEsp={chess=false,connect4=false,tictactoe=false},halloweenClaims={},halloweenAutomatic=true,halloweenNotifications=true,halloweenEsp=true,flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish",chessHumanize=false,chessDelayMin=1.2,chessDelayMax=3.2, favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, adminAutoHop=false, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -120,6 +120,9 @@ if type(readfile) == "function" then
             for file,value in pairs(data.pianoFavorites) do
                 if count<10000 and type(file)=="string" and #file<=250 and value==true then settings.pianoFavorites[file]=true;count+=1 end
             end
+        end
+        if type(data.tableEsp)=="table"then
+            for _,kind in ipairs({"chess","connect4","tictactoe"})do settings.tableEsp[kind]=data.tableEsp[kind]==true end
         end
         if data.chessEngine=="local"then settings.chessEngine="local"end
         if data.pianoSort=="title" or data.pianoSort=="newest" then settings.pianoSort=data.pianoSort end
@@ -700,6 +703,7 @@ runtime.english={
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.english["Auto-Angeln"]="Auto Fishing"
 runtime.englishHistory={
+    ["2.6.94"]="Table finder inside Chess, Connect Four and Tic Tac Toe: table list with occupancy and distance, filters for waiting opponents or empty tables, and nearest-seat teleport with confirmation from game data. Optional saved table highlights: green for empty, amber for a waiting player, red for full and blue for your table. Occupied or off-map seats are excluded from available destinations.",
     ["2.6.93"]="Auto Fishing under Scripts > This Game: automatically equip an available standard or golden rod, cast into the pond and control the blue catching region by holding and releasing. Automatic casts after the game cooldown, confirmed catches and credits, background operation and shared idle protection; starts and stops manually. Varied valid casting targets, checks of the rod\226\128\153s actual cooldown and bounded retries of rejected casts prevent repeated failed-cast sounds.",
     ["2.6.92"]="Central idle protection across ISB Menu: enabled automatically on load, with periodic Roblox input pulses during inactivity and an additional idle-event response. One shared instance for all features, automatic retries after input failures and complete cleanup on unload.",
     ["2.6.91"]="Halloween-Event under Scripts > This Game: Doorbell input from inside the house with the camera aimed at the bell, confirmed candy credit and return to the previous position and camera view. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually.",
@@ -3007,6 +3011,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.94",text="Tischfinder direkt in Schach, Vier gewinnt und Tic Tac Toe: Tischliste mit Belegung und Entfernung, Filter f\195\188r wartende Gegner oder leere Tische und Beitritt zum n\195\164chsten freien Sitz mit Best\195\164tigung durch die Spieldaten. Optionale gespeicherte Tisch-Markierungen: Gr\195\188n f\195\188r leer, Gelb f\195\188r einen wartenden Spieler, Rot f\195\188r voll und Blau f\195\188r den eigenen Tisch. Belegte oder ausgelagerte Sitze werden nicht als freie Ziele verwendet."},
     {version="2.6.93",text="Auto-Angeln unter Scripts > Dieses Spiel: verf\195\188gbare Standard- oder goldene Angel automatisch ausr\195\188sten, in den Teich auswerfen und den blauen Fangbereich durch Halten und Loslassen steuern. Automatische Folgew\195\188rfe nach dem Spiel-Cooldown, best\195\164tigte F\195\164nge und Credits, Hintergrundbetrieb und zentrale AFK-Sicherung; Start und Stop bleiben manuell. Wechselnde g\195\188ltige Wurfziele, Pr\195\188fung des tats\195\164chlichen Angel-Cooldowns und begrenzte Wiederholung abgelehnter W\195\188rfe verhindern dauernde Fehlwurf-Ger\195\164usche."},
     {version="2.6.92",text="Zentraler AFK-Schutz f\195\188r das gesamte ISB-Men\195\188: beim Laden automatisch aktiv, mit regelm\195\164\195\159igen Roblox-Eingabeimpulsen bei Inaktivit\195\164t und zus\195\164tzlicher Reaktion auf das Idle-Ereignis. Gemeinsame Instanz f\195\188r alle Funktionen, automatische Wiederholung bei Eingabefehlern und vollst\195\164ndige Bereinigung beim Entladen."},
     {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet."},
@@ -8213,6 +8218,7 @@ function runtime.drawTicTacToe()
     local p=runtime.tictactoe
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    runtime.drawTableFinder("tictactoe")
     local ok,c=pcall(runtime.readTicTacToe)
     if not ok then c=nil end
     local states={ready={"Bereit. W\195\164hle Auto spielen oder Ein Zug.","Ready. Choose Auto play or One move."},
@@ -8580,6 +8586,7 @@ function runtime.drawConnect4()
     local p=runtime.connect4
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    runtime.drawTableFinder("connect4")
     local ok,c=pcall(runtime.readConnect4);if not ok then c=nil end
     local messages={ready={"Bereit. Auto spielen oder Ein Zug w\195\164hlen.","Ready. Choose Auto play or One move."},
         paused={"Pausiert.","Paused."},opponent={"Der Gegner ist am Zug.","Opponent to move."},
@@ -9673,11 +9680,284 @@ connect(Run.Heartbeat,function(dt)
     end
 end)
 
+runtime.createTableFinder=(function(deps)
+    local p={alive=true,epoch=0,esp={},filters={},lists={},status='ready'}
+    local kinds={'chess','connect4','tictactoe'}
+    local function changed()if p.alive and deps.changed then deps.changed()end end
+    function p.scan(kind)
+        local rows=deps.supported()and deps.scan(kind)or {}
+        for _,row in ipairs(rows)do
+            row.occupied=0;row.free={};row.mine=false;row.distance=math.huge
+            for _,seat in ipairs(row.seats)do
+                row.mine=row.mine or seat.mine==true
+                if seat.occupied then row.occupied+=1 end
+                if seat.valid and not seat.occupied then table.insert(row.free,seat)end
+                if seat.valid then row.distance=math.min(row.distance,seat.distance)end
+            end
+            row.occupied=math.max(row.occupied,row.serverOccupied or 0)
+            table.sort(row.free,function(a,b)return a.distance<b.distance end)
+            row.state=row.mine and 'mine'or row.distance==math.huge and 'unavailable'or row.occupied>=2 and 'full'or row.occupied==1 and 'waiting'or 'empty'
+            row.available=#row.free>0 and row.occupied<2 and not row.mine
+        end
+        table.sort(rows,function(a,b)
+            if a.distance~=b.distance then return a.distance<b.distance end
+            return a.key<b.key
+        end)
+        p.lists[kind]=rows
+        return rows
+    end
+    function p.matches(kind,row)
+        local filter=p.filters[kind]or 'any'
+        return filter=='any'or(filter=='waiting'and row.state=='waiting')or(filter=='empty'and row.state=='empty')
+    end
+    function p.setFilter(kind,value)
+        if value~='any'and value~='waiting'and value~='empty'then return end
+        p.filters[kind]=value;changed()
+    end
+    function p.setEsp(kind,value)
+        p.esp[kind]=value==true
+        if deps.preference then deps.preference(kind,p.esp[kind])end
+        p.refresh(kind);changed()
+    end
+    function p.refresh(kind)
+        local rows=p.scan(kind)
+        if deps.paint then deps.paint(kind,p.esp[kind]==true and rows or {})end
+        local signature={}
+        for _,row in ipairs(rows)do table.insert(signature,row.key..':'..row.state..':'..tostring(math.floor(row.distance/5)))end
+        local key=table.concat(signature,'|')
+        p.signatures=p.signatures or {}
+        if p.signatures[kind]~=key then p.signatures[kind]=key;changed()end
+        return rows
+    end
+    local function rollback()
+        local pending=p.pending
+        if pending and pending.moved then pcall(deps.restore,pending.context)end
+        p.pending=nil
+    end
+    function p.cancel(reason)
+        p.epoch+=1;p.joining=nil;rollback();p.status=reason or 'cancelled';changed()
+    end
+    function p.join(kind,key)
+        if not p.alive or p.joining then return false end
+        p.statusKind=kind
+        if not deps.supported()then p.status='unsupported';changed();return false end
+        local chosen
+        for _,row in ipairs(p.scan(kind))do
+            if row.mine and(not key or key==row.key)then p.status='seated';changed();return true end
+            if row.available and((key and row.key==key)or(not key and p.matches(kind,row)))then chosen=row;break end
+        end
+        if not chosen then p.status='no_place';changed();return false end
+        p.epoch+=1;local epoch=p.epoch;p.joining=chosen.key;p.status='joining';p.error=nil;changed()
+        deps.spawn(function()
+            local ok,err=pcall(function()
+                if not p.alive or epoch~=p.epoch then return end
+                local context=deps.capture()
+                p.pending={context=context}
+                deps.prepare(context)
+                if not p.alive or epoch~=p.epoch then return end
+                local selected
+                for _,row in ipairs(p.scan(kind))do if row.key==chosen.key then selected=row;break end end
+                assert(selected and selected.available,'seat_taken')
+                local candidate=selected.free[1]
+                assert(candidate and deps.valid(context,candidate.ref),'seat_taken')
+                p.pending.moved=true
+                deps.move(context,candidate.ref)
+                deps.wait(.15)
+                local deadline=deps.clock()+4;local retry=0
+                repeat
+                    if not p.alive or epoch~=p.epoch then return end
+                    assert(deps.valid(context,candidate.ref),'seat_taken')
+                    if deps.confirm(context,selected,candidate.ref)then
+                        p.pending=nil;p.joining=nil;p.status='seated';p.refresh(kind);changed();return
+                    end
+                    if deps.clock()>=retry then deps.sit(context,candidate.ref);retry=deps.clock()+.6 end
+                    deps.wait(.1)
+                until deps.clock()>=deadline
+                error('seat_unconfirmed')
+            end)
+            if not p.alive or epoch~=p.epoch then return end
+            if not ok then rollback();p.error=tostring(err);p.status='failed' end
+            p.joining=nil;changed()
+        end)
+        return true
+    end
+    function p.dispose()
+        if not p.alive then return end
+        p.cancel();p.alive=false
+        if deps.paint then for _,kind in ipairs(kinds)do deps.paint(kind,{})end end
+    end
+    return p
+end)
+runtime.tableKinds={chess='ChessMinigame',connect4='Connect4Minigame',tictactoe='TicTacToeMinigame'}
+runtime.tablePages={Schach='chess',['Vier gewinnt']='connect4',['Tic Tac Toe']='tictactoe'}
+runtime.tableVisuals={}
+runtime.tableExpanded={}
+function runtime.tableRoster(kind,model)
+    local controller=runtime.prepareTicTacToe()
+    local id=model:GetAttribute('MinigameId')
+    local object=id and controller:GetMinigame(runtime.tableKinds[kind],id)
+    local snapshot=object and object.View and object.View.snapshot
+    local st=object and object.State
+    local ids=st and st.PlayerUserIds or snapshot and{snapshot.white,snapshot.black}
+    if object and object.Echo and object.Echo.Initialized then ids=object.Echo:Read('PlayerUserIds')or ids end
+    return type(ids)=='table'and ids or {}
+end
+function runtime.tableSeatAvailable(seat)
+    if not seat.Parent or not seat:IsDescendantOf(workspace)or seat.Disabled then return false end
+    local env=workspace:FindFirstChild('Environment');local poi=env and env:FindFirstChild('PointOfInterest')
+    local anchor=poi and poi:FindFirstChild('FishingPoint')
+    return(seat.Position-(anchor and anchor.Position or Vector3.zero)).Magnitude<3000
+end
+function runtime.scanTables(kind)
+    local rows={};local r=root();local h=humanoid()
+    for _,model in ipairs(game:GetService('CollectionService'):GetTagged(runtime.tableKinds[kind]))do
+        if model:IsA('Model')and model:IsDescendantOf(workspace)then
+            local seats={}
+            for _,seat in ipairs(model:GetDescendants())do
+                if seat:IsA('Seat')or seat:IsA('VehicleSeat')then
+                    local occupant=seat.Occupant
+                    table.insert(seats,{ref=seat,occupied=occupant~=nil,mine=h~=nil and occupant==h,
+                        valid=runtime.tableSeatAvailable(seat),distance=r and(seat.Position-r.Position).Magnitude or math.huge})
+                end
+            end
+            local occupied=0;local ok,ids=pcall(runtime.tableRoster,kind,model)
+            if ok then for i=1,2 do if type(ids[i])=='number'and ids[i]>0 then occupied+=1 end end end
+            table.insert(rows,{key=model:GetAttribute('MinigameId')or model:GetFullName(),name=model.Name,model=model,seats=seats,serverOccupied=occupied})
+        end
+    end
+    return rows
+end
+function runtime.tableRefreshUI()
+    if not alive or not opened or not runtime.tablePages[page]or runtime.tableRendering then return end
+    runtime.tableRendering=true
+    task.defer(function()
+        runtime.tableRendering=false
+        if alive and opened and runtime.tablePages[page]then render()end
+    end)
+end
+function runtime.tablePaint(kind,rows)
+    local group=runtime.tableVisuals[kind]or {};runtime.tableVisuals[kind]=group
+    local present={}
+    local colors={empty=Color3.fromRGB(66,220,151),waiting=Color3.fromRGB(255,193,80),full=Color3.fromRGB(255,94,106),mine=Color3.fromRGB(68,208,255)}
+    for _,row in ipairs(rows)do
+        if row.state~='unavailable'and row.model.Parent then
+            present[row.model]=true
+            local visual=group[row.model]
+            if not visual then
+                local highlight=make('Highlight',{Name='ISBTableHighlight',Adornee=row.model,DepthMode=Enum.HighlightDepthMode.AlwaysOnTop,FillTransparency=.8,OutlineTransparency=.05},row.model)
+                local seat=row.seats[1]and row.seats[1].ref
+                local badge=make('BillboardGui',{Name='ISBTableBadge',Adornee=seat,AlwaysOnTop=true,Size=UDim2.fromOffset(190,32),StudsOffsetWorldSpace=Vector3.new(0,3.8,0),MaxDistance=1200},gui)
+                local chip=make('Frame',{BackgroundColor3=C.panel,BackgroundTransparency=.08,Size=UDim2.fromScale(1,1)},badge);round(chip,10)
+                local text=label(chip,'',11,C.text,UDim2.fromOffset(8,0),UDim2.new(1,-16,1,0),false);text.TextXAlignment=Enum.TextXAlignment.Center
+                visual={highlight=highlight,badge=badge,text=text};group[row.model]=visual
+            end
+            local color=colors[row.state]or C.muted
+            visual.highlight.FillColor=color;visual.highlight.OutlineColor=color;visual.text.TextColor3=color
+            visual.text.Text=row.name..'  '..row.occupied..'/2  |  '..math.floor(row.distance+.5)..' studs'
+        end
+    end
+    for model,visual in pairs(group)do if not present[model]then visual.highlight:Destroy();visual.badge:Destroy();group[model]=nil end end
+end
+runtime.tableFinder=runtime.createTableFinder({
+    supported=function()return runtime.currentGame()~=nil end,scan=runtime.scanTables,
+    clock=os.clock,wait=task.wait,spawn=task.spawn,changed=runtime.tableRefreshUI,paint=runtime.tablePaint,
+    preference=function(kind,value)settings.tableEsp[kind]=value;save()end,
+    capture=function()
+        local r,h=root(),humanoid();assert(r and h and h.Health>0,'character_not_ready')
+        return{root=r,humanoid=h,character=player.Character,frame=r.CFrame}
+    end,
+    prepare=function(c)
+        runtime.recovery.cancel(true);runtime.stopRoleplay();runtime.stopFreecam(false)
+        if state.fly then state.fly=false;stopFly();runtime.updateActiveKeys()end
+        runtime.piano.stop();runtime.slot.stop('stopped');runtime.halloween.stop('stopped')
+        if runtime.fishing then runtime.fishing.stop()end
+        runtime.chess.pause();runtime.tictactoe.pause();runtime.connect4.pause()
+        c.humanoid.Sit=false
+        for _=1,12 do if not c.humanoid.SeatPart then break end;task.wait(.05)end
+    end,
+    valid=function(c,seat)
+        return alive and runtime.currentGame()~=nil and player.Character==c.character and c.root.Parent~=nil
+            and c.humanoid.Health>0 and runtime.tableSeatAvailable(seat)and(not seat.Occupant or seat.Occupant==c.humanoid)
+    end,
+    move=function(c,seat)
+        c.root.CFrame=seat.CFrame*CFrame.new(0,2,0);c.root.AssemblyLinearVelocity=Vector3.zero;c.root.AssemblyAngularVelocity=Vector3.zero
+        if runtime.voidGround then runtime.voidGround.reset()end
+    end,
+    sit=function(c,seat)if c.humanoid.SeatPart~=seat then seat:Sit(c.humanoid)end end,
+    confirm=function(c,row,seat)
+        if c.humanoid.SeatPart~=seat or seat.Occupant~=c.humanoid then return false end
+        local kind
+        for key,tag in pairs(runtime.tableKinds)do if game:GetService('CollectionService'):HasTag(row.model,tag)then kind=key;break end end
+        local ids=kind and runtime.tableRoster(kind,row.model)or {}
+        return table.find(ids,player.UserId)~=nil
+    end,
+    restore=function(c)
+        if player.Character==c.character and c.root.Parent and c.humanoid.Health>0 then
+            c.humanoid.Sit=false;c.humanoid.Jump=true
+            c.root.CFrame=c.frame;c.root.AssemblyLinearVelocity=Vector3.zero;c.root.AssemblyAngularVelocity=Vector3.zero
+        end
+    end,
+})
+for kind,value in pairs(settings.tableEsp)do runtime.tableFinder.esp[kind]=value end
+function runtime.drawTableFinder(kind)
+    local p=runtime.tableFinder;local rows=p.scan(kind);local expanded=runtime.tableExpanded[kind]
+    local shown={};local available=0
+    for _,row in ipairs(rows)do if row.available then available+=1 end;if p.matches(kind,row)then table.insert(shown,row)end end
+    local listHeight=expanded and math.min(184,math.max(44,#shown*46))or 0
+    local title=runtime.pianoText('Tischfinder','Table finder')
+    local f=plainCard(title,'',expanded and 158+listHeight or 144,false);f.Name='TableFinder_'..kind
+    local messages={joining={'Platz wird gepr\195\188ft und best\195\164tigt...','Checking and confirming your seat...'},seated={'Du sitzt am Tisch.','You are seated.'},
+        failed={'Platz nicht best\195\164tigt. Bitte erneut versuchen.','Seat unconfirmed. Please try again.'},no_place={'Kein passender freier Platz vorhanden.','No matching free seat available.'}}
+    local msg=p.statusKind==kind and messages[p.status]
+    if p.status=='seated'then
+        local seated=false;for _,row in ipairs(rows)do seated=seated or row.mine end
+        if not seated then msg=nil end
+    end
+    label(f,msg and runtime.pianoText(msg[1],msg[2])or(available..runtime.pianoText(' Tische mit freiem Platz',' tables with a free seat')),11,C.muted,UDim2.fromOffset(16,39),UDim2.new(1,-32,0,18),false)
+    local esp=rowButton(f,'ESP '..runtime.pianoText(p.esp[kind]and 'An'or 'Aus',p.esp[kind]and 'On'or 'Off'),UDim2.new(1,-108,0,12),UDim2.fromOffset(92,28),function()p.setEsp(kind,not p.esp[kind])end)
+    esp.Name='TableEsp_'..kind;esp.TextColor3=p.esp[kind]and C.accent or C.muted
+    for i,item in ipairs({{'any','Freier Platz','Any free seat'},{'waiting','Gegner wartet','Opponent waiting'},{'empty','Leerer Tisch','Empty table'}})do
+        local value=item[1]
+        local b=rowButton(f,runtime.pianoText(item[2],item[3]),UDim2.new((i-1)/3,16-(i-1)*10.66,0,65),UDim2.new(1/3,-16,0,27),function()p.setFilter(kind,value)end)
+        b.Name='TableFilter_'..value;b.TextSize=10;b.TextColor3=(p.filters[kind]or 'any')==value and C.accent or C.muted
+    end
+    local nearest=rowButton(f,runtime.pianoText(p.joining and 'Wird verbunden...'or 'N\195\164chsten Platz finden',p.joining and 'Joining...'or 'Find nearest seat'),UDim2.fromOffset(16,102),UDim2.new(.65,-20,0,30),function()p.join(kind)end)
+    nearest.Name='TableNearest_'..kind;nearest.TextColor3=C.accent
+    rowButton(f,runtime.pianoText(expanded and 'Liste schlie\195\159en'or 'Tische anzeigen',expanded and 'Hide tables'or 'Show tables'),UDim2.new(.65,4,0,102),UDim2.new(.35,-20,0,30),function()runtime.tableExpanded[kind]=not expanded;render()end).Name='TableList_'..kind
+    if not expanded then return end
+    local list=make('ScrollingFrame',{Name='TableListScroll',BackgroundTransparency=1,BorderSizePixel=0,Position=UDim2.fromOffset(16,146),Size=UDim2.new(1,-32,0,listHeight),CanvasSize=UDim2.fromOffset(0,#shown*46),ScrollBarThickness=3,ScrollBarImageColor3=C.muted,ClipsDescendants=true},f)
+    if #shown==0 then label(list,runtime.pianoText('Keine passenden Tische.','No matching tables.'),11,C.muted,UDim2.fromOffset(8,8),UDim2.new(1,-16,0,24),false)end
+    local colors={empty=Color3.fromRGB(66,220,151),waiting=Color3.fromRGB(255,193,80),full=Color3.fromRGB(255,94,106),mine=Color3.fromRGB(68,208,255),unavailable=C.muted}
+    local names={empty={'Frei','Empty'},waiting={'Wartet','Waiting'},full={'Voll','Full'},mine={'Dein Tisch','Your table'},unavailable={'Nicht verf\195\188gbar','Unavailable'}}
+    for i,row in ipairs(shown)do
+        local line=make('Frame',{Name='TableRow',BackgroundColor3=C.panel,BackgroundTransparency=.2,Position=UDim2.fromOffset(0,(i-1)*46),Size=UDim2.new(1,-6,0,40)},list);round(line,10)
+        local dot=make('Frame',{BackgroundColor3=colors[row.state],Position=UDim2.fromOffset(10,16),Size=UDim2.fromOffset(8,8)},line);round(dot,4)
+        label(line,row.name,11,C.text,UDim2.fromOffset(27,3),UDim2.new(.48,-27,0,18),false)
+        local name=names[row.state];local distance=row.distance<math.huge and(math.floor(row.distance+.5)..' studs')or '--'
+        label(line,runtime.pianoText(name[1],name[2])..'  '..row.occupied..'/2  |  '..distance,10,C.muted,UDim2.fromOffset(27,21),UDim2.new(1,-122,0,16),false)
+        local b=rowButton(line,runtime.pianoText(row.mine and 'Du sitzt'or row.available and 'Beitreten'or 'Belegt',row.mine and 'Seated'or row.available and 'Join'or 'Busy'),UDim2.new(1,-86,0,6),UDim2.fromOffset(78,28),function()if row.available then p.join(kind,row.key)end end)
+        b.TextColor3=row.available and C.accent or C.muted;b.Name='TableJoin_'..i
+    end
+end
+connect(player.CharacterRemoving,function()runtime.tableFinder.cancel('character')end)
+connect(Run.Heartbeat,function(dt)
+    runtime.tableClock=(runtime.tableClock or 0)+(dt or 0)
+    if runtime.tableClock<.5 then return end;runtime.tableClock=0
+    if not runtime.currentGame()then for kind in pairs(runtime.tableKinds)do runtime.tablePaint(kind,{})end;return end
+    for kind in pairs(runtime.tableKinds)do
+        if runtime.tableFinder.esp[kind]or(opened and runtime.tablePages[page]==kind)then
+            local ok,err=pcall(runtime.tableFinder.refresh,kind)
+            if not ok then runtime.tableFinder.error=tostring(err)end
+        end
+    end
+end)
+
 function runtime.openChess()if not runtime.currentGame()then return false end;page="Schach";query="";render();return true end
 function runtime.drawChess()
     local p=runtime.chess
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
+    runtime.drawTableFinder("chess")
     local ok,c=pcall(runtime.readChess)
     local states={
         ready={"Bereit. Auto spielen oder Ein Zug w\195\164hlen.","Ready. Choose Auto play or One move."},
@@ -10382,6 +10662,7 @@ api.Destroy = function()
     runtime.slot.dispose()
     runtime.antiAfk.dispose()
     runtime.elevatorPrompts.dispose()
+    runtime.tableFinder.dispose()
     runtime.connect4Roster.clear()
     runtime.connect4.dispose()
     runtime.tictactoe.dispose()

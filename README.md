@@ -1,5 +1,15 @@
-# ISB Menu 2.6.93 · by Larsiopuw
+# ISB Menu 2.6.94 · by Larsiopuw
 
+
+## Tischfinder für die Brettspiele
+
+In jedem der drei Minispiel-Menüs befindet sich der Tischfinder. „Nächsten Platz finden“ wählt anhand der tatsächlichen Sitzentfernung einen freien Platz. Alternativ lassen sich ein wartender Gegner oder ein vollständig leerer Tisch filtern; die aufklappbare Liste zeigt Namen, Belegung und Entfernung und erlaubt den gezielten Beitritt.
+
+ESP ist pro Minispiel separat schaltbar und wird gespeichert. Grün bedeutet leer, Gelb ein Spieler wartet, Rot beide Plätze besetzt und Blau der eigene Tisch. Markierungen und Beschriftungen aktualisieren sich alle 0,5 Sekunden und werden beim Abschalten beziehungsweise Entladen entfernt. Die ESP-Optionen starten ohne vorhandene Einstellung ausgeschaltet.
+
+Vor dem Teleport wird die Belegung erneut gelesen. Automatisches Hinsetzen verwendet den nativen Sitz und wartet bis zu vier Sekunden auf die tatsächliche Sitzverbindung und den eigenen Account in den Spieldaten des Tisches. Erst dann wird „Du sitzt am Tisch“ angezeigt. Bei einer fehlenden Bestätigung wird zur vorherigen Position zurückgekehrt. Wiederholte Klicks starten keine parallelen Teleports; Autoplay wird durch einen Tischbeitritt nicht automatisch eingeschaltet.
+
+Andere aktive Bewegungs-/Farmsteuerungen und die drei Autoplayer werden vor dem Wechsel beendet. Ausgelagerte Sitze im internen Bereich außerhalb der Map werden nicht als erreichbare freie Plätze angeboten. Die gesamte Funktion ist auf das registrierte Spiel begrenzt.
 
 ## Auto-Angeln
 
