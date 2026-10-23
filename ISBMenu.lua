@@ -8218,7 +8218,6 @@ function runtime.drawTicTacToe()
     local p=runtime.tictactoe
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
-    runtime.drawTableFinder("tictactoe")
     local ok,c=pcall(runtime.readTicTacToe)
     if not ok then c=nil end
     local states={ready={"Bereit. W\195\164hle Auto spielen oder Ein Zug.","Ready. Choose Auto play or One move."},
@@ -8266,6 +8265,7 @@ function runtime.drawTicTacToe()
     label(analysis,outcome,11,C.accent,UDim2.fromOffset(12,38),UDim2.new(1,-24,0,32))
     label(analysis,runtime.pianoText("Letztes Feld: ","Last cell: ")..tostring(p.lastMove or "\226\128\147"),11,C.muted,UDim2.fromOffset(12,82),UDim2.new(1,-24,0,20),false)
     label(f,runtime.pianoText("Lokal berechnet \194\183 Keine zus\195\164tzliche EXE","Calculated locally \194\183 No additional EXE"),10,C.muted,UDim2.fromOffset(16,252),UDim2.new(1,-32,0,20),false)
+    runtime.drawTableFinder("tictactoe")
 end
 
 runtime.connect4Rules=(function(deps)
@@ -8586,7 +8586,6 @@ function runtime.drawConnect4()
     local p=runtime.connect4
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
-    runtime.drawTableFinder("connect4")
     local ok,c=pcall(runtime.readConnect4);if not ok then c=nil end
     local messages={ready={"Bereit. Auto spielen oder Ein Zug w\195\164hlen.","Ready. Choose Auto play or One move."},
         paused={"Pausiert.","Paused."},opponent={"Der Gegner ist am Zug.","Opponent to move."},
@@ -8641,6 +8640,7 @@ function runtime.drawConnect4()
     label(analysis,runtime.pianoText("Letzte Spalte: ","Last column: ")..tostring(p.lastMove or "\226\128\147"),11,C.muted,UDim2.fromOffset(12,130),UDim2.new(1,-24,0,20),false)
     label(analysis,runtime.pianoText("Du: ","You: ")..runtime.pianoText(c and c.players[1]==player.UserId and "Rot"or "Gelb",c and c.players[1]==player.UserId and "Red"or "Yellow"),11,C.text,UDim2.fromOffset(12,158),UDim2.new(1,-24,0,20),false)
     label(f,runtime.pianoText("Zeitbegrenzte lokale Suche \194\183 Keine zus\195\164tzliche EXE","Time-bounded local search \194\183 No additional EXE"),10,C.muted,UDim2.fromOffset(16,326),UDim2.new(1,-32,0,20),false)
+    runtime.drawTableFinder("connect4")
 end
 
 runtime.slotTarget=(function(context,head,raycast,blocked)
@@ -9957,7 +9957,6 @@ function runtime.drawChess()
     local p=runtime.chess
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     rowButton(back,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(),UDim2.fromOffset(170,30),runtime.openThisGame)
-    runtime.drawTableFinder("chess")
     local ok,c=pcall(runtime.readChess)
     local states={
         ready={"Bereit. Auto spielen oder Ein Zug w\195\164hlen.","Ready. Choose Auto play or One move."},
@@ -10020,6 +10019,7 @@ function runtime.drawChess()
     end
     local hint=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
     label(hint,(p.engine=="stockfish" and runtime.pianoText("Stockfish ben\195\182tigt Internet. Nur die Brettstellung wird an chess-api.com gesendet.","Stockfish needs internet. Only the board position is sent to chess-api.com.")or runtime.pianoText("Lokale Lua-Suche. Keine zus\195\164tzliche EXE.","Local Lua search. No additional EXE.")),11,C.muted,UDim2.fromOffset(4,0),UDim2.new(1,-8,1,0))
+    runtime.drawTableFinder("chess")
 end
 
 render = function()
