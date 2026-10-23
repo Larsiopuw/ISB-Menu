@@ -1,7 +1,7 @@
--- ISB Menu 2.6.95 | Own-game universal client toolkit
+-- ISB Menu 2.6.96 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.95",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.96",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -704,6 +704,7 @@ runtime.english={
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.english["Auto-Angeln"]="Auto Fishing"
 runtime.englishHistory={
+    ["2.6.96"]="Safe teleports: the character automatically stands up before changing location. Seat state, seat joints and minigame occupancy are checked before teleporting; chess receives two separate jump inputs. An unreleased seat, Stop or respawn prevents teleporting. Includes outbound and return trips of automatic features.",
     ["2.6.95"]="Animated background: the existing dark gradients on the window, dock and small glass surfaces move slowly and smoothly. Original colors, gradient stops, transparency and cards are preserved. Settings > General can disable the animation or keep it still with Reduce motion; both preferences are saved.",
     ["2.6.94"]="Table finder inside Chess, Connect Four and Tic Tac Toe: table list with occupancy and distance, filters for waiting opponents or empty tables, and nearest-seat teleport with confirmation from game data. Optional saved table highlights: green for empty, amber for a waiting player, red for full and blue for your table. Occupied or off-map seats are excluded from available destinations.",
     ["2.6.93"]="Auto Fishing under Scripts > This Game: automatically equip an available standard or golden rod, cast into the pond and control the blue catching region by holding and releasing. Automatic casts after the game cooldown, confirmed catches and credits, background operation and shared idle protection; starts and stops manually. Varied valid casting targets, checks of the rod\226\128\153s actual cooldown and bounded retries of rejected casts prevent repeated failed-cast sounds.",
@@ -1541,6 +1542,177 @@ end
 local function root()
     return player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 end
+runtime.createSeatExit=function(deps)
+    local p={alive=true,epoch=0,busy=false}
+    function p.cancel()p.epoch+=1 end
+    function p.ensure(context)
+        if not p.alive then return false,'disposed'end
+        local epoch=p.epoch;local deadline=deps.clock()+4.5
+        local function valid()
+            return p.alive and p.epoch==epoch and deps.valid(context)
+                and(not context.current or context.current())
+        end
+        while p.busy do
+            if not valid()then return false,'changed'end
+            if deps.clock()>=deadline then return false,'busy'end
+            deps.wait(.05)
+        end
+        if not valid()then return false,'changed'end
+        local initial=deps.snapshot(context)
+        if not initial.blocked then return true end
+        p.busy=true
+        local ok,result=pcall(function()
+            if deps.before then deps.before(context)end
+            local minimum=initial.chess and 2 or 1
+            local pulses=0;local nextPulse=0;local clearSince
+            while valid()and deps.clock()<deadline do
+                local s=deps.snapshot(context)
+                if not s.blocked and pulses>=minimum then
+                    clearSince=clearSince or deps.clock()
+                    if deps.clock()-clearSince>=.18 then return true end
+                else clearSince=nil end
+                if deps.clock()>=nextPulse and pulses<6 and(s.blocked or pulses<minimum)then
+                    deps.pulse(context);pulses+=1;nextPulse=deps.clock()+.3
+                end
+                deps.wait(.05)
+            end
+            return false
+        end)
+        p.busy=false
+        if not ok then return false,tostring(result)end
+        if not valid()then return false,'changed'end
+        if not result then return false,'seat_unconfirmed'end
+        if deps.snapshot(context).blocked then return false,'reseated'end
+        return true
+    end
+    function p.dispose()p.cancel();p.alive=false end
+    return p
+end
+function runtime.seatExitContext(c)
+    c=c or {}
+    c.character=c.character or player.Character;c.root=c.root or root();c.humanoid=c.humanoid or humanoid()
+    c.seats=c.seats or {};c.seatGames=c.seatGames or {};c.seatWelds=c.seatWelds or {}
+    return c
+end
+function runtime.seatGameIds(model,tag)
+    if not runtime.currentGame or not runtime.currentGame()then return nil end
+    local ok,ids=pcall(function()
+        local controller=runtime.prepareTicTacToe()
+        local id=model:GetAttribute('MinigameId');local object=id and controller:GetMinigame(tag,id)
+        local state=object and object.State;local view=object and object.View and object.View.snapshot
+        local roster=state and state.PlayerUserIds or view and{view.white,view.black}
+        if object and object.Echo and object.Echo.Initialized then roster=object.Echo:Read('PlayerUserIds')or roster end
+        return roster
+    end)
+    return ok and type(ids)=='table'and ids or nil
+end
+function runtime.seatExitSnapshot(c)
+    local h=c.humanoid;local seat=h.SeatPart
+    if seat then c.seats[seat]=true end
+    local service=optionalService('CollectionService')
+    local function remember(model,tag)c.seatGames[model]=tag end
+    if service then
+        if not c.seatGamesScanned and runtime.currentGame and runtime.currentGame()then
+            for _,tag in ipairs({'ChessMinigame','Connect4Minigame','TicTacToeMinigame'})do
+                for _,model in ipairs(service:GetTagged(tag))do
+                    local ids=runtime.seatGameIds(model,tag)
+                    if ids and table.find(ids,player.UserId)then remember(model,tag)end
+                end
+            end
+            c.seatGamesScanned=true
+        end
+        local node=seat
+        while node and node~=workspace do
+            for _,tag in ipairs({'ChessMinigame','Connect4Minigame','TicTacToeMinigame'})do
+                if service:HasTag(node,tag)then remember(node,tag)end
+            end
+            node=node.Parent
+        end
+    end
+    -- Read remaining seat joints; never delete a server-created weld locally.
+    if not c.seatJointsScanned then
+        for _,part in ipairs(c.character:GetDescendants())do
+            if part:IsA('BasePart')then
+                local ok,joints=pcall(function()return part:GetJoints()end)
+                if ok and type(joints)=='table'then for _,joint in ipairs(joints)do if joint.Name=='SeatWeld'then c.seatWelds[joint]=true end end end
+            end
+        end
+        c.seatJointsScanned=true
+    end
+    for old in pairs(c.seats)do
+        if old.Parent then for _,joint in ipairs(old:GetChildren())do if joint.Name=='SeatWeld'then c.seatWelds[joint]=true end end end
+    end
+    local linked=false
+    for joint in pairs(c.seatWelds)do
+        if joint.Parent then
+            local ok,ours=pcall(function()
+                return(joint.Part0 and joint.Part0:IsDescendantOf(c.character))or(joint.Part1 and joint.Part1:IsDescendantOf(c.character))
+            end)
+            linked=linked or(ok and ours==true)
+        end
+    end
+    local chess=false;local inGame=false
+    for model,tag in pairs(c.seatGames)do
+        chess=chess or tag=='ChessMinigame'
+        if model.Parent then
+            local ids=runtime.seatGameIds(model,tag)
+            inGame=inGame or(ids and table.find(ids,player.UserId)~=nil)or false
+        end
+    end
+    local seatedState=false;local ok,value=pcall(function()return h:GetState()end)
+    if ok then seatedState=value==Enum.HumanoidStateType.Seated end
+    return{blocked=seat~=nil or h.Sit==true or seatedState or linked or inGame,chess=chess}
+end
+function runtime.releaseSeatSpace()
+    if not runtime.seatSpaceInput then return true end
+    local input=runtime.seatSpaceInput
+    local ok=pcall(function()input:SendKeyEvent(false,Enum.KeyCode.Space,false,game)end)
+    if not ok then ok=pcall(function()input:SendKeyEvent(false,Enum.KeyCode.Space,false,game)end)end
+    if ok then runtime.seatSpaceInput=nil end
+    return ok
+end
+runtime.seatExit=runtime.createSeatExit({clock=os.clock,wait=task.wait,
+    valid=function(c)
+        return(alive or c.allowInactive)and player.Character==c.character and c.character and c.character.Parent~=nil
+            and c.root and c.root.Parent~=nil and c.humanoid and c.humanoid.Parent~=nil and c.humanoid.Health>0
+    end,
+    snapshot=runtime.seatExitSnapshot,
+    before=function()
+        for _,name in ipairs({'chess','connect4','tictactoe'})do if runtime[name]then runtime[name].pause()end end
+    end,
+    pulse=function(c)
+        local focused;pcall(function()focused=UIS:GetFocusedTextBox()end)
+        local input=not focused and optionalService('VirtualInputManager')
+        if input then
+            runtime.seatSpaceInput=input
+            local down=pcall(function()input:SendKeyEvent(true,Enum.KeyCode.Space,false,game)end)
+            if down then task.wait(.065)end
+            local released=runtime.releaseSeatSpace()
+            if down then assert(released,'space_release_failed')else runtime.seatSpaceInput=nil end
+        end
+        if player.Character==c.character and c.humanoid.Parent and c.humanoid.Health>0 then
+            c.humanoid.Sit=false;c.humanoid.Jump=false;c.humanoid.Jump=true
+            pcall(function()c.humanoid:ChangeState(Enum.HumanoidStateType.Jumping)end)
+        end
+    end,
+})
+function runtime.prepareTeleport(c)
+    c=runtime.seatExitContext(c)
+    local ok,reason=runtime.seatExit.ensure(c)
+    if not ok then
+        if alive and reason~='changed'and reason~='disposed'then notify(runtime.pianoText('Teleport abgebrochen: Sitz noch nicht freigegeben.','Teleport cancelled: seat has not been released.'),'Teleport')end
+        error('teleport_seat_exit_'..tostring(reason),0)
+    end
+    return c
+end
+function runtime.teleportCharacter(c,frame)
+    c=runtime.prepareTeleport(c)
+    c.root.CFrame=frame;c.root.AssemblyLinearVelocity=Vector3.zero;c.root.AssemblyAngularVelocity=Vector3.zero
+    if runtime.voidGround then runtime.voidGround.reset()end
+    return true
+end
+connect(player.CharacterRemoving,function()runtime.seatExit.cancel();runtime.releaseSeatSpace()end)
+
 local function remember(h)
     if h and not originals[h] then
         originals[h] = {WalkSpeed = h.WalkSpeed, JumpPower = h.JumpPower, JumpHeight = h.JumpHeight}
@@ -2962,8 +3134,7 @@ function runtime.visitWaypoint(entry,freecam)
     restoreCamera(); runtime.stopRoleplay()
     local forward=Vector3.new(look.X,0,look.Z)
     if forward.Magnitude<.0001 then forward=Vector3.new(0,0,-1) end
-    part.CFrame=CFrame.lookAt(position,position+forward.Unit)
-    part.AssemblyLinearVelocity=Vector3.zero; part.AssemblyAngularVelocity=Vector3.zero
+    runtime.teleportCharacter({root=part,humanoid=h,character=player.Character},CFrame.lookAt(position,position+forward.Unit))
     runtime.safeGround=nil; if runtime.voidGround then runtime.voidGround.reset()end
     local camera=workspace.CurrentCamera
     if camera then
@@ -3087,6 +3258,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.96",text="Sichere Teleports: Vor jedem Ortswechsel steht der Charakter automatisch auf. Sitzstatus, Sitzverbindung und Minispiel-Belegung werden vor dem Teleport gepr\195\188ft; beim Schach werden zwei getrennte Sprungimpulse ausgel\195\182st. Nicht freigegebene Sitze, Stop und Respawn verhindern den Teleport. Gilt auch f\195\188r Hin- und R\195\188ckwege der Automatikfunktionen."},
     {version="2.6.95",text="Animierter Hintergrund: Die vorhandenen dunklen Verl\195\164ufe von Fenster, Dock und kleinen Glasfl\195\164chen bewegen sich langsam und weich. Urspr\195\188ngliche Farben, Farbpunkte, Transparenz und Karten bleiben erhalten. Unter Einstellungen > Allgemein l\195\164sst sich die Animation abschalten oder \195\188ber Animationen reduzieren ruhig darstellen; beide Optionen werden gespeichert."},
     {version="2.6.94",text="Tischfinder direkt in Schach, Vier gewinnt und Tic Tac Toe: Tischliste mit Belegung und Entfernung, Filter f\195\188r wartende Gegner oder leere Tische und Beitritt zum n\195\164chsten freien Sitz mit Best\195\164tigung durch die Spieldaten. Optionale gespeicherte Tisch-Markierungen: Gr\195\188n f\195\188r leer, Gelb f\195\188r einen wartenden Spieler, Rot f\195\188r voll und Blau f\195\188r den eigenen Tisch. Belegte oder ausgelagerte Sitze werden nicht als freie Ziele verwendet."},
     {version="2.6.93",text="Auto-Angeln unter Scripts > Dieses Spiel: verf\195\188gbare Standard- oder goldene Angel automatisch ausr\195\188sten, in den Teich auswerfen und den blauen Fangbereich durch Halten und Loslassen steuern. Automatische Folgew\195\188rfe nach dem Spiel-Cooldown, best\195\164tigte F\195\164nge und Credits, Hintergrundbetrieb und zentrale AFK-Sicherung; Start und Stop bleiben manuell. Wechselnde g\195\188ltige Wurfziele, Pr\195\188fung des tats\195\164chlichen Angel-Cooldowns und begrenzte Wiederholung abgelehnter W\195\188rfe verhindern dauernde Fehlwurf-Ger\195\164usche."},
@@ -3582,9 +3754,7 @@ end)({
         runtime.recovery.cancel(false);runtime.stopRoleplay();runtime.stopFreecam(false)
         if runtime.slot then runtime.slot.stop()end
         if state.fly then state.fly=false;stopFly();runtime.updateActiveKeys()end
-        h.Sit=false
-        r.CFrame=CFrame.lookAt(position,position+direction,Vector3.yAxis)
-        r.AssemblyLinearVelocity=Vector3.zero;r.AssemblyAngularVelocity=Vector3.zero
+        runtime.teleportCharacter({root=r,humanoid=h,character=player.Character},CFrame.lookAt(position,position+direction,Vector3.yAxis))
         if runtime.voidGround then runtime.voidGround.reset()end
     end,
     error=function(message)logEvent("Aufzug",message);notify("Aufzug-Ziel noch nicht geladen. Bitte erneut versuchen.","Aufzug")end,
@@ -3970,7 +4140,7 @@ function runtime.syncRoleplay(dt)
     local part=runtime.roleplayPart(owned.target,owned.mode)
     local targetHumanoid=owned.target.Character and owned.target.Character:FindFirstChildOfClass("Humanoid")
     if not alive or not owned.target.Parent or not part or root()~=owned.root or humanoid()~=owned.h
-        or owned.h.Health<=0 or not targetHumanoid or targetHumanoid.Health<=0 then runtime.stopRoleplay(); return end
+        or owned.h.SeatPart~=nil or owned.h.Sit==true or owned.h.Health<=0 or not targetHumanoid or targetHumanoid.Health<=0 then runtime.stopRoleplay(); return end
     -- One physics frame is shared by local positioning and replication.
     owned.root.CFrame=runtime.roleplayFrame(owned,part,dt or 0)
     owned.root.AssemblyLinearVelocity=Vector3.zero
@@ -3987,6 +4157,8 @@ function runtime.startRoleplay(mode)
     if not target or target==player or not target.Parent or not part or not h or not r or h.Health<=0 or not targetH or targetH.Health<=0 then notify("W\195\164hle einen verf\195\188gbaren Spieler als Ziel.","Roleplay"); return end
     runtime.stopRoleplay(); runtime.stopEmote()
     if state.fly then state.fly=false; stopFly() end
+    runtime.prepareTeleport({root=r,humanoid=h,character=player.Character})
+    if not target.Parent or not part.Parent or targetH.Health<=0 then return end
     local owned={target=target,mode=mode,h=h,root=r,platformStand=h.PlatformStand,autoRotate=h.AutoRotate}
     pcall(function() owned.seatedEnabled=h:GetStateEnabled(Enum.HumanoidStateType.Seated); owned.seatedCaptured=true; h:SetStateEnabled(Enum.HumanoidStateType.Seated,false) end)
     runtime.roleplay=owned; h.PlatformStand=true; h.AutoRotate=false
@@ -5540,7 +5712,10 @@ function runtime.drawPlayerCard(other,index)
             rowButton(f,"Zum Spieler",UDim2.fromOffset(138,68),UDim2.fromOffset(112,26),function()
                 local target=other.Character and other.Character:FindFirstChild("HumanoidRootPart")
                 local r=root()
-                if target and r then r.CFrame=target.CFrame*CFrame.new(3,0,0); notify("Position lokal ge\195\164ndert.")
+                if target and r then
+                    local c=runtime.prepareTeleport({root=r,character=player.Character,humanoid=humanoid()})
+                    assert(target.Parent and other.Character and target:IsDescendantOf(other.Character),'target_changed')
+                    runtime.teleportCharacter(c,target.CFrame*CFrame.new(3,0,0)); notify("Position lokal ge\195\164ndert.")
                 else notify("Charakter ist noch nicht verf\195\188gbar.") end
             end)
 
@@ -6886,17 +7061,19 @@ runtime.recovery=(function(deps)
     function p.cancel(finish)
         if not p.active then return end
         local context=p.context;p.active=false;p.context=nil
-        if finish and deps.valid(context)then pcall(deps.hold,context,p.target)end
+        if finish and not p.preparing and deps.valid(context)then pcall(deps.hold,context,p.target)end
         if p.visual then pcall(p.visual.cancel);p.visual=nil end
-        pcall(deps.restore,context)
+        p.preparing=false;pcall(deps.restore,context)
     end
     function p.start(target)
         if p.active then return false end
         local context=deps.context()
         if not context or not deps.valid(context)then return false end
-        p.context=context;p.target=target;p.started=deps.clock();p.arrived=false;p.active=true
+        p.context=context;p.target=target;p.started=deps.clock();p.arrived=false;p.active=true;p.preparing=true
         local ok,err=pcall(function()
             deps.prepare(context)
+            assert(p.active and p.context==context and deps.valid(context),"recovery_cancelled")
+            p.preparing=false;p.started=deps.clock()
             if not deps.reduced()then
                 p.visual=deps.visuals()
                 p.visual.begin(deps.frame(context),target)
@@ -6904,7 +7081,7 @@ runtime.recovery=(function(deps)
             deps.hold(context,target)
         end)
         if not ok then
-            p.cancel(true)
+            if p.context==context then p.cancel(true)end
             p.lastError=tostring(err);if deps.error then deps.error(p.lastError)end
             return true
         end
@@ -6912,7 +7089,7 @@ runtime.recovery=(function(deps)
         return true
     end
     function p.tick()
-        if not p.active then return end
+        if not p.active or p.preparing then return end
         local context=p.context
         if not deps.valid(context)then p.cancel(false);return end
         if deps.interrupted and deps.interrupted(context)then p.cancel(false);return end
@@ -6938,8 +7115,11 @@ end)({
     frame=function(context)return context.root.CFrame end,
     prepare=function(context)
         context.platformStand=context.humanoid.PlatformStand;context.autoRotate=context.humanoid.AutoRotate
+        context.current=function()return runtime.recovery.active and runtime.recovery.context==context end
+        runtime.prepareTeleport(context)
     end,
     hold=function(context,frame)
+        assert(not runtime.seatExitSnapshot(runtime.seatExitContext(context)).blocked,'recovery_seated')
         context.humanoid.PlatformStand=true;context.humanoid.AutoRotate=false
         context.root.CFrame=frame;context.root.AssemblyLinearVelocity=Vector3.zero;context.root.AssemblyAngularVelocity=Vector3.zero
     end,
@@ -8781,7 +8961,9 @@ function runtime.positionAtSlot(c)
             for _,part in ipairs(workspace:GetPartBoundsInBox(frame,size,overlap))do if part.CanCollide then return true end end
             return false
         end)
-    c.root.CFrame=target;c.root.AssemblyLinearVelocity=Vector3.zero;c.root.AssemblyAngularVelocity=Vector3.zero
+    local epoch=runtime.slot.epoch
+    c.current=function()return runtime.slot.active and runtime.slot.epoch==epoch end
+    runtime.teleportCharacter(c,target)
     if runtime.voidGround then runtime.voidGround.reset()end
     return target.Position
 end
@@ -8994,8 +9176,9 @@ end)({clock=os.clock,spawn=task.spawn,snapshot=runtime.readSlot,
     prepare=function(c)
         runtime.recovery.cancel(true);runtime.stopRoleplay();runtime.stopFreecam(false)
         if state.fly then state.fly=false;stopFly();runtime.updateActiveKeys()end
-        runtime.piano.stop();c.humanoid.Sit=false
-        for _=1,12 do if not c.humanoid.SeatPart then break end;task.wait(.05)end
+        runtime.piano.stop();local epoch=runtime.slot.epoch
+        c.current=function()return runtime.slot.active and runtime.slot.epoch==epoch end
+        runtime.prepareTeleport(c)
     end,
     move=runtime.positionAtSlot,guard=runtime.slotIdleGuard,
     displaced=function(c,position)return position~=nil and(c.root.Position-position).Magnitude>2 end,
@@ -9091,11 +9274,14 @@ function runtime.scanHalloween()
 end
 function runtime.halloweenCapture()
     local r,h=root(),humanoid()
-    assert(r and h and h.Health>0 and not h.SeatPart,"character_not_ready")
+    assert(r and h and h.Health>0,"character_not_ready")
     assert(not state.fly and not runtime.freecam and not runtime.roleplay,"movement_mode_active")
     assert(not(runtime.recovery and runtime.recovery.active),"recovery_active")
     assert(not(runtime.slot and runtime.slot.starting),"auto_spin_starting")
-    return {character=player.Character,root=r,humanoid=h,frame=r.CFrame}
+    local epoch=runtime.halloween.epoch
+    local c={character=player.Character,root=r,humanoid=h,current=function()return runtime.halloween.active and runtime.halloween.epoch==epoch end}
+    runtime.prepareTeleport(c);c.frame=r.CFrame
+    return c
 end
 function runtime.halloweenValid(_,saved)
     return alive and runtime.currentGame()~=nil and saved and player.Character==saved.character
@@ -9205,14 +9391,14 @@ function runtime.halloweenMove(item,saved)
             return false
         end)
     probe:Destroy();if not ok then error(target)end
-    saved.root.CFrame=target;saved.root.AssemblyLinearVelocity=Vector3.zero;saved.root.AssemblyAngularVelocity=Vector3.zero
+    runtime.teleportCharacter(saved,target)
     runtime.halloweenCamera.aim(saved,position)
     saved.bellFrame=target;if runtime.voidGround then runtime.voidGround.reset()end
 end
 function runtime.halloweenRestore(saved)
     runtime.halloweenCamera.release(saved)
     if not saved or player.Character~=saved.character or not saved.root.Parent or saved.humanoid.Health<=0 then return end
-    saved.root.CFrame=saved.frame;saved.root.AssemblyLinearVelocity=Vector3.zero;saved.root.AssemblyAngularVelocity=Vector3.zero
+    runtime.teleportCharacter({root=saved.root,humanoid=saved.humanoid,character=saved.character,allowInactive=true},saved.frame)
     if runtime.voidGround then runtime.voidGround.reset()end
 end
 function runtime.halloweenHighlight(model)
@@ -9941,7 +10127,8 @@ runtime.tableFinder=runtime.createTableFinder({
     preference=function(kind,value)settings.tableEsp[kind]=value;save()end,
     capture=function()
         local r,h=root(),humanoid();assert(r and h and h.Health>0,'character_not_ready')
-        return{root=r,humanoid=h,character=player.Character,frame=r.CFrame}
+        local epoch=runtime.tableFinder.epoch
+        return{root=r,humanoid=h,character=player.Character,frame=r.CFrame,current=function()return runtime.tableFinder.alive and runtime.tableFinder.epoch==epoch end}
     end,
     prepare=function(c)
         runtime.recovery.cancel(true);runtime.stopRoleplay();runtime.stopFreecam(false)
@@ -9949,15 +10136,14 @@ runtime.tableFinder=runtime.createTableFinder({
         runtime.piano.stop();runtime.slot.stop('stopped');runtime.halloween.stop('stopped')
         if runtime.fishing then runtime.fishing.stop()end
         runtime.chess.pause();runtime.tictactoe.pause();runtime.connect4.pause()
-        c.humanoid.Sit=false
-        for _=1,12 do if not c.humanoid.SeatPart then break end;task.wait(.05)end
+        runtime.prepareTeleport(c);c.frame=c.root.CFrame
     end,
     valid=function(c,seat)
         return alive and runtime.currentGame()~=nil and player.Character==c.character and c.root.Parent~=nil
             and c.humanoid.Health>0 and runtime.tableSeatAvailable(seat)and(not seat.Occupant or seat.Occupant==c.humanoid)
     end,
     move=function(c,seat)
-        c.root.CFrame=seat.CFrame*CFrame.new(0,2,0);c.root.AssemblyLinearVelocity=Vector3.zero;c.root.AssemblyAngularVelocity=Vector3.zero
+        runtime.teleportCharacter(c,seat.CFrame*CFrame.new(0,2,0))
         if runtime.voidGround then runtime.voidGround.reset()end
     end,
     sit=function(c,seat)if c.humanoid.SeatPart~=seat then seat:Sit(c.humanoid)end end,
@@ -9970,8 +10156,7 @@ runtime.tableFinder=runtime.createTableFinder({
     end,
     restore=function(c)
         if player.Character==c.character and c.root.Parent and c.humanoid.Health>0 then
-            c.humanoid.Sit=false;c.humanoid.Jump=true
-            c.root.CFrame=c.frame;c.root.AssemblyLinearVelocity=Vector3.zero;c.root.AssemblyAngularVelocity=Vector3.zero
+            runtime.teleportCharacter({root=c.root,humanoid=c.humanoid,character=c.character,allowInactive=true},c.frame)
         end
     end,
 })
@@ -10649,8 +10834,7 @@ function runtime.teleportFromFreecam()
     local look=owned.camera.CFrame.LookVector
     local forward=Vector3.new(look.X,0,look.Z)
     if forward.Magnitude<.0001 then forward=Vector3.new(-math.sin(owned.yaw),0,-math.cos(owned.yaw)) end
-    part.CFrame=CFrame.lookAt(destination,destination+forward.Unit,Vector3.new(0,1,0))
-    part.AssemblyLinearVelocity=Vector3.zero; part.AssemblyAngularVelocity=Vector3.zero
+    runtime.teleportCharacter({root=part,humanoid=h,character=player.Character},CFrame.lookAt(destination,destination+forward.Unit,Vector3.new(0,1,0)))
     local distance=math.max(.5,(owned.frame.Position-owned.focus.Position).Magnitude)
     local focus=destination+owned.focusOffset
     owned.frame=CFrame.lookAt(focus-look*distance,focus,owned.camera.CFrame.UpVector)
@@ -10743,6 +10927,7 @@ api.Destroy = function()
     runtime.antiAfk.dispose()
     runtime.elevatorPrompts.dispose()
     runtime.tableFinder.dispose()
+    runtime.seatExit.dispose();runtime.releaseSeatSpace()
     runtime.connect4Roster.clear()
     runtime.connect4.dispose()
     runtime.tictactoe.dispose()

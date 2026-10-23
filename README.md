@@ -1,5 +1,15 @@
-# ISB Menu 2.6.95 · by Larsiopuw
+# ISB Menu 2.6.96 · by Larsiopuw
 
+
+## Aufstehen vor Teleports
+
+Alle Ortswechsel des eigenen Charakters verwenden eine gemeinsame Sitzfreigabe: Halloween hin/zurück, 777 und automatische Rückkehr, Spieler-Teleports, Wegpunkte, Aufzug, Tischfinder samt Rückweg, Freecam-Teleport und der Start von Roleplay sowie Anti-Void. Kamera-Bewegungen und Outfit-Kopien bleiben eigenständige Funktionen.
+
+Bei belegtem Sitz wird zunächst mit getrennten Space-Down/Up-Eingaben und Humanoid-Sprung aufgestanden. Für Schach gibt es mindestens zwei Impulse. Erst nach freiem SeatPart, ausgeschaltetem Sit-/Seated-Status, gelöster eigener SeatWeld-Verbindung und freigegebener zuvor erkannter Minispiel-Belegung darf der Charakter versetzt werden. Die Freigabe muss kurz stabil bleiben. Es werden keine serverseitigen SeatWelds lokal gelöscht. Bei fehlendem VirtualInputManager dient der Humanoid-Sprung als Rückfall; auch dann wird die tatsächliche Freigabe verlangt. Chat-Eingabefelder erhalten keine künstlichen Leerzeichen.
+
+Nach maximal 4,5 Sekunden ohne Freigabe wird der Teleport abgebrochen. Stop, Respawn, ein anderer Charakter und das Entladen des Menüs brechen wartende Vorgänge ab. Der Tischfinder erfasst den Rückkehrpunkt nach dem Aufstehen; Rückwege nach Stop prüfen den Sitz erneut. Anti-Void bewegt den Charakter während der Sitzfreigabe nicht durch einen parallel laufenden Animations-Tick. Bereits stehende Charaktere teleportieren ohne zusätzlichen Sprung oder Wartezeit.
+
+Prüfstatus dieser Änderung: Luau-Kompilierung, vorhandene Menütests, gezielte Zustands-/Abbruchtests und native Adaptertests mit nachgebildeter Roblox-API. Ein echter Ingame-Test dieser Sitzkorrektur ist noch offen; aktuell steht dafür kein Executor-Werkzeug zur Verfügung.
 
 ## Animierter Hintergrund
 
