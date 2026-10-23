@@ -1,4 +1,4 @@
-# ISB Menu 2.6.97 · by Larsiopuw
+# ISB Menu 2.6.98 · by Larsiopuw
 
 
 ## Aufstehen vor Teleports
@@ -8,6 +8,10 @@ Alle Ortswechsel des eigenen Charakters verwenden eine gemeinsame Sitzfreigabe: 
 Bei belegtem Sitz wird zunächst mit getrennten Space-Down/Up-Eingaben und Humanoid-Sprung aufgestanden. Beim Warten auf einen Gegner am Schachtisch reicht ein Impuls. Nur während einer laufenden eigenen Schachrunde (phase = Playing) werden mindestens zwei getrennte Impulse ausgeführt. Erst nach freiem SeatPart, ausgeschaltetem Sit-/Seated-Status, gelöster eigener SeatWeld-Verbindung und freigegebener zuvor erkannter Minispiel-Belegung darf der Charakter versetzt werden. Die Freigabe muss kurz stabil bleiben. Es werden keine serverseitigen SeatWelds lokal gelöscht. Bei fehlendem VirtualInputManager dient der Humanoid-Sprung als Rückfall; auch dann wird die tatsächliche Freigabe verlangt. Chat-Eingabefelder erhalten keine künstlichen Leerzeichen.
 
 Nach maximal 4,5 Sekunden ohne Freigabe wird der Teleport abgebrochen. Stop, Respawn, ein anderer Charakter und das Entladen des Menüs brechen wartende Vorgänge ab. Der Tischfinder erfasst den Rückkehrpunkt nach dem Aufstehen; Rückwege nach Stop prüfen den Sitz erneut. Anti-Void bewegt den Charakter während der Sitzfreigabe nicht durch einen parallel laufenden Animations-Tick. Bereits stehende Charaktere teleportieren ohne zusätzlichen Sprung oder Wartezeit.
+
+Nach einem bestätigten Schach-Sitzausstieg wird der noch laufende Kameraübergang über CameraRig.exit(true) des Spiels beendet. Anschließend übernimmt die eigene Custom-/Humanoid-Kamera mit der zuvor erfassten normalen Blickrichtung und Entfernung. Fehlt diese Ansicht nach einem Laden direkt am Tisch, wird eine moderate Ansicht hinter dem Charakter verwendet. Der normale Blick wird nur außerhalb von Sitzen, Scriptable-Kameras, Freecam, Beobachtung und Automatik-Kamerafahrten erfasst.
+
+Halloween sichert CFrame, Focus, CameraType, CameraSubject und FieldOfView vor dem Hinteleport. Erst nach dem Rückteleport wird diese Ansicht freigegeben; auch bei einem fehlgeschlagenen Rückweg wird der Kamera-Callback aufgeräumt. Dadurch wird keine Zwischenansicht der Schach-Ausfahrt als Rückkehrkamera gespeichert.
 
 Prüfstatus dieser Änderung: Luau-Kompilierung, vorhandene Menütests, gezielte Zustands-/Abbruchtests und native Adaptertests mit nachgebildeter Roblox-API. Ein echter Ingame-Test des Aufstehens ist noch offen. Der aktuelle Spielzustand wurde lesend geprüft; die Unterscheidung nutzt die vorhandene Schach-Phase im View-Snapshot.
 

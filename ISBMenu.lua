@@ -1,7 +1,7 @@
--- ISB Menu 2.6.97 | Own-game universal client toolkit
+-- ISB Menu 2.6.98 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.97",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.98",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -704,7 +704,7 @@ runtime.english={
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.english["Auto-Angeln"]="Auto Fishing"
 runtime.englishHistory={
-    ["2.6.97"]="Safe teleports: the character automatically stands up before changing location. Seat state, seat joints and minigame occupancy are checked before teleporting; chess uses one jump input while waiting for an opponent and two separate jump inputs during an active round. An unreleased seat, Stop or respawn prevents teleporting. Includes outbound and return trips of automatic features.",
+    ["2.6.98"]="Safe teleports: the character automatically stands up before changing location. Seat state, seat joints and minigame occupancy are checked before teleporting; chess uses one jump input while waiting for an opponent and two separate jump inputs during an active round. An unreleased seat, Stop or respawn prevents teleporting. Includes outbound and return trips of automatic features. Chess camera transitions are completed before teleporting; Halloween captures the normal return view before departure and restores it with its field of view after returning.",
     ["2.6.95"]="Animated background: the existing dark gradients on the window, dock and small glass surfaces move slowly and smoothly. Original colors, gradient stops, transparency and cards are preserved. Settings > General can disable the animation or keep it still with Reduce motion; both preferences are saved.",
     ["2.6.94"]="Table finder inside Chess, Connect Four and Tic Tac Toe: table list with occupancy and distance, filters for waiting opponents or empty tables, and nearest-seat teleport with confirmation from game data. Optional saved table highlights: green for empty, amber for a waiting player, red for full and blue for your table. Occupied or off-map seats are excluded from available destinations.",
     ["2.6.93"]="Auto Fishing under Scripts > This Game: automatically equip an available standard or golden rod, cast into the pond and control the blue catching region by holding and releasing. Automatic casts after the game cooldown, confirmed catches and credits, background operation and shared idle protection; starts and stops manually. Varied valid casting targets, checks of the rod\226\128\153s actual cooldown and bounded retries of rejected casts prevent repeated failed-cast sounds.",
@@ -1562,7 +1562,7 @@ runtime.createSeatExit=function(deps)
         if not initial.blocked then return true end
         p.busy=true
         local ok,result=pcall(function()
-            if deps.before then deps.before(context)end
+            if deps.before then deps.before(context,initial)end
             local minimum=initial.chessPlaying and 2 or 1
             local pulses=0;local nextPulse=0;local clearSince
             while valid()and deps.clock()<deadline do
@@ -1583,6 +1583,11 @@ runtime.createSeatExit=function(deps)
         if not valid()then return false,'changed'end
         if not result then return false,'seat_unconfirmed'end
         if deps.snapshot(context).blocked then return false,'reseated'end
+        if deps.after then
+            local finished,err=pcall(deps.after,context)
+            if not finished then return false,tostring(err)end
+            if not valid()then return false,'changed'end
+        end
         return true
     end
     function p.dispose()p.cancel();p.alive=false end
@@ -1651,17 +1656,18 @@ function runtime.seatExitSnapshot(c)
             linked=linked or(ok and ours==true)
         end
     end
-    local chessPlaying=false;local inGame=false
+    local chessPlaying=false;local chessSeated=false;local inGame=false
     for model,tag in pairs(c.seatGames)do
         if model.Parent then
             local ids,phase=runtime.seatGameIds(model,tag)
+            chessSeated=chessSeated or(tag=='ChessMinigame'and ids~=nil and table.find(ids,player.UserId)~=nil)
             chessPlaying=chessPlaying or(tag=='ChessMinigame'and phase=='Playing'and ids~=nil and table.find(ids,player.UserId)~=nil)
             inGame=inGame or(ids and table.find(ids,player.UserId)~=nil)or false
         end
     end
     local seatedState=false;local ok,value=pcall(function()return h:GetState()end)
     if ok then seatedState=value==Enum.HumanoidStateType.Seated end
-    return{blocked=seat~=nil or h.Sit==true or seatedState or linked or inGame,chessPlaying=chessPlaying}
+    return{blocked=seat~=nil or h.Sit==true or seatedState or linked or inGame,chessPlaying=chessPlaying,chessSeated=chessSeated}
 end
 function runtime.releaseSeatSpace()
     if not runtime.seatSpaceInput then return true end
@@ -1671,15 +1677,60 @@ function runtime.releaseSeatSpace()
     if ok then runtime.seatSpaceInput=nil end
     return ok
 end
+-- Keep a normal walking view; never sample the board, freecam or a scripted visit.
+function runtime.captureWalkingCamera()
+    local camera=workspace.CurrentCamera;local h,r=humanoid(),root()
+    if not camera or not h or not r or h.Health<=0 or h.Sit or h.SeatPart
+        or camera.CameraType~=Enum.CameraType.Custom or camera.CameraSubject~=h
+        or runtime.freecam or spectating or runtime.roleplay
+        or(runtime.recovery and runtime.recovery.active)or(runtime.halloween and runtime.halloween.busy)then return end
+    local offset=camera.CFrame.Position-camera.Focus.Position
+    if offset.Magnitude<.5 or offset.Magnitude>100 then return end
+    runtime.walkingCamera={character=player.Character,offset=offset,height=math.clamp(camera.Focus.Position.Y-r.Position.Y,0,5)}
+end
+function runtime.finishChessCamera(c)
+    if not c.chessCameraExit then return end
+    c.chessCameraExit=nil
+    -- Use the game's own immediate exit, which also ends its late render callback.
+    local first=optionalService('ReplicatedFirst');first=first and first:FindFirstChild('Controllers')
+    local gameplay=first and first:FindFirstChild('Gameplay');local controller=gameplay and gameplay:FindFirstChild('MinigameController')
+    local chess=controller and controller:FindFirstChild('Chess');local module=chess and chess:FindFirstChild('CameraRig')
+    if module then
+        local rig=require(module)
+        assert(type(rig)=='table'and type(rig.exit)=='function','chess_camera_api_changed')
+        rig.exit(true)
+    end
+    if player.Character~=c.character or c.humanoid.Health<=0 then return end
+    local camera=workspace.CurrentCamera;if not camera then return end
+    local saved=runtime.walkingCamera
+    local offset,height
+    if saved and saved.character==c.character then offset=saved.offset;height=saved.height
+    else
+        local look=c.root.CFrame.LookVector;local forward=Vector3.new(look.X,0,look.Z)
+        if forward.Magnitude<.01 then forward=Vector3.new(0,0,-1)else forward=forward.Unit end
+        offset=-forward*12+Vector3.new(0,4,0);height=1.5
+    end
+    local focus=c.root.Position+Vector3.new(0,height,0)
+    camera.CameraSubject=c.humanoid;camera.CameraType=Enum.CameraType.Custom
+    camera.CFrame=CFrame.lookAt(focus+offset,focus,Vector3.yAxis);camera.Focus=CFrame.new(focus)
+end
+runtime.walkingCameraNext=0
+connect(Run.RenderStepped,function()
+    local now=os.clock();if now<runtime.walkingCameraNext then return end
+    runtime.walkingCameraNext=now+.1;runtime.captureWalkingCamera()
+end)
+
 runtime.seatExit=runtime.createSeatExit({clock=os.clock,wait=task.wait,
     valid=function(c)
         return(alive or c.allowInactive)and player.Character==c.character and c.character and c.character.Parent~=nil
             and c.root and c.root.Parent~=nil and c.humanoid and c.humanoid.Parent~=nil and c.humanoid.Health>0
     end,
     snapshot=runtime.seatExitSnapshot,
-    before=function()
+    before=function(c,initial)
+        c.chessCameraExit=initial.chessSeated
         for _,name in ipairs({'chess','connect4','tictactoe'})do if runtime[name]then runtime[name].pause()end end
     end,
+    after=function(c)runtime.finishChessCamera(c)end,
     pulse=function(c)
         local focused;pcall(function()focused=UIS:GetFocusedTextBox()end)
         local input=not focused and optionalService('VirtualInputManager')
@@ -3258,7 +3309,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.97",text="Sichere Teleports: Vor jedem Ortswechsel steht der Charakter automatisch auf. Sitzstatus, Sitzverbindung und Minispiel-Belegung werden vor dem Teleport gepr\195\188ft; beim Schach reicht beim Warten auf einen Gegner ein Sprungimpuls, w\195\164hrend einer laufenden eigenen Runde werden zwei getrennte Sprungimpulse ausgel\195\182st. Nicht freigegebene Sitze, Stop und Respawn verhindern den Teleport. Gilt auch f\195\188r Hin- und R\195\188ckwege der Automatikfunktionen."},
+    {version="2.6.98",text="Sichere Teleports: Vor jedem Ortswechsel steht der Charakter automatisch auf. Sitzstatus, Sitzverbindung und Minispiel-Belegung werden vor dem Teleport gepr\195\188ft; beim Schach reicht beim Warten auf einen Gegner ein Sprungimpuls, w\195\164hrend einer laufenden eigenen Runde werden zwei getrennte Sprungimpulse ausgel\195\182st. Nicht freigegebene Sitze, Stop und Respawn verhindern den Teleport. Gilt auch f\195\188r Hin- und R\195\188ckwege der Automatikfunktionen. Der Schach-Kamera\195\188bergang wird vor dem Teleport sauber beendet; Halloween sichert die normale R\195\188ckkehransicht vor der Abreise und stellt sie mit Sichtfeld nach der R\195\188ckkehr wieder her."},
     {version="2.6.95",text="Animierter Hintergrund: Die vorhandenen dunklen Verl\195\164ufe von Fenster, Dock und kleinen Glasfl\195\164chen bewegen sich langsam und weich. Urspr\195\188ngliche Farben, Farbpunkte, Transparenz und Karten bleiben erhalten. Unter Einstellungen > Allgemein l\195\164sst sich die Animation abschalten oder \195\188ber Animationen reduzieren ruhig darstellen; beide Optionen werden gespeichert."},
     {version="2.6.94",text="Tischfinder direkt in Schach, Vier gewinnt und Tic Tac Toe: Tischliste mit Belegung und Entfernung, Filter f\195\188r wartende Gegner oder leere Tische und Beitritt zum n\195\164chsten freien Sitz mit Best\195\164tigung durch die Spieldaten. Optionale gespeicherte Tisch-Markierungen: Gr\195\188n f\195\188r leer, Gelb f\195\188r einen wartenden Spieler, Rot f\195\188r voll und Blau f\195\188r den eigenen Tisch. Belegte oder ausgelagerte Sitze werden nicht als freie Ziele verwendet."},
     {version="2.6.93",text="Auto-Angeln unter Scripts > Dieses Spiel: verf\195\188gbare Standard- oder goldene Angel automatisch ausr\195\188sten, in den Teich auswerfen und den blauen Fangbereich durch Halten und Loslassen steuern. Automatische Folgew\195\188rfe nach dem Spiel-Cooldown, best\195\164tigte F\195\164nge und Credits, Hintergrundbetrieb und zentrale AFK-Sicherung; Start und Stop bleiben manuell. Wechselnde g\195\188ltige Wurfziele, Pr\195\188fung des tats\195\164chlichen Angel-Cooldowns und begrenzte Wiederholung abgelehnter W\195\188rfe verhindern dauernde Fehlwurf-Ger\195\164usche."},
@@ -9281,6 +9332,8 @@ function runtime.halloweenCapture()
     local epoch=runtime.halloween.epoch
     local c={character=player.Character,root=r,humanoid=h,current=function()return runtime.halloween.active and runtime.halloween.epoch==epoch end}
     runtime.prepareTeleport(c);c.frame=r.CFrame
+    local camera=workspace.CurrentCamera
+    if camera then c.cameraReturn={camera=camera,frame=camera.CFrame,focus=camera.Focus,subject=camera.CameraSubject,kind=camera.CameraType,fov=camera.FieldOfView}end
     return c
 end
 function runtime.halloweenValid(_,saved)
@@ -9336,6 +9389,7 @@ runtime.halloweenCamera=(function(deps)
         local old=saved.cameraState;saved.cameraState=nil
         if old and deps.camera()==old.camera then
             old.camera.CFrame=old.frame;old.camera.Focus=old.focus
+            if old.fov then old.camera.FieldOfView=old.fov end
             if not old.subject or old.subject.Parent then old.camera.CameraSubject=old.subject end
             old.camera.CameraType=old.kind
         end
@@ -9345,7 +9399,8 @@ runtime.halloweenCamera=(function(deps)
         if owner~=saved then
             if owner then release(owner)end
             local camera=deps.camera();assert(camera,'camera_unavailable')
-            saved.cameraState={camera=camera,frame=camera.CFrame,focus=camera.Focus,subject=camera.CameraSubject,kind=camera.CameraType}
+            local original=saved.cameraReturn
+            saved.cameraState=(original and original.camera==camera)and original or{camera=camera,frame=camera.CFrame,focus=camera.Focus,subject=camera.CameraSubject,kind=camera.CameraType,fov=camera.FieldOfView}
             owner=saved
             deps.bind(function()
                 if owner~=saved then return end
@@ -9396,10 +9451,13 @@ function runtime.halloweenMove(item,saved)
     saved.bellFrame=target;if runtime.voidGround then runtime.voidGround.reset()end
 end
 function runtime.halloweenRestore(saved)
+    local ok,err=pcall(function()
+        if not saved or player.Character~=saved.character or not saved.root.Parent or saved.humanoid.Health<=0 then return end
+        runtime.teleportCharacter({root=saved.root,humanoid=saved.humanoid,character=saved.character,allowInactive=true},saved.frame)
+        if runtime.voidGround then runtime.voidGround.reset()end
+    end)
     runtime.halloweenCamera.release(saved)
-    if not saved or player.Character~=saved.character or not saved.root.Parent or saved.humanoid.Health<=0 then return end
-    runtime.teleportCharacter({root=saved.root,humanoid=saved.humanoid,character=saved.character,allowInactive=true},saved.frame)
-    if runtime.voidGround then runtime.voidGround.reset()end
+    if not ok then error(err,0)end
 end
 function runtime.halloweenHighlight(model)
     local visual=make("Highlight",{Name="ISBHalloweenHighlight",Adornee=model,DepthMode=Enum.HighlightDepthMode.AlwaysOnTop,
