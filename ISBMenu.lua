@@ -1,7 +1,7 @@
--- ISB Menu 2.6.99 | Own-game universal client toolkit
+-- ISB Menu 2.6.100 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.99",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.100",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -709,7 +709,7 @@ runtime.englishHistory={
     ["2.6.94"]="Table finder inside Chess, Connect Four and Tic Tac Toe: table list with occupancy and distance, filters for waiting opponents or empty tables, and nearest-seat teleport with confirmation from game data. Optional saved table highlights: green for empty, amber for a waiting player, red for full and blue for your table. Occupied or off-map seats are excluded from available destinations.",
     ["2.6.93"]="Auto Fishing under Scripts > This Game: automatically equip an available standard or golden rod, cast into the pond and control the blue catching region by holding and releasing. Automatic casts after the game cooldown, confirmed catches and credits, background operation and shared idle protection; starts and stops manually. Varied valid casting targets, checks of the rod\226\128\153s actual cooldown and bounded retries of rejected casts prevent repeated failed-cast sounds.",
     ["2.6.92"]="Central idle protection across ISB Menu: enabled automatically on load, with periodic Roblox input pulses during inactivity and an additional idle-event response. One shared instance for all features, automatic retries after input failures and complete cleanup on unload.",
-    ["2.6.99"]="Halloween-Event under Scripts > This Game: Doorbell input from inside the house with the camera aimed at the bell, confirmed candy credit and return to the previous position and camera view. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually. Input waits for a stable landing, sufficient range and the camera aimed at the bell. Prompt visibility and triggered interactions are considered. Missing credit leads to early retries from other checked interior positions; input attempts and repositioning are bounded.",
+    ["2.6.100"]="Halloween-Event under Scripts > This Game: Doorbell input from inside the house with the camera aimed at the bell, confirmed candy credit and return to the previous position and camera view. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually. Input waits for a stable landing, sufficient range and the camera aimed at the bell. Prompt visibility and triggered interactions are considered. Missing credit leads to early retries from other checked interior positions; input attempts and repositioning are bounded. During a visit, the exact doorbell remains visible independently of other item prompts and receives targeted native input; its original prompt arbitration is restored on exit or cancellation.",
     ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game. Rounded frame stays visible when expanding or collapsing the collection; frame and content share the same native scrolling clip.",
     ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
     ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely and claim button availability immediately. Native taps every frame until server acknowledgement, without artificial hold or retry delays for tap prompts. Confirmed spins receive no further input. Optional title-stop policy, lifetime 777 wins, automatic return to the button and shared ISB Menu idle protection. Actual priority depends on server ordering and ping.",
@@ -3309,7 +3309,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
-    {version="2.6.99",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet. Eingaben erst bei stabiler Ankunft, ausreichender N\195\164he und auf die Klingel gerichteter Kamera. Die Prompt-Sichtbarkeit und ausgel\195\182ste Interaktionen werden ber\195\188cksichtigt. Bei ausbleibender Gutschrift werden fr\195\188h andere gepr\195\188fte Innenpositionen verwendet; Eingaben und Neuausrichtungen bleiben begrenzt."},
+    {version="2.6.100",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet. Eingaben erst bei stabiler Ankunft, ausreichender N\195\164he und auf die Klingel gerichteter Kamera. Die Prompt-Sichtbarkeit und ausgel\195\182ste Interaktionen werden ber\195\188cksichtigt. Bei ausbleibender Gutschrift werden fr\195\188h andere gepr\195\188fte Innenpositionen verwendet; Eingaben und Neuausrichtungen bleiben begrenzt. W\195\164hrend des Besuchs bleibt die genaue Klingel unabh\195\164ngig von fremden Item-Kn\195\182pfen sichtbar und wird direkt angesprochen; ihre urspr\195\188ngliche Anzeige-Priorit\195\164t wird beim Verlassen oder Abbrechen wiederhergestellt."},
     {version="2.6.98",text="Sichere Teleports: Vor jedem Ortswechsel steht der Charakter automatisch auf. Sitzstatus, Sitzverbindung und Minispiel-Belegung werden vor dem Teleport gepr\195\188ft; beim Schach reicht beim Warten auf einen Gegner ein Sprungimpuls, w\195\164hrend einer laufenden eigenen Runde werden zwei getrennte Sprungimpulse ausgel\195\182st. Nicht freigegebene Sitze, Stop und Respawn verhindern den Teleport. Gilt auch f\195\188r Hin- und R\195\188ckwege der Automatikfunktionen. Der Schach-Kamera\195\188bergang wird vor dem Teleport sauber beendet; Halloween sichert die normale R\195\188ckkehransicht vor der Abreise und stellt sie mit Sichtfeld nach der R\195\188ckkehr wieder her."},
     {version="2.6.95",text="Animierter Hintergrund: Die vorhandenen dunklen Verl\195\164ufe von Fenster, Dock und kleinen Glasfl\195\164chen bewegen sich langsam und weich. Urspr\195\188ngliche Farben, Farbpunkte, Transparenz und Karten bleiben erhalten. Unter Einstellungen > Allgemein l\195\164sst sich die Animation abschalten oder \195\188ber Animationen reduzieren ruhig darstellen; beide Optionen werden gespeichert."},
     {version="2.6.94",text="Tischfinder direkt in Schach, Vier gewinnt und Tic Tac Toe: Tischliste mit Belegung und Entfernung, Filter f\195\188r wartende Gegner oder leere Tische und Beitritt zum n\195\164chsten freien Sitz mit Best\195\164tigung durch die Spieldaten. Optionale gespeicherte Tisch-Markierungen: Gr\195\188n f\195\188r leer, Gelb f\195\188r einen wartenden Spieler, Rot f\195\188r voll und Blau f\195\188r den eigenen Tisch. Belegte oder ausgelagerte Sitze werden nicht als freie Ziele verwendet."},
@@ -9833,9 +9833,33 @@ function runtime.halloweenReady(item,saved)
         inRange=(saved.root.Position-bell).Magnitude<=math.max(1,item.prompt.MaxActivationDistance-.75),
         root=saved.root.Position,bell=bell},os.clock())
 end
+runtime.halloweenPromptLease=(function(deps)
+    return function(prompt)
+        local old=deps.read(prompt)
+        local assigned=deps.always
+        local active=true
+        deps.write(prompt,assigned)
+        return function()
+            if not active then return end;active=false
+            if deps.exists(prompt)and deps.read(prompt)==assigned then deps.write(prompt,old)end
+        end
+    end
+end)({always=Enum.ProximityPromptExclusivity.AlwaysShow,
+    read=function(prompt)return prompt.Exclusivity end,
+    write=function(prompt,value)prompt.Exclusivity=value end,
+    exists=function(prompt)return prompt.Parent~=nil end})
 function runtime.halloweenObserve(item,saved)
-    local receipt=runtime.halloweenReceipt({balance=runtime.halloweenBalance,listen=runtime.halloweenListen})
-    local close=receipt.close
+    -- Keep this exact bell active even when another nearby item uses the same key.
+    local releasePrompt=runtime.halloweenPromptLease(item.prompt)
+    local observed,receipt=pcall(runtime.halloweenReceipt,{balance=runtime.halloweenBalance,listen=runtime.halloweenListen})
+    if not observed then releasePrompt();error(receipt,0)end
+    local receiptClose=receipt.close;local closed=false
+    local function close()
+        if closed then return end;closed=true
+        local ok,err=pcall(receiptClose)
+        releasePrompt()
+        if not ok then error(err,0)end
+    end
     saved.bellTriggerCount=0
     local ok,triggered=pcall(function()return item.prompt.Triggered:Connect(function(who)
         if who==nil or who==player then saved.bellTriggerCount+=1;saved.bellTriggeredAt=os.clock()end
@@ -9953,7 +9977,7 @@ runtime.halloween=(function(deps)
         changed();return true
     end
     local function visit(item,entry)
-        p.busy=true;local epoch=p.epoch;local trip={item=item};p.trip=trip;status('travelling')
+        p.busy=true;p.lastError=nil;local epoch=p.epoch;local trip={item=item};p.trip=trip;status('travelling')
         deps.spawn(function()
             local outcome='cancelled';local reward=0
             local function current()return p.alive and p.active and p.epoch==epoch end

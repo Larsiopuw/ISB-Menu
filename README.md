@@ -1,7 +1,11 @@
-# ISB Menu 2.6.99 · by Larsiopuw
+# ISB Menu 2.6.100 · by Larsiopuw
 
 
 ## Halloween: Klingelbereitschaft und Wiederholungen
+
+Während jedes Besuchs erhält ausschließlich die ausgewählte Original-Klingel vorübergehend Exclusivity = AlwaysShow. Dadurch kann sie nicht von einem näheren TipJar-/Item-Prompt mit derselben E-Taste verdrängt werden. Die Eingabe richtet sich weiterhin direkt per InputHoldBegin/End an diese Klingel; es wird kein allgemeiner E-Tastendruck gesendet. Fremde Prompts werden nicht verändert. Bei Rückkehr, Stop, Profil-/Observerfehlern und Entladen wird die ursprüngliche Klingel-Einstellung wiederhergestellt, sofern sie noch dem von uns gesetzten Wert entspricht.
+
+Ingame verifiziert: Bei einem echten Spawn verdrängte ein TipJar-Prompt die Klingel kurzzeitig. Nach erneuter Anzeige brachte der erste gesendete Klingeldruck +18 Candy Corns, Profilbetrag 1432 -> 1450. In einem kontrollierten Konflikttest mit zwei gleichzeitigen E-Prompts konnte der verdrängte Ziel-Prompt zunächst nicht nativ auslösen; nach Umschalten nur dieses Ziels auf AlwaysShow wurde das Ziel genau einmal ausgelöst und der andere Prompt keinmal. Diese Prüfung belegt den Prompt-Konflikt und die gezielte Eingabe. Ein früherer erfolgloser Erstversuch ohne beobachteten Konkurrenz-Prompt wurde noch nicht reproduziert.
 
 Vor Eingaben werden Charakter, aktuelle Klingel, Entfernung mit Sicherheitsabstand, Bildschirmprojektion und Kamerablick geprüft. Ein explizites PromptHidden verhindert Eingaben. Klingel und Charakter müssen 0,4 Sekunden stabil bleiben. Falls das PromptShown-Ereignis bereits vor dem Laden passiert ist, kann die stabile geometrische Prüfung die Bereitschaft feststellen. Die vorhandene Wartezeit für die Hausanimation bleibt erhalten.
 
