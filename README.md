@@ -1,5 +1,13 @@
-# ISB Menu 2.6.98 · by Larsiopuw
+# ISB Menu 2.6.99 · by Larsiopuw
 
+
+## Halloween: Klingelbereitschaft und Wiederholungen
+
+Vor Eingaben werden Charakter, aktuelle Klingel, Entfernung mit Sicherheitsabstand, Bildschirmprojektion und Kamerablick geprüft. Ein explizites PromptHidden verhindert Eingaben. Klingel und Charakter müssen 0,4 Sekunden stabil bleiben. Falls das PromptShown-Ereignis bereits vor dem Laden passiert ist, kann die stabile geometrische Prüfung die Bereitschaft feststellen. Die vorhandene Wartezeit für die Hausanimation bleibt erhalten.
+
+Nach dem Hinteleport wird vor dem ersten Eingabeversuch bis zu acht Sekunden auf Bereitschaft gewartet. Ohne Bereitschaft wird früh eine andere kollisionsgeprüfte Position im Inneren hinter der Klingel gesucht. Ohne bestätigte Candy-Gutschrift wird nach zwei gesendeten Versuchen ebenfalls neu ausgerichtet. Maximal zwei Neuausrichtungen und sechs Eingaben pro Besuch; danach gelten die bestehenden begrenzten Besuchswiederholungen. Bei einem lokalen Triggered-Ereignis erhält die Serverbestätigung mindestens 1,5 Sekunden Zeit; das Ereignis allein zählt nicht als erhaltene Belohnung. Blockierte Eingaben zählen nicht als Attempt.
+
+Gesammelt und dauerhaft gesperrt wird ein Haus weiterhin nur nach passender Servermeldung samt tatsächlicher Candy-Gutschrift oder ausdrücklicher Bereits-eingesammelt-Antwort. Stop, Respawn und Fehler lösen gehaltene Eingaben sowie Beobachter und führen über den vorhandenen sicheren Rückweg zurück.
 
 ## Aufstehen vor Teleports
 

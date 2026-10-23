@@ -1,7 +1,7 @@
--- ISB Menu 2.6.98 | Own-game universal client toolkit
+-- ISB Menu 2.6.99 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.98",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.99",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -709,7 +709,7 @@ runtime.englishHistory={
     ["2.6.94"]="Table finder inside Chess, Connect Four and Tic Tac Toe: table list with occupancy and distance, filters for waiting opponents or empty tables, and nearest-seat teleport with confirmation from game data. Optional saved table highlights: green for empty, amber for a waiting player, red for full and blue for your table. Occupied or off-map seats are excluded from available destinations.",
     ["2.6.93"]="Auto Fishing under Scripts > This Game: automatically equip an available standard or golden rod, cast into the pond and control the blue catching region by holding and releasing. Automatic casts after the game cooldown, confirmed catches and credits, background operation and shared idle protection; starts and stops manually. Varied valid casting targets, checks of the rod\226\128\153s actual cooldown and bounded retries of rejected casts prevent repeated failed-cast sounds.",
     ["2.6.92"]="Central idle protection across ISB Menu: enabled automatically on load, with periodic Roblox input pulses during inactivity and an additional idle-event response. One shared instance for all features, automatic retries after input failures and complete cleanup on unload.",
-    ["2.6.91"]="Halloween-Event under Scripts > This Game: Doorbell input from inside the house with the camera aimed at the bell, confirmed candy credit and return to the previous position and camera view. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually.",
+    ["2.6.99"]="Halloween-Event under Scripts > This Game: Doorbell input from inside the house with the camera aimed at the bell, confirmed candy credit and return to the previous position and camera view. Failed visits can be retried; confirmed houses stay locked across Stop/Start and reloads. Optional spawn notifications and house highlights. All three preferences are saved and default to on; automation starts manually. Input waits for a stable landing, sufficient range and the camera aimed at the bell. Prompt visibility and triggered interactions are considered. Missing credit leads to early retries from other checked interior positions; input attempts and repositioning are bounded.",
     ["2.6.90"]="Game information in player details and the player-info item: credits, ranks, reputation, play time and donations with grouped numbers. Expandable equipment and collection with game-pass names and individual title/item entries; updates live and only appears in the supported game. Rounded frame stays visible when expanding or collapsing the collection; frame and content share the same native scrolling clip.",
     ["2.6.89"]="VIP elevator with dedicated local E prompts: teleport directly in and back, facing straight out and standing on the floor. Automatically active in the supported game.",
     ["2.6.86"]="777 Auto-Spin under Scripts > This Game: teleport safely and claim button availability immediately. Native taps every frame until server acknowledgement, without artificial hold or retry delays for tap prompts. Confirmed spins receive no further input. Optional title-stop policy, lifetime 777 wins, automatic return to the button and shared ISB Menu idle protection. Actual priority depends on server ordering and ping.",
@@ -3309,13 +3309,13 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.99",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet. Eingaben erst bei stabiler Ankunft, ausreichender N\195\164he und auf die Klingel gerichteter Kamera. Die Prompt-Sichtbarkeit und ausgel\195\182ste Interaktionen werden ber\195\188cksichtigt. Bei ausbleibender Gutschrift werden fr\195\188h andere gepr\195\188fte Innenpositionen verwendet; Eingaben und Neuausrichtungen bleiben begrenzt."},
     {version="2.6.98",text="Sichere Teleports: Vor jedem Ortswechsel steht der Charakter automatisch auf. Sitzstatus, Sitzverbindung und Minispiel-Belegung werden vor dem Teleport gepr\195\188ft; beim Schach reicht beim Warten auf einen Gegner ein Sprungimpuls, w\195\164hrend einer laufenden eigenen Runde werden zwei getrennte Sprungimpulse ausgel\195\182st. Nicht freigegebene Sitze, Stop und Respawn verhindern den Teleport. Gilt auch f\195\188r Hin- und R\195\188ckwege der Automatikfunktionen. Der Schach-Kamera\195\188bergang wird vor dem Teleport sauber beendet; Halloween sichert die normale R\195\188ckkehransicht vor der Abreise und stellt sie mit Sichtfeld nach der R\195\188ckkehr wieder her."},
     {version="2.6.95",text="Animierter Hintergrund: Die vorhandenen dunklen Verl\195\164ufe von Fenster, Dock und kleinen Glasfl\195\164chen bewegen sich langsam und weich. Urspr\195\188ngliche Farben, Farbpunkte, Transparenz und Karten bleiben erhalten. Unter Einstellungen > Allgemein l\195\164sst sich die Animation abschalten oder \195\188ber Animationen reduzieren ruhig darstellen; beide Optionen werden gespeichert."},
     {version="2.6.94",text="Tischfinder direkt in Schach, Vier gewinnt und Tic Tac Toe: Tischliste mit Belegung und Entfernung, Filter f\195\188r wartende Gegner oder leere Tische und Beitritt zum n\195\164chsten freien Sitz mit Best\195\164tigung durch die Spieldaten. Optionale gespeicherte Tisch-Markierungen: Gr\195\188n f\195\188r leer, Gelb f\195\188r einen wartenden Spieler, Rot f\195\188r voll und Blau f\195\188r den eigenen Tisch. Belegte oder ausgelagerte Sitze werden nicht als freie Ziele verwendet."},
     {version="2.6.93",text="Auto-Angeln unter Scripts > Dieses Spiel: verf\195\188gbare Standard- oder goldene Angel automatisch ausr\195\188sten, in den Teich auswerfen und den blauen Fangbereich durch Halten und Loslassen steuern. Automatische Folgew\195\188rfe nach dem Spiel-Cooldown, best\195\164tigte F\195\164nge und Credits, Hintergrundbetrieb und zentrale AFK-Sicherung; Start und Stop bleiben manuell. Wechselnde g\195\188ltige Wurfziele, Pr\195\188fung des tats\195\164chlichen Angel-Cooldowns und begrenzte Wiederholung abgelehnter W\195\188rfe verhindern dauernde Fehlwurf-Ger\195\164usche."},
     {version="2.6.92",text="Zentraler AFK-Schutz f\195\188r das gesamte ISB-Men\195\188: beim Laden automatisch aktiv, mit regelm\195\164\195\159igen Roblox-Eingabeimpulsen bei Inaktivit\195\164t und zus\195\164tzlicher Reaktion auf das Idle-Ereignis. Gemeinsame Instanz f\195\188r alle Funktionen, automatische Wiederholung bei Eingabefehlern und vollst\195\164ndige Bereinigung beim Entladen."},
-    {version="2.6.91",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet."},
-    {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar. Stabiler abgerundeter Rahmen beim Auf- und Zuklappen der Sammlung, mit gemeinsamem sauberem Scroll-Ausschnitt f\195\188r Rahmen und Inhalt."},
+        {version="2.6.90",text="Spielinformationen in Spieler-Details und Spielerinfo-Item: Credits, R\195\164nge, Reputation, Spielzeit und Spenden mit Tausenderpunkten. Aufklappbare Ausr\195\188stung und Sammlung mit Gamepassnamen und einzelnen Titel-/Item-Eintr\195\164gen; live aktualisiert und nur im unterst\195\188tzten Spiel sichtbar. Stabiler abgerundeter Rahmen beim Auf- und Zuklappen der Sammlung, mit gemeinsamem sauberem Scroll-Ausschnitt f\195\188r Rahmen und Inhalt."},
     {version="2.6.89",text="VIP-Aufzug mit eigenen lokalen E-Kn\195\182pfen: direkt hinein und zur\195\188ck teleportieren, mit gerader Ausrichtung und bodennaher Ankunft. Automatisch aktiv im unterst\195\188tzten Spiel."},
     {version="2.6.86",text="777 Auto-Spin unter Scripts > Dieses Spiel: sicher zum Knopf teleportieren und die Freigabe sofort beanspruchen. Native Tap-Eingabe in jedem Frame bis zur Serverbest\195\164tigung, ohne k\195\188nstliche Tastendauer oder Wiederholungspause bei Tap-Prompts. Best\195\164tigte Drehungen erhalten keine weiteren Eingaben. Optional beim freigeschalteten Titel stoppen. Gesamtzahl der 777-Gewinne, automatische R\195\188ckkehr zum Knopf und gemeinsamer AFK-Schutz des ISB-Men\195\188s. Serverreihenfolge und Ping bestimmen den tats\195\164chlichen Vorrang."},
     {version="2.6.81",text="Vier gewinnt Auto-Player unter Scripts > Dieses Spiel mit lokaler Zugberechnung, Brettansicht, Gewinnlinien und Suchtiefe. Automatisches Spielen \195\188ber weitere Runden sowie Pause und einzelne Z\195\188ge."},
@@ -9341,7 +9341,7 @@ function runtime.halloweenValid(_,saved)
         and saved.root.Parent and saved.humanoid.Health>0 and not saved.humanoid.SeatPart
         and not state.fly and not runtime.freecam and not runtime.roleplay
 end
-runtime.halloweenTarget=(function(c,bell,inside,range,raycast,blocked)
+runtime.halloweenTarget=(function(c,bell,inside,range,raycast,blocked,variant)
     local r,h=c.root,c.humanoid
     local clearance=math.max(.5,h.HipHeight+r.Size.Y*.5)
     if h.RigType==Enum.HumanoidRigType.R6 then local leg=c.character:FindFirstChild('Left Leg');clearance+=leg and leg.Size.Y or 2 end
@@ -9353,7 +9353,8 @@ runtime.halloweenTarget=(function(c,bell,inside,range,raycast,blocked)
     for _,distance in ipairs({3,4,5,6,7,8})do
         for _,offset in ipairs({0,2,-2,4,-4})do table.insert(candidates,bell+axis*distance+side*offset)end
     end
-    for _,point in ipairs(candidates)do
+    for index=1,#candidates do
+        local point=candidates[(index-1+((variant or 0)%5))%#candidates+1]
         local hit=raycast(point+Vector3.new(0,.5,0),Vector3.new(0,-12,0))
         if hit and hit.Normal.Y>.85 and hit.Position.Y<=bell.Y+.5 and bell.Y-hit.Position.Y<8 then
             local target=Vector3.new(point.X,hit.Position.Y+clearance,point.Z)
@@ -9444,7 +9445,7 @@ function runtime.halloweenMove(item,saved)
             probe.CFrame=frame;probe.Size=size
             for _,part in ipairs(workspace:GetPartsInPart(probe,overlap))do if part.CanCollide then return true end end
             return false
-        end)
+        end,saved.bellVariant)
     probe:Destroy();if not ok then error(target)end
     runtime.teleportCharacter(saved,target)
     runtime.halloweenCamera.aim(saved,position)
@@ -9800,13 +9801,68 @@ function runtime.halloweenListen(callback)
     local shared=game:GetService("ReplicatedStorage").Shared
     return require(shared.BridgeNet).CreateBridge("Notification"):Connect(callback)
 end
+runtime.halloweenReadiness=(function(saved,sample,now)
+    if not sample.valid or not sample.inRange or not sample.focused or sample.shown==false then
+        saved.bellReadySince=nil;saved.bellReadySample=nil
+        return false
+    end
+    local before=saved.bellReadySample
+    if not before or(sample.root-before.root).Magnitude>.12 or(sample.bell-before.bell).Magnitude>.06 then
+        saved.bellReadySince=now
+    end
+    saved.bellReadySample={root=sample.root,bell=sample.bell}
+    return now-(saved.bellReadySince or now)>=.4
+end)
+runtime.halloweenShown=setmetatable({},{__mode='k'})
+do
+    local service=optionalService('ProximityPromptService')
+    if service then
+        connect(service.PromptShown,function(prompt)if prompt.ObjectText=='Doorbell'then runtime.halloweenShown[prompt]=true end end)
+        connect(service.PromptHidden,function(prompt)if runtime.halloweenShown[prompt]~=nil then runtime.halloweenShown[prompt]=false end end)
+    end
+end
+function runtime.halloweenReady(item,saved)
+    if not runtime.halloweenValid(item,saved)or not item.promptReady()then saved.bellReadySince=nil;saved.bellReadySample=nil;return false end
+    local camera=workspace.CurrentCamera;local parent=item.prompt.Parent
+    local bell=parent and(parent:IsA('Attachment')and parent.WorldPosition or(parent:IsA('BasePart')and parent.Position))
+    if not camera or not bell then saved.bellReadySince=nil;saved.bellReadySample=nil;return false end
+    local point,onScreen=camera:WorldToViewportPoint(bell)
+    local aim=bell-camera.CFrame.Position
+    local focused=onScreen and point.Z>0 and aim.Magnitude>.01 and camera.CFrame.LookVector:Dot(aim.Unit)>.96
+    return runtime.halloweenReadiness(saved,{valid=true,shown=runtime.halloweenShown[item.prompt],focused=focused,
+        inRange=(saved.root.Position-bell).Magnitude<=math.max(1,item.prompt.MaxActivationDistance-.75),
+        root=saved.root.Position,bell=bell},os.clock())
+end
+function runtime.halloweenObserve(item,saved)
+    local receipt=runtime.halloweenReceipt({balance=runtime.halloweenBalance,listen=runtime.halloweenListen})
+    local close=receipt.close
+    saved.bellTriggerCount=0
+    local ok,triggered=pcall(function()return item.prompt.Triggered:Connect(function(who)
+        if who==nil or who==player then saved.bellTriggerCount+=1;saved.bellTriggeredAt=os.clock()end
+    end)end)
+    if not ok then close();error(triggered,0)end
+    function receipt.close()
+        triggered:Disconnect()
+        if saved.bellHeld then saved.bellHeld=nil;pcall(function()item.prompt:InputHoldEnd()end)end
+        close()
+    end
+    return receipt
+end
+function runtime.halloweenRealign(item,saved)
+    assert(runtime.halloweenValid(item,saved)and(not saved.current or saved.current()),'context_changed')
+    saved.bellVariant=(saved.bellVariant or 0)+1
+    saved.bellReadySince=nil;saved.bellReadySample=nil
+    runtime.halloweenMove(item,saved)
+end
 function runtime.halloweenPress(item,saved)
-    assert(runtime.halloweenValid(item,saved)and item.promptReady(),"prompt_unavailable")
-    -- The same native begin/end pair used by this game's own clickable prompt UI.
-    item.prompt:InputHoldBegin()
+    if not runtime.halloweenReady(item,saved)or(saved.current and not saved.current())then return false end
+    item.prompt:InputHoldBegin();saved.bellHeld=true
     local ok,err=pcall(function()task.wait(math.max(.12,item.prompt.HoldDuration+.08))end)
-    pcall(function()item.prompt:InputHoldEnd()end)
+    local released,releaseError=pcall(function()item.prompt:InputHoldEnd()end)
+    if released then saved.bellHeld=nil end
     if not ok then error(err)end
+    if not released then error(releaseError)end
+    return true
 end
 function runtime.halloweenMaintain(item,saved)
     if not item.model:IsDescendantOf(workspace)or not item.promptReady()then return end
@@ -9910,28 +9966,44 @@ runtime.halloween=(function(deps)
                 if not current()or not deps.valid(item,trip.saved)then return end
                 deps.move(item,trip.saved)
                 trip.observer.arm()
-                -- Allow the server to receive the new position before native prompt input.
-                local settle=deps.clock()+.35
-                repeat deps.wait(.1);if not current()then return end until deps.clock()>=settle
-                if not deps.valid(item,trip.saved)or not item.promptReady()then error('prompt_unavailable')end
-                local early=trip.observer.read()
-                if early and early.reward and early.reward>0 then outcome='collected';reward=early.reward;return end
-                if early and early.already then outcome='already';return end
-                deps.press(item,trip.saved)
-                p.attempts+=1;if not current()then return end;status('confirming');changed()
-                local deadline=deps.clock()+12
-                local nextPress=deps.clock()+.4
-                while current()do
+                -- Wait for a stable landing and the actual focused prompt before sending input.
+                local realigns=0;local sent=0;local batch=0
+                local function realign()
+                    if not deps.realign or realigns>=2 then return false end
+                    deps.realign(item,trip.saved);realigns+=1;batch=0;return true
+                end
+                local function result()
                     local receipt=trip.observer.read()
-                    if receipt and type(receipt.reward)=='number'and receipt.reward>0 then
-                        outcome='collected';reward=receipt.reward;return
-                    end
-                    if receipt and receipt.already then outcome='already';return end
+                    if receipt and type(receipt.reward)=='number'and receipt.reward>0 then outcome='collected';reward=receipt.reward;return true end
+                    if receipt and receipt.already then outcome='already';return true end
+                    return false
+                end
+                local function ready()return item.promptReady()and(not deps.ready or deps.ready(item,trip.saved))end
+                local settle=deps.clock()+.35;local readyDeadline=deps.clock()+8;local nextAlign=deps.clock()+1.5
+                repeat
+                    deps.wait(.1);if not current()then return end
+                    if result()then return end
+                    if not deps.valid(item,trip.saved)then error('context_changed')end
+                    if deps.maintain then deps.maintain(item,trip.saved)end
+                    if deps.clock()>=readyDeadline then error('prompt_not_ready')end
+                    if deps.clock()>=nextAlign and not ready()then realign();nextAlign=deps.clock()+1.5 end
+                until deps.clock()>=settle and ready()
+                local deadline=deps.clock()+12;local nextPress=deps.clock()
+                status('confirming');changed()
+                while current()do
+                    if result()then return end
                     if not deps.valid(item,trip.saved)then error('context_changed')end
                     if deps.clock()>=deadline then outcome='timeout';return end
                     if deps.maintain then deps.maintain(item,trip.saved)end
-                    if deps.clock()>=nextPress and item.promptReady()then
-                        deps.press(item,trip.saved);p.attempts+=1;nextPress=deps.clock()+.4;changed()
+                    local acknowledged=deps.acknowledged and deps.acknowledged(item,trip.saved)
+                    if type(acknowledged)=='number'then nextPress=math.max(nextPress,acknowledged+1.5)end
+                    if deps.clock()>=nextPress and sent<6 then
+                        if batch>=2 and realign()then nextPress=deps.clock()+.5
+                        elseif ready()then
+                            local pressed=deps.press(item,trip.saved)
+                            if pressed~=false then sent+=1;batch+=1;p.attempts+=1;changed()end
+                            nextPress=deps.clock()+.8
+                        elseif deps.clock()>=nextAlign then realign();nextAlign=deps.clock()+1.5 end
                     end
                     deps.wait(.1)
                 end
@@ -9989,8 +10061,8 @@ end)({supported=function()return alive and runtime.currentGame()~=nil end,clock=
     end,
     scan=runtime.scanHalloween,capture=runtime.halloweenCapture,valid=runtime.halloweenValid,
     prepare=function()runtime.piano.stop()end,move=runtime.halloweenMove,restore=runtime.halloweenRestore,
-    press=runtime.halloweenPress,maintain=runtime.halloweenMaintain,
-    observe=function()return runtime.halloweenReceipt({balance=runtime.halloweenBalance,listen=runtime.halloweenListen})end,
+    press=runtime.halloweenPress,maintain=runtime.halloweenMaintain,ready=runtime.halloweenReady,
+    realign=runtime.halloweenRealign,acknowledged=function(_,saved)return saved.bellTriggeredAt end,observe=runtime.halloweenObserve,
     highlight=runtime.halloweenHighlight,notify=function()notify(runtime.pianoText("Ein Halloween-Haus ist erschienen!","A Halloween house has appeared!"),"Halloween-Event")end,
     changed=runtime.refreshHalloween})
 connect(player.CharacterRemoving,function()runtime.halloween.stop()end)
