@@ -1,7 +1,7 @@
--- ISB Menu 2.6.94 | Own-game universal client toolkit
+-- ISB Menu 2.6.95 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.94",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.95",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -99,7 +99,7 @@ local C = {
     text = Color3.fromRGB(242,245,250), muted = Color3.fromRGB(192,203,218),
     accent = Color3.fromRGB(225,112,39), good = Color3.fromRGB(38,157,113),
 }
-local settings = {tableEsp={chess=false,connect4=false,tictactoe=false},halloweenClaims={},halloweenAutomatic=true,halloweenNotifications=true,halloweenEsp=true,flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish",chessHumanize=false,chessDelayMin=1.2,chessDelayMax=3.2, favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, adminAutoHop=false, lowEffects=false, fpsCap=60}
+local settings = {liquidGlass=true,tableEsp={chess=false,connect4=false,tictactoe=false},halloweenClaims={},halloweenAutomatic=true,halloweenNotifications=true,halloweenEsp=true,flightStyle="Fly", pianoFavorites={},pianoLocalFiles={},pianoSort="popular",chessEngine="stockfish",chessHumanize=false,chessDelayMin=1.2,chessDelayMax=3.2, favorites = {}, waypoints = {}, theme = "Amber", reducedMotion = false, key = "M", dockKey="K", searchKey="T", flyKey="F", noclipKey="Z", espKey="E", speedKey="V",flightTierKey="Q", freecamKey="L", freecamTeleportKey="N", notifications=true,autoOpen=true,alignment="Center",uiScale=100,sounds=true, blur=false, designVersion="2.3", provider="ScriptBlox", discovery="Beliebt", scriptFavorites={}, volume=35, values={}, friendHighlights=true, staffHighlights=true, adminAutoHop=false, lowEffects=false, fpsCap=60}
 if type(readfile) == "function" then
     local ok, data = pcall(function() return Http:JSONDecode(readfile(CONFIG.SaveFile)) end)
     if ok and type(data) == "table" then
@@ -169,6 +169,7 @@ if type(readfile) == "function" then
                 if valid and key and key~=Enum.KeyCode.Unknown then settings[field]=data[field] end
             end
         end
+        settings.liquidGlass=data.liquidGlass~=false
         settings.reducedMotion = data.reducedMotion==true
         if type(data.key) == "string" then
             local valid, key = pcall(function() return Enum.KeyCode[data.key] end)
@@ -703,6 +704,7 @@ runtime.english={
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.english["Auto-Angeln"]="Auto Fishing"
 runtime.englishHistory={
+    ["2.6.95"]="Animated background: the existing dark gradients on the window, dock and small glass surfaces move slowly and smoothly. Original colors, gradient stops, transparency and cards are preserved. Settings > General can disable the animation or keep it still with Reduce motion; both preferences are saved.",
     ["2.6.94"]="Table finder inside Chess, Connect Four and Tic Tac Toe: table list with occupancy and distance, filters for waiting opponents or empty tables, and nearest-seat teleport with confirmation from game data. Optional saved table highlights: green for empty, amber for a waiting player, red for full and blue for your table. Occupied or off-map seats are excluded from available destinations.",
     ["2.6.93"]="Auto Fishing under Scripts > This Game: automatically equip an available standard or golden rod, cast into the pond and control the blue catching region by holding and releasing. Automatic casts after the game cooldown, confirmed catches and credits, background operation and shared idle protection; starts and stops manually. Varied valid casting targets, checks of the rod\226\128\153s actual cooldown and bounded retries of rejected casts prevent repeated failed-cast sounds.",
     ["2.6.92"]="Central idle protection across ISB Menu: enabled automatically on load, with periodic Roblox input pulses during inactivity and an additional idle-event response. One shared instance for all features, automatic retries after input failures and complete cleanup on unload.",
@@ -1273,11 +1275,83 @@ local function stroke(obj)
     end
     make("UIStroke", {Color = C.line, Thickness = 1, Transparency = 0.45}, target)
 end
+runtime.createLiquidGlass=(function(deps)
+    local p={alive=true,enabled=deps.enabled~=false,entries={},phase=0,elapsed=0,still=false}
+    function p.register(surface,kind)
+        if not p.alive then return end
+        local item=deps.attach(surface,kind)
+        table.insert(p.entries,item);deps.apply(item,p.enabled)
+        return item
+    end
+    function p.setEnabled(value)
+        if not p.alive then return end
+        p.enabled=value==true
+        for _,item in ipairs(p.entries)do if deps.present(item)then deps.apply(item,p.enabled)end end
+        if deps.preference then deps.preference(p.enabled)end
+    end
+    function p.tick(dt)
+        if not p.alive then return end
+        p.elapsed+=math.clamp(tonumber(dt)or 0,0,.1)
+        if p.elapsed<1/30 then return end
+        local step=p.elapsed;p.elapsed=0
+        local reduced=deps.reduced()==true
+        if not reduced then p.phase+=step end
+        for i=#p.entries,1,-1 do
+            local item=p.entries[i]
+            if not deps.present(item)then table.remove(p.entries,i)
+            elseif p.enabled and deps.visible(item)and(not reduced or not p.still)then deps.paint(item,reduced and 0 or p.phase)end
+        end
+        p.still=reduced
+    end
+    function p.dispose()
+        if not p.alive then return end
+        p.alive=false
+        for _,item in ipairs(p.entries)do if deps.present(item)then deps.apply(item,false);deps.destroy(item)end end
+        p.entries={}
+    end
+    return p
+end)
+runtime.liquidGlass=runtime.createLiquidGlass({
+    enabled=settings.liquidGlass,
+    reduced=function()return settings.reducedMotion end,
+    preference=function(value)settings.liquidGlass=value;save()end,
+    attach=function(surface,kind)
+        local gradient=surface:FindFirstChildOfClass('UIGradient')
+        return{surface=surface,kind=kind,gradient=gradient,color=gradient and gradient.Color,
+            alpha=surface.BackgroundTransparency,rotation=gradient and gradient.Rotation,offset=gradient and gradient.Offset or Vector2.zero}
+    end,
+    present=function(item)return item.surface.Parent~=nil end,
+    apply=function(item,enabled)
+        item.surface.BackgroundTransparency=item.alpha
+        if item.gradient then
+            item.gradient.Color=item.color;item.gradient.Rotation=item.rotation;item.gradient.Offset=item.offset
+        end
+    end,
+    visible=function(item)
+        if item.kind=='content'then return false end
+        local obj=item.surface
+        while obj do
+            if obj:IsA('GuiObject')and(not obj.Visible or(obj:IsA('CanvasGroup')and obj.GroupTransparency>=.99))then return false end
+            obj=obj.Parent
+        end
+        return true
+    end,
+    paint=function(item,t)
+        if item.gradient then
+            item.gradient.Offset=item.offset+Vector2.new(math.sin(t*.21)*.16,math.sin(t*.13)*.045)
+            item.gradient.Rotation=item.rotation+math.sin(t*.17)*12
+        end
+    end,
+    destroy=function()end,
+})
+connect(Run.RenderStepped,function(dt)runtime.liquidGlass.tick(dt)end)
+
 function runtime.glassSurface(group,radius)
     group.BackgroundTransparency=1
     local surface=make("Frame",{Name="GlassSurface",BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=.025,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1),ZIndex=0},group)
     round(surface,math.max(0,radius-.5))
     make("UIGradient",{Rotation=75,Color=ColorSequence.new(Color3.fromRGB(50,61,77),Color3.fromRGB(13,19,29))},surface)
+    runtime.liquidGlass.register(surface,"glass")
 end
 -- Quiet content surfaces match the preview without changing hit geometry.
 function runtime.contentSurface(group,radius)
@@ -1288,6 +1362,7 @@ function runtime.contentSurface(group,radius)
     local edge=make("Frame",{Name="ContentEdge",Active=false,BackgroundTransparency=1,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1),ZIndex=0},group)
     round(edge,(radius or 17)-.5)
     make("UIStroke",{Color=Color3.fromRGB(165,190,220),Thickness=1,Transparency=.91},edge)
+    runtime.liquidGlass.register(surface,"content")
 end
 runtime.tweens=setmetatable({},{__mode="k"})
 local function animate(obj, props)
@@ -1731,6 +1806,7 @@ round(window, 27)
 local windowSurface=make("Frame",{Name="WindowSurface",BackgroundTransparency=.025,BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Position=UDim2.fromOffset(.5,.5),Size=UDim2.new(1,-1,1,-1),ZIndex=0},window)
 round(windowSurface,26.5); stroke(window)
 make("UIGradient",{Rotation=145,Color=ColorSequence.new(Color3.fromRGB(47,57,69),Color3.fromRGB(17,23,32))},windowSurface)
+runtime.liquidGlass.register(windowSurface,"window")
 local motionScale=make("UIScale",{Scale=1},window)
 local header = make("Frame", {BackgroundTransparency=1, Size = UDim2.new(1,0,0,52), Active = true}, window)
 local logo = label(header, "ISB", 19, C.accent, UDim2.fromOffset(20,13), UDim2.fromOffset(48,38))
@@ -3011,6 +3087,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.95",text="Animierter Hintergrund: Die vorhandenen dunklen Verl\195\164ufe von Fenster, Dock und kleinen Glasfl\195\164chen bewegen sich langsam und weich. Urspr\195\188ngliche Farben, Farbpunkte, Transparenz und Karten bleiben erhalten. Unter Einstellungen > Allgemein l\195\164sst sich die Animation abschalten oder \195\188ber Animationen reduzieren ruhig darstellen; beide Optionen werden gespeichert."},
     {version="2.6.94",text="Tischfinder direkt in Schach, Vier gewinnt und Tic Tac Toe: Tischliste mit Belegung und Entfernung, Filter f\195\188r wartende Gegner oder leere Tische und Beitritt zum n\195\164chsten freien Sitz mit Best\195\164tigung durch die Spieldaten. Optionale gespeicherte Tisch-Markierungen: Gr\195\188n f\195\188r leer, Gelb f\195\188r einen wartenden Spieler, Rot f\195\188r voll und Blau f\195\188r den eigenen Tisch. Belegte oder ausgelagerte Sitze werden nicht als freie Ziele verwendet."},
     {version="2.6.93",text="Auto-Angeln unter Scripts > Dieses Spiel: verf\195\188gbare Standard- oder goldene Angel automatisch ausr\195\188sten, in den Teich auswerfen und den blauen Fangbereich durch Halten und Loslassen steuern. Automatische Folgew\195\188rfe nach dem Spiel-Cooldown, best\195\164tigte F\195\164nge und Credits, Hintergrundbetrieb und zentrale AFK-Sicherung; Start und Stop bleiben manuell. Wechselnde g\195\188ltige Wurfziele, Pr\195\188fung des tats\195\164chlichen Angel-Cooldowns und begrenzte Wiederholung abgelehnter W\195\188rfe verhindern dauernde Fehlwurf-Ger\195\164usche."},
     {version="2.6.92",text="Zentraler AFK-Schutz f\195\188r das gesamte ISB-Men\195\188: beim Laden automatisch aktiv, mit regelm\195\164\195\159igen Roblox-Eingabeimpulsen bei Inaktivit\195\164t und zus\195\164tzlicher Reaktion auf das Idle-Ereignis. Gemeinsame Instanz f\195\188r alle Funktionen, automatische Wiederholung bei Eingabefehlern und vollst\195\164ndige Bereinigung beim Entladen."},
@@ -10178,6 +10255,8 @@ render = function()
         local sizeCard=plainCard("Men\195\188gr\195\182\195\159e","Gr\195\182\195\159e in Prozent",132)
         runtime.drawRuler(sizeCard,{id="uiscale",name="Men\195\188gr\195\182\195\159e",desc="Gr\195\182\195\159e in Prozent",kind="slider",min=50,max=120,step=5,get=function() return settings.uiScale end,fn=function(v) settings.uiScale=math.clamp(v,50,120); fit(); save() end})
         runtime.rulerResetButton(sizeCard,"Standard \194\183 100 %",function() settings.uiScale=100; fit(); save(); runtime.refreshControls() end)
+        drawAction({id="liquidglass",name=runtime.pianoText("Animierter Hintergrund","Animated background"),desc=runtime.pianoText("Den vorhandenen dunklen Farbverlauf sanft bewegen","Gently move the existing dark gradient"),kind="toggle",get=function()return settings.liquidGlass end,fn=function()runtime.liquidGlass.setEnabled(not settings.liquidGlass)end})
+        drawAction({id="reducedmotion",name=runtime.pianoText("Animationen reduzieren","Reduce motion"),desc=runtime.pianoText("Hintergrund ruhig darstellen und \195\156berg\195\164nge verk\195\188rzen","Keep the background still and shorten transitions"),kind="toggle",get=function()return settings.reducedMotion end,fn=function()settings.reducedMotion=not settings.reducedMotion;save()end})
         drawAction({id="notifications",name="Benachrichtigungen",desc="Hinweise unten rechts anzeigen",kind="toggle",get=function() return settings.notifications end,fn=function() settings.notifications=not settings.notifications; save() end})
         drawAction({id="autoopen",name="Beim Start \195\182ffnen",desc="Fenster beim n\195\164chsten Start automatisch \195\182ffnen",kind="toggle",get=function() return settings.autoOpen end,fn=function() settings.autoOpen=not settings.autoOpen; save() end})
         drawAction({id="uisounds",name="Interface-Sounds",desc="Dezente Kl\195\164nge bei \195\150ffnen, Schlie\195\159en und Klicks",kind="toggle",get=function() return settings.sounds end,fn=function() settings.sounds=not settings.sounds; save() end})
@@ -10653,6 +10732,7 @@ local api = {}
 api.Destroy = function()
     if not alive then return end
     alive=false
+    runtime.liquidGlass.dispose()
     runtime.recovery.cancel(false)
     runtime.piano.dispose()
     runtime.gamePlayerInfo.dispose()

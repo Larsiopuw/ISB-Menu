@@ -1,5 +1,13 @@
-# ISB Menu 2.6.94 · by Larsiopuw
+# ISB Menu 2.6.95 · by Larsiopuw
 
+
+## Animierter Hintergrund
+
+Die vorhandenen dunklen UIGradient-Farbfolgen von Fenster, Dock, Statusleiste und kleinen schwebenden Fenstern werden durch eine langsame sinusförmige Verschiebung und leichte Drehung animiert. Farben, Farbpunkte, Deckkraft und Kartenflächen bleiben unverändert. Es gibt keine zusätzlichen Lichtstreifen, dunklen Balken oder Effekt-Ebenen und keinen zusätzlichen Spielwelt-Blur.
+
+Unter Einstellungen > Allgemein ist „Animierter Hintergrund“ standardmäßig eingeschaltet. Ausschalten stellt die ursprüngliche Ausrichtung und Position wieder her. „Animationen reduzieren“ zeigt den ursprünglichen statischen Verlauf und verkürzt die bestehenden Menü-Übergänge. Beide Einstellungen werden gespeichert. Verdeckte Flächen werden nicht animiert; ein einzelner gemeinsamer Callback begrenzt die Verlaufsänderungen auf höchstens 30 Aktualisierungen pro Sekunde und gibt entfernte Flächen wieder frei.
+
+Der ursprüngliche Quellstand vor dieser Designänderung liegt zusätzlich lokal unter work/liquid-glass-baseline.lua. Die Browser-Vorschau verwendet die vorhandenen CSS-Verläufe mit langsamer Hintergrundbewegung; sie ist eine Vorschau und kein Nachweis einer echten optischen Lichtbrechung in Roblox.
 
 ## Tischfinder für die Brettspiele
 
