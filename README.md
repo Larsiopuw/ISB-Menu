@@ -1,5 +1,11 @@
-# ISB Menu 2.6.100 · by Larsiopuw
+# ISB Menu 2.6.101 · by Larsiopuw
 
+
+## Dieses Spiel in allen Spielen
+
+Unter Scripts ist der Button „Dieses Spiel“ immer vorhanden: in der Online-Suche und im lokalen Script-Bereich. Bei englischer Sprache heißt er „This Game“. Ohne passende registrierte Funktionen zeigt der Tab „Noch keine Funktionen“ und „Für dieses Spiel sind aktuell keine eigenen Funktionen verfügbar.“ mit einem Rückweg zu Scripts.
+
+Die Sichtbarkeit des Tabs erweitert nicht die Freigabe einzelner Funktionen. Schach, Vier gewinnt, Tic Tac Toe, 777, Halloween und Angeln erscheinen weiterhin nur bei passender Universe- und Place-ID. Direkte Aufrufe ihrer Seiten bleiben außerhalb dieses Spiels gesperrt. Auch ein registriertes Spiel mit leerer Funktionsliste erhält den leeren Zustand.
 
 ## Halloween: Klingelbereitschaft und Wiederholungen
 
@@ -99,7 +105,7 @@ Die lokale Suche arbeitet mit iterativer Vertiefung, Alpha-Beta-Suche, Stellungs
 
 ## Tic Tac Toe automatisch spielen
 
-Unter **Scripts → Dieses Spiel → Tic Tac Toe** öffnen. Der Bereich erscheint nur im registrierten Spiel und Ort (Universe `7447878628`, Place `136162036182779`). Mit beiden Spielern am Tisch **Auto spielen** oder **Ein Zug** wählen; **Pause** beendet weitere automatische Züge. Jeder Start ist manuell, Autoplay bleibt nach beendeten Runden am selben Tisch aktiv und spielt nach dessen automatischem Reset weiter. Schach bleibt im selben Spielbereich erreichbar.
+Unter **Scripts → Dieses Spiel → Tic Tac Toe** öffnen. Die Tic-Tac-Toe-Funktion erscheint nur im registrierten Spiel und Ort (Universe `7447878628`, Place `136162036182779`). Mit beiden Spielern am Tisch **Auto spielen** oder **Ein Zug** wählen; **Pause** beendet weitere automatische Züge. Jeder Start ist manuell, Autoplay bleibt nach beendeten Runden am selben Tisch aktiv und spielt nach dessen automatischem Reset weiter. Schach bleibt im selben Spielbereich erreichbar.
 
 Das Brett wird direkt aus den replizierten Spieldaten gelesen. Die lokale vollständige Minimax-Suche berücksichtigt beide möglichen Startsymbole, sofortige Gewinne, Abwehr und Gabeln. Bei fehlerfreiem Gegenspiel endet eine ausgeglichene Partie remis; einen Sieg gegen jeden Gegner kann Tic Tac Toe nicht garantieren. Gewinnwege werden möglichst kurz, unvermeidbare Verluste möglichst spät gewählt. Es sind weder eine zusätzliche EXE noch ein Online-Dienst erforderlich.
 
@@ -163,7 +169,7 @@ Links mittig steht eine kompakte Liste aktiver Funktionen mit den aktuellen Tast
 
 ## Schach im Spiel
 
-Unter **Scripts > Dieses Spiel > Schach** stehen **Auto spielen**, **Pause** und **Ein Zug** bereit. Bei englischer Menuesprache heisst der Pfad **Scripts > This Game > Chess**. Der Bereich erscheint nur im registrierten Spiel und Place; **Local / Lokal** bleibt der separate Lua-Dateilader. Setze dich zuerst an einen Schachtisch. Die Stellung, eigene Farbe und das Zugrecht kommen direkt aus den vorhandenen Spieldaten; Bildschirmaufnahme, Mauskalibrierung und eine zusaetzliche EXE werden nicht benoetigt.
+Unter **Scripts > Dieses Spiel > Schach** stehen **Auto spielen**, **Pause** und **Ein Zug** bereit. Bei englischer Menuesprache heisst der Pfad **Scripts > This Game > Chess**. Die Schach-Funktion erscheint nur im registrierten Spiel und Place; **Local / Lokal** bleibt der separate Lua-Dateilader. Setze dich zuerst an einen Schachtisch. Die Stellung, eigene Farbe und das Zugrecht kommen direkt aus den vorhandenen Spieldaten; Bildschirmaufnahme, Mauskalibrierung und eine zusaetzliche EXE werden nicht benoetigt.
 
 Standardmaessig berechnet **Stockfish** die Zuege online ueber https://chess-api.com/v1. Gesendet wird nur die Brettstellung als FEN mit den Analyseparametern, keine Roblox-Spieler-ID. Angefragt wird Tiefe 18; die Anzeige zeigt die tatsaechlich vom Dienst erreichte Tiefe. Internet und eine HTTP-Funktion des Executors sind erforderlich. En-passant-Felder werden nur fuer die Online-Anfrage entfernt, weil der Dienst diese gueltigen Spielstellungen sonst ablehnt. Echte legale En-passant-Kandidaten werden zusaetzlich durch Stockfish-Analyse ihrer Folgestellungen mit dem regulaeren Zug verglichen. Originalstellung und lokale Legalitaetspruefung bleiben erhalten. Bei Fehlern oder Zeitueberschreitung stoppt die Automatik, ohne still auf eine schwaechere Engine umzuschalten. **Offline** waehlt ausdruecklich die bisherige begrenzte Lua-Suche (Tiefe 4, maximal 7000 Knoten und 0,8 Sekunden). Die Auswahl wird gespeichert. Eine Sieg-Garantie gibt es nicht.
 

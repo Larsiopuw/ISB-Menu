@@ -1,7 +1,7 @@
--- ISB Menu 2.6.100 | Own-game universal client toolkit
+-- ISB Menu 2.6.101 | Own-game universal client toolkit
 -- Client toolkit. External scripts run only after an explicit selection and click.
 local CONFIG = {
-    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.100",
+    Name = "ISB Menu", Author = "Larsiopuw", Version = "2.6.101",
     ToggleKey = Enum.KeyCode.M,
     SaveFile = "ISBMenu-settings.json",
     StaffUserIds = {}, OwnerNames = {"Larsiopuw"}, AdminUserIds = {},
@@ -704,6 +704,7 @@ runtime.english={
 runtime.english["Skala: Stufe 1-4 \194\183 Zahl: Geschwindigkeit in studs/s"]="Ruler: tiers 1-4 \194\183 Number: speed in studs/s"
 runtime.english["Auto-Angeln"]="Auto Fishing"
 runtime.englishHistory={
+    ["2.6.101"]="Scripts: This Game is visible in every game, including the local script section. Games without registered features show a clear empty state. Individual features and their direct entry points remain restricted to their registered game and place.",
     ["2.6.98"]="Safe teleports: the character automatically stands up before changing location. Seat state, seat joints and minigame occupancy are checked before teleporting; chess uses one jump input while waiting for an opponent and two separate jump inputs during an active round. An unreleased seat, Stop or respawn prevents teleporting. Includes outbound and return trips of automatic features. Chess camera transitions are completed before teleporting; Halloween captures the normal return view before departure and restores it with its field of view after returning.",
     ["2.6.95"]="Animated background: the existing dark gradients on the window, dock and small glass surfaces move slowly and smoothly. Original colors, gradient stops, transparency and cards are preserved. Settings > General can disable the animation or keep it still with Reduce motion; both preferences are saved.",
     ["2.6.94"]="Table finder inside Chess, Connect Four and Tic Tac Toe: table list with occupancy and distance, filters for waiting opponents or empty tables, and nearest-seat teleport with confirmation from game data. Optional saved table highlights: green for empty, amber for a waiting player, red for full and blue for your table. Occupied or off-map seats are excluded from available destinations.",
@@ -3309,6 +3310,7 @@ function runtime.validateWaypoints()
 end
 runtime.validateWaypoints()
 runtime.changelog={
+    {version="2.6.101",text="Scripts: Der Tab Dieses Spiel ist in jedem Spiel sichtbar, auch im lokalen Script-Bereich. F\195\188r Spiele ohne hinterlegte Funktionen zeigt er einen verst\195\164ndlichen Hinweis. Einzelne Funktionen und ihre direkten Aufrufe bleiben auf das jeweils registrierte Spiel und den passenden Place begrenzt."},
     {version="2.6.100",text="Halloween-Event unter Scripts > Dieses Spiel: Klingeln aus dem Hausinneren mit automatisch ausgerichteter Kamera, best\195\164tigter Candy-Gutschrift und R\195\188ckkehr zur vorherigen Position und Kameraansicht. Fehlgeschlagene Besuche k\195\182nnen wiederholt werden; best\195\164tigte H\195\164user bleiben auch nach Stop/Start oder erneutem Laden gesperrt. Optionale Spawn-Benachrichtigungen und Haus-Highlights. Alle drei Optionen werden gespeichert und sind standardm\195\164\195\159ig an; die Automatik wird manuell gestartet. Eingaben erst bei stabiler Ankunft, ausreichender N\195\164he und auf die Klingel gerichteter Kamera. Die Prompt-Sichtbarkeit und ausgel\195\182ste Interaktionen werden ber\195\188cksichtigt. Bei ausbleibender Gutschrift werden fr\195\188h andere gepr\195\188fte Innenpositionen verwendet; Eingaben und Neuausrichtungen bleiben begrenzt. W\195\164hrend des Besuchs bleibt die genaue Klingel unabh\195\164ngig von fremden Item-Kn\195\182pfen sichtbar und wird direkt angesprochen; ihre urspr\195\188ngliche Anzeige-Priorit\195\164t wird beim Verlassen oder Abbrechen wiederhergestellt."},
     {version="2.6.98",text="Sichere Teleports: Vor jedem Ortswechsel steht der Charakter automatisch auf. Sitzstatus, Sitzverbindung und Minispiel-Belegung werden vor dem Teleport gepr\195\188ft; beim Schach reicht beim Warten auf einen Gegner ein Sprungimpuls, w\195\164hrend einer laufenden eigenen Runde werden zwei getrennte Sprungimpulse ausgel\195\182st. Nicht freigegebene Sitze, Stop und Respawn verhindern den Teleport. Gilt auch f\195\188r Hin- und R\195\188ckwege der Automatikfunktionen. Der Schach-Kamera\195\188bergang wird vor dem Teleport sauber beendet; Halloween sichert die normale R\195\188ckkehransicht vor der Abreise und stellt sie mit Sichtfeld nach der R\195\188ckkehr wieder her."},
     {version="2.6.95",text="Animierter Hintergrund: Die vorhandenen dunklen Verl\195\164ufe von Fenster, Dock und kleinen Glasfl\195\164chen bewegen sich langsam und weich. Urspr\195\188ngliche Farben, Farbpunkte, Transparenz und Karten bleiben erhalten. Unter Einstellungen > Allgemein l\195\164sst sich die Animation abschalten oder \195\188ber Animationen reduzieren ruhig darstellen; beide Optionen werden gespeichert."},
@@ -3811,13 +3813,17 @@ end)({
     error=function(message)logEvent("Aufzug",message);notify("Aufzug-Ziel noch nicht geladen. Bitte erneut versuchen.","Aufzug")end,
 })
 function runtime.openThisGame()
-    if not runtime.currentGame()then return false end
     page="Dieses Spiel";query="";render();return true
 end
 function runtime.drawThisGame()
-    local entry=runtime.currentGame();if not entry then return end
+    local entry=runtime.currentGame()
     local back=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
-    rowButton(back,runtime.pianoText("Zur\195\188ck zu Scripts","Back to Scripts"),UDim2.new(),UDim2.fromOffset(170,30),function()page="Skripte";query="";render()end)
+    rowButton(back,runtime.pianoText("Zur\195\188ck zu Scripts","Back to Scripts"),UDim2.new(),UDim2.fromOffset(170,30),function()page="Skripte";query="";render()end).Name="ThisGameBack"
+    if not entry or not entry.features or #entry.features==0 then
+        local empty=plainCard(runtime.pianoText("Noch keine Funktionen","No functions yet"),runtime.pianoText("F\195\188r dieses Spiel sind aktuell keine eigenen Funktionen verf\195\188gbar.","There are currently no custom functions available for this game."),106,false)
+        empty.Name="ThisGameEmpty"
+        return
+    end
     for _,feature in ipairs(entry.features)do
         local f=card(runtime.pianoText(feature.name[1],feature.name[2]),runtime.pianoText(feature.description[1],feature.description[2]),86,false)
         f.Name="GameFeature_"..feature.id
@@ -3832,7 +3838,7 @@ end
 local function drawScripts()
     local mode=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34)},content)
     rowButton(mode,"Zur Online-Suche",UDim2.new(),UDim2.fromOffset(150,30),function() scriptSearch.localMode=false; render() end)
-    if runtime.currentGame()then rowButton(mode,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(1,-114,0,0),UDim2.fromOffset(110,30),runtime.openThisGame).Name="ThisGameOpen"end
+    rowButton(mode,runtime.pianoText("Dieses Spiel","This Game"),UDim2.new(1,-114,0,0),UDim2.fromOffset(110,30),runtime.openThisGame).Name="ThisGameOpen"
     local f=plainCard("Eigene Scripts","Lokale Lua-Dateien aus deinem Executor-Workspace. Ausf\195\188hrung nur nach deinem Klick.",126)
     local input=make("TextBox",{Text="",PlaceholderText="Dateiname.lua",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,
         TextSize=13,TextColor3=C.text,PlaceholderColor3=C.muted,BackgroundColor3=C.panel,Position=UDim2.fromOffset(16,78),Size=UDim2.new(1,-160,0,32)},f)
@@ -3922,7 +3928,7 @@ local function drawScriptSearch()
     end
     rowButton(controls,"Suchen",UDim2.fromOffset(210,0),UDim2.fromOffset(82,30),function() searchRemoteScripts(1) end)
     rowButton(controls,"Lokal",UDim2.fromOffset(302,0),UDim2.fromOffset(74,30),function() scriptSearch.localMode=true; query=""; render() end)
-    if runtime.currentGame()then rowButton(controls,runtime.pianoText("Dieses Spiel","This Game"),UDim2.fromOffset(386,0),UDim2.fromOffset(110,30),runtime.openThisGame).Name="ThisGameOpen"end
+    rowButton(controls,runtime.pianoText("Dieses Spiel","This Game"),UDim2.fromOffset(386,0),UDim2.fromOffset(110,30),runtime.openThisGame).Name="ThisGameOpen"
     if not scriptSearch.selected then
         local filters=make("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)},content)
         for i,name in ipairs({"Beliebt","Neu","Favoriten"}) do
@@ -10440,7 +10446,7 @@ end
 
 render = function()
     if not alive then return end
-    if (page=="Dieses Spiel"or page=="Schach"or page=="Tic Tac Toe"or page=="Vier gewinnt"or page=="777 Auto-Spin"or page=="Halloween-Event"or page=="Auto-Angeln")and not runtime.currentGame()then page="Skripte"end
+    if (page=="Schach"or page=="Tic Tac Toe"or page=="Vier gewinnt"or page=="777 Auto-Spin"or page=="Halloween-Event"or page=="Auto-Angeln")and not runtime.currentGame()then page="Skripte"end
     local context=page..":"..query..":"..tostring(runtime.selectedPlayer)
     local scroll=context==runtime.renderContext and content.CanvasPosition or Vector2.zero
     if runtime.renderContext~=context or page~="Musik" or runtime.musicMode~="piano" then runtime.cancelPianoScroll()end
